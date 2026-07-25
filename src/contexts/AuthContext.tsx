@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const userRef = doc(db, "users", uid);
       const userSnap = await getDoc(userRef);
-      const isAdminEmail = email?.toLowerCase().trim() === ADMIN_EMAIL;
+      const isAdminEmail = (email || "").toLowerCase().trim() === ADMIN_EMAIL;
       const expectedRole = isAdminEmail ? "admin" : "user";
 
       if (userSnap.exists()) {

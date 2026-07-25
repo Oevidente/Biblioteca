@@ -1,5 +1,6 @@
 import { useState, FormEvent } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import { X, Lock, Mail, User as UserIcon, KeyRound, CheckCircle2, AlertCircle, ShieldCheck, Eye, EyeOff } from "lucide-react";
 
 interface AuthModalProps {
@@ -10,6 +11,7 @@ interface AuthModalProps {
 
 export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalProps) {
   const { user, profile, login, register, logout, changePassword, checkEmailExists, resetPasswordDirect } = useAuth();
+  const { t } = useLanguage();
   
   const [mode, setMode] = useState<"login" | "register" | "forgot" | "changePassword">(
     user ? "changePassword" : initialMode === "profile" ? "login" : initialMode
@@ -74,7 +76,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
     setSuccessMessage("");
 
     if (password !== confirmPassword) {
-      setErrorMessage("As senhas informadas não coincidem.");
+      setErrorMessage(t("passwordMismatch"));
       return;
     }
 
@@ -86,7 +88,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
       resetForm();
       onClose();
     } else {
-      setErrorMessage(res.error || "Erro ao realizar cadastro.");
+      setErrorMessage(res.error || t("errorLabel"));
     }
   };
 
@@ -112,12 +114,12 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
     setSuccessMessage("");
 
     if (newPassword !== confirmPassword) {
-      setErrorMessage("As senhas informadas não coincidem.");
+      setErrorMessage(t("passwordMismatch"));
       return;
     }
 
     if (newPassword.length < 6) {
-      setErrorMessage("A nova senha deve ter no mínimo 6 caracteres.");
+      setErrorMessage(t("passwordMinLength"));
       return;
     }
 
@@ -128,7 +130,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
     if (res.success) {
       setForgotStep(3);
     } else {
-      setErrorMessage(res.error || "Erro ao redefinir a senha no sistema.");
+      setErrorMessage(res.error || t("errorLabel"));
     }
   };
 
@@ -138,12 +140,12 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
     setSuccessMessage("");
 
     if (!currentPassword || !newPassword) {
-      setErrorMessage("Preencha a senha atual e a nova senha.");
+      setErrorMessage(t("fillAllFields"));
       return;
     }
 
     if (newPassword.length < 6) {
-      setErrorMessage("A nova senha deve ter no mínimo 6 caracteres.");
+      setErrorMessage(t("passwordMinLength"));
       return;
     }
 
@@ -152,11 +154,11 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
     setIsSubmitting(false);
 
     if (res.success) {
-      setSuccessMessage("Sua senha foi alterada com sucesso!");
+      setSuccessMessage(t("passwordChangedSuccess"));
       setCurrentPassword("");
       setNewPassword("");
     } else {
-      setErrorMessage(res.error || "Erro ao alterar a senha.");
+      setErrorMessage(res.error || t("errorLabel"));
     }
   };
 
@@ -180,7 +182,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
               <div className="w-16 h-16 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] rounded-full mx-auto flex items-center justify-center font-serif font-bold text-2xl mb-3">
                 {(profile?.displayName || user.email || "U")[0].toUpperCase()}
               </div>
-              <h2 className="font-serif font-bold text-2xl tracking-tight">{profile?.displayName || "Meu Perfil"}</h2>
+              <h2 className="font-serif font-bold text-2xl tracking-tight">{profile?.displayName || t("myProfile")}</h2>
               <p className="text-xs opacity-60 mt-1 font-mono">{user.email}</p>
             </div>
 
@@ -188,7 +190,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
               <button 
                 className="pb-2 text-xs font-bold uppercase tracking-widest border-b-2 border-[#1A1A1A] dark:border-[#F5F5F0]"
               >
-                Alterar Senha
+                {t("changePassword")}
               </button>
             </div>
 
@@ -208,7 +210,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
 
             <form onSubmit={handleChangePasswordSubmit} className="space-y-4">
               <div>
-                <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">Senha Atual</label>
+                <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("currentPassword")}</label>
                 <div className="relative">
                   <KeyRound className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
                   <input 
@@ -216,7 +218,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     className="w-full pl-9 pr-10 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
-                    placeholder="Sua senha atual"
+                    placeholder={t("currentPasswordPlaceholder")}
                     required
                   />
                   <button 
@@ -230,7 +232,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">Nova Senha</label>
+                <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("newPassword")}</label>
                 <div className="relative">
                   <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
                   <input 
@@ -238,11 +240,11 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     className="w-full pl-9 pr-10 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
-                    placeholder="Mínimo de 6 caracteres"
+                    placeholder={t("newPasswordPlaceholder")}
                     required
                   />
                 </div>
-                <p className="text-[10px] opacity-50 mt-1">Dica: Utilize letras, números e no mínimo 6 caracteres para uma senha forte.</p>
+                <p className="text-[10px] opacity-50 mt-1">{t("passwordStrengthTip")}</p>
               </div>
 
               <button 
@@ -250,7 +252,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                 disabled={isSubmitting}
                 className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50"
               >
-                {isSubmitting ? "Atualizando..." : "Salvar Nova Senha"}
+                {isSubmitting ? t("updating") : t("saveNewPassword")}
               </button>
             </form>
 
@@ -259,7 +261,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                 onClick={async () => { await logout(); onClose(); }} 
                 className="w-full text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400 hover:opacity-80 py-2"
               >
-                Sair da Conta
+                {t("logout")}
               </button>
             </div>
           </div>
@@ -268,14 +270,14 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="font-serif font-bold text-2xl tracking-tight">
-                {mode === "login" && "Entrar na Biblioteca"}
-                {mode === "register" && "Criar uma Conta"}
-                {mode === "forgot" && "Recuperar Senha"}
+                {mode === "login" && t("enterLibrary")}
+                {mode === "register" && t("createAccount")}
+                {mode === "forgot" && t("recoverPassword")}
               </h2>
               <p className="text-xs opacity-60 mt-1">
-                {mode === "login" && "Acesse seus favoritos e acompanhe seu progresso de leitura."}
-                {mode === "register" && "Cadastre-se para salvar suas histórias e avaliações."}
-                {mode === "forgot" && "Informe seu e-mail para definir uma nova senha."}
+                {mode === "login" && t("accessFavorites")}
+                {mode === "register" && t("signupToSave")}
+                {mode === "forgot" && t("forgotPasswordInstructions")}
               </p>
             </div>
 
@@ -297,7 +299,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
             {mode === "login" && (
               <form onSubmit={handleLoginSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">E-mail</label>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("email")}</label>
                   <div className="relative">
                     <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
                     <input 
@@ -313,13 +315,13 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
 
                 <div>
                   <div className="flex justify-between items-center mb-1">
-                    <label className="text-[10px] uppercase font-bold tracking-widest opacity-60">Senha</label>
+                    <label className="text-[10px] uppercase font-bold tracking-widest opacity-60">{t("password")}</label>
                     <button 
                       type="button" 
                       onClick={() => switchMode("forgot")}
                       className="text-[10px] font-bold uppercase tracking-wider opacity-60 hover:opacity-100"
                     >
-                      Esqueci minha senha
+                      {t("forgotPasswordLink")}
                     </button>
                   </div>
                   <div className="relative">
@@ -347,18 +349,18 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                   disabled={isSubmitting}
                   className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50"
                 >
-                  {isSubmitting ? "Entrando..." : "Entrar"}
+                  {isSubmitting ? t("entering") : t("login")}
                 </button>
 
                 <div className="text-center pt-2">
                   <p className="text-xs opacity-60">
-                    Ainda não possui uma conta?{" "}
+                    {t("dontHaveAccount")}{" "}
                     <button 
                       type="button"
                       onClick={() => switchMode("register")}
                       className="font-bold underline text-[#1A1A1A] dark:text-[#F5F5F0] hover:opacity-80"
                     >
-                      Cadastre-se
+                      {t("register")}
                     </button>
                   </p>
                 </div>
@@ -369,7 +371,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
             {mode === "register" && (
               <form onSubmit={handleRegisterSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">Nome Completo</label>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("nameLabel")}</label>
                   <div className="relative">
                     <UserIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
                     <input 
@@ -377,13 +379,13 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="w-full pl-9 pr-4 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
-                      placeholder="Seu nome"
+                      placeholder={t("namePlaceholder")}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">E-mail</label>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("email")}</label>
                   <div className="relative">
                     <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
                     <input 
@@ -398,7 +400,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                 </div>
 
                 <div>
-                  <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">Senha</label>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("password")}</label>
                   <div className="relative">
                     <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
                     <input 
@@ -406,7 +408,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full pl-9 pr-10 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
-                      placeholder="Mínimo de 6 caracteres"
+                      placeholder={t("newPasswordPlaceholder")}
                       required
                     />
                     <button 
@@ -420,7 +422,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                 </div>
 
                 <div>
-                  <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">Confirmar Senha</label>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("confirmPassword")}</label>
                   <div className="relative">
                     <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
                     <input 
@@ -428,11 +430,11 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="w-full pl-9 pr-4 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
-                      placeholder="Digite a senha novamente"
+                      placeholder={t("confirmPasswordPlaceholder")}
                       required
                     />
                   </div>
-                  <p className="text-[10px] opacity-50 mt-1">Sua senha deve conter pelo menos 6 caracteres.</p>
+                  <p className="text-[10px] opacity-50 mt-1">{t("passwordGuideline")}</p>
                 </div>
 
                 <button 
@@ -440,18 +442,18 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                   disabled={isSubmitting}
                   className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50"
                 >
-                  {isSubmitting ? "Criando Conta..." : "Criar Conta"}
+                  {isSubmitting ? t("creatingAccount") : t("createAccount")}
                 </button>
 
                 <div className="text-center pt-2">
                   <p className="text-xs opacity-60">
-                    Já tem uma conta?{" "}
+                    {t("alreadyHaveAccount")}{" "}
                     <button 
                       type="button"
                       onClick={() => switchMode("login")}
                       className="font-bold underline text-[#1A1A1A] dark:text-[#F5F5F0] hover:opacity-80"
                     >
-                      Entrar
+                      {t("login")}
                     </button>
                   </p>
                 </div>
@@ -464,7 +466,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                 {forgotStep === 1 && (
                   <form onSubmit={handleVerifyEmailSubmit} className="space-y-4">
                     <div>
-                      <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">E-mail Cadastrado</label>
+                      <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("email")}</label>
                       <div className="relative">
                         <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
                         <input 
@@ -477,7 +479,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                         />
                       </div>
                       <p className="text-[10px] opacity-50 mt-1">
-                        Informe o e-mail da sua conta para redefinir a senha diretamente na plataforma.
+                        {t("forgotPasswordStep1Instructions")}
                       </p>
                     </div>
 
@@ -486,7 +488,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                       disabled={isSubmitting}
                       className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50"
                     >
-                      {isSubmitting ? "Verificando..." : "Continuar"}
+                      {isSubmitting ? t("checking") : t("continueReading")}
                     </button>
 
                     <div className="text-center pt-2">
@@ -495,7 +497,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                         onClick={() => switchMode("login")}
                         className="text-xs font-bold uppercase tracking-wider opacity-60 hover:opacity-100"
                       >
-                        Voltar para o Login
+                        {t("forgotStep3Button")}
                       </button>
                     </div>
                   </form>
@@ -505,15 +507,15 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                   <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
                     <div className="p-3.5 bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl text-xs space-y-1">
                       <p className="font-bold flex items-center gap-1.5 text-[#1A1A1A] dark:text-[#F5F5F0]">
-                        <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> Orientação para Senha Forte
+                        <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> {t("passwordGuidelineStrengthTitle")}
                       </p>
                       <p className="opacity-70 leading-relaxed text-[11px]">
-                        Crie uma senha segura contendo no mínimo 6 caracteres, combinando letras e números.
+                        {t("passwordGuidelineStrength")}
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">Nova Senha</label>
+                      <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("newPassword")}</label>
                       <div className="relative">
                         <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
                         <input 
@@ -521,7 +523,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                           className="w-full pl-9 pr-10 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
-                          placeholder="Mínimo de 6 caracteres"
+                          placeholder={t("newPasswordPlaceholder")}
                           required
                         />
                         <button 
@@ -535,7 +537,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                     </div>
 
                     <div>
-                      <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">Confirmar Nova Senha</label>
+                      <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("confirmPassword")}</label>
                       <div className="relative">
                         <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
                         <input 
@@ -543,7 +545,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
                           className="w-full pl-9 pr-4 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
-                          placeholder="Digite a nova senha novamente"
+                          placeholder={t("confirmPasswordPlaceholder")}
                           required
                         />
                       </div>
@@ -554,7 +556,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                       disabled={isSubmitting}
                       className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50"
                     >
-                      {isSubmitting ? "Salvando..." : "Salvar Nova Senha"}
+                      {isSubmitting ? t("saving") : t("saveNewPassword")}
                     </button>
 
                     <div className="text-center pt-2">
@@ -563,7 +565,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                         onClick={() => setForgotStep(1)}
                         className="text-xs font-bold uppercase tracking-wider opacity-60 hover:opacity-100"
                       >
-                        Voltar
+                        {t("cancel")}
                       </button>
                     </div>
                   </form>
@@ -575,9 +577,9 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                       <CheckCircle2 className="w-6 h-6" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-base text-[#1A1A1A] dark:text-[#F5F5F0]">Senha Redefinida!</h3>
+                      <h3 className="font-bold text-base text-[#1A1A1A] dark:text-[#F5F5F0]">{t("forgotStep3Title")}</h3>
                       <p className="text-xs opacity-70 mt-1 leading-relaxed">
-                        Sua senha foi redefinida com sucesso diretamente no site. Você já pode entrar com suas novas credenciais.
+                        {t("forgotStep3Success")}
                       </p>
                     </div>
 
@@ -589,7 +591,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                       }}
                       className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors"
                     >
-                      Ir para o Login
+                      {t("forgotStep3Button")}
                     </button>
                   </div>
                 )}

@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { Moon, Sun, User as UserIcon, Menu, X, LogIn } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import { AuthModal } from "./AuthModal";
 
 export function Layout() {
   const { user, profile } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const location = useLocation();
 
   const [darkMode, setDarkMode] = useState(() => {
@@ -45,8 +47,8 @@ export function Layout() {
             <span className="text-white dark:text-[#1A1A1A] text-xs font-bold tracking-tighter">BTH</span>
           </Link>
           <Link to="/" className="flex flex-col">
-            <h1 className="font-sans text-xs font-bold tracking-[0.2em] uppercase opacity-90">Biblioteca</h1>
-            <span className="text-[9px] font-mono opacity-40 uppercase tracking-widest hidden sm:inline">BTH Digital</span>
+            <h1 className="font-sans text-xs font-bold tracking-[0.2em] uppercase opacity-90">{t("library")}</h1>
+            <span className="text-[9px] font-mono opacity-40 uppercase tracking-widest hidden sm:inline">{t("bthDigital")}</span>
           </Link>
         </div>
 
@@ -58,7 +60,7 @@ export function Layout() {
               location.pathname === "/" ? "border-b-2 border-[#1A1A1A] dark:border-[#F5F5F0] pb-1 opacity-100" : "opacity-60 hover:opacity-100"
             }`}
           >
-            Biblioteca
+            {t("library")}
           </Link>
 
           <Link 
@@ -67,8 +69,24 @@ export function Layout() {
               location.pathname === "/admin" ? "border-b-2 border-[#1A1A1A] dark:border-[#F5F5F0] pb-1 opacity-100" : "opacity-60 hover:opacity-100"
             }`}
           >
-            Admin
+            {t("admin")}
           </Link>
+
+          {/* Language Selector */}
+          <div className="flex items-center">
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as any)}
+              className="bg-transparent dark:bg-[#1A1A1A] border border-[#1A1A1A]/15 dark:border-white/15 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] text-[#1A1A1A] dark:text-[#F5F5F0]"
+              aria-label={t("language")}
+              title={t("language")}
+            >
+              <option value="pt" className="bg-white dark:bg-[#1A1A1A]">Português</option>
+              <option value="es" className="bg-white dark:bg-[#1A1A1A]">Español</option>
+              <option value="en" className="bg-white dark:bg-[#1A1A1A]">English</option>
+              <option value="id" className="bg-white dark:bg-[#1A1A1A]">Indonesia</option>
+            </select>
+          </div>
 
           {/* Theme Toggle Switch */}
           <button 
@@ -78,8 +96,8 @@ export function Layout() {
                 ? "bg-[#0A0A0A] border-white/20 justify-end" 
                 : "bg-amber-100/90 border-amber-300 justify-start"
             }`}
-            aria-label="Alternar modo claro e escuro"
-            title={darkMode ? "Modo Escuro (Clique para Modo Claro)" : "Modo Claro (Clique para Modo Escuro)"}
+            aria-label={t("toggleTheme")}
+            title={t("toggleTheme")}
           >
             <span
               className={`flex items-center justify-center w-6 h-6 rounded-full shadow-md transition-all duration-300 ${
@@ -110,20 +128,33 @@ export function Layout() {
                 className="flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase opacity-80 hover:opacity-100 px-3 py-1.5"
               >
                 <LogIn className="w-3.5 h-3.5" />
-                <span>Entrar</span>
+                <span>{t("login")}</span>
               </button>
               <button
                 onClick={() => openAuth("register")}
                 className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-4 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors shadow-sm"
               >
-                Cadastrar
+                {t("register")}
               </button>
             </div>
           )}
         </nav>
 
         {/* Mobile Header Controls */}
-        <div className="flex md:hidden items-center gap-3">
+        <div className="flex md:hidden items-center gap-2">
+          {/* Language Selector Mobile Dropdown */}
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as any)}
+            className="bg-transparent dark:bg-[#0A0A0A] border border-[#1A1A1A]/15 dark:border-white/15 rounded-xl px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] text-[#1A1A1A] dark:text-[#F5F5F0]"
+            aria-label={t("language")}
+          >
+            <option value="pt" className="bg-white dark:bg-[#1A1A1A]">PT</option>
+            <option value="es" className="bg-white dark:bg-[#1A1A1A]">ES</option>
+            <option value="en" className="bg-white dark:bg-[#1A1A1A]">EN</option>
+            <option value="id" className="bg-white dark:bg-[#1A1A1A]">ID</option>
+          </select>
+
           <button 
             onClick={() => setDarkMode(!darkMode)}
             className={`relative inline-flex items-center h-7 w-14 rounded-full p-0.5 transition-colors duration-300 focus:outline-none border shadow-inner ${
@@ -131,8 +162,8 @@ export function Layout() {
                 ? "bg-[#0A0A0A] border-white/20 justify-end" 
                 : "bg-amber-100/90 border-amber-300 justify-start"
             }`}
-            aria-label="Alternar modo claro e escuro"
-            title={darkMode ? "Modo Escuro (Clique para Modo Claro)" : "Modo Claro (Clique para Modo Escuro)"}
+            aria-label={t("toggleTheme")}
+            title={t("toggleTheme")}
           >
             <span
               className={`flex items-center justify-center w-6 h-6 rounded-full shadow-md transition-all duration-300 ${
@@ -164,13 +195,13 @@ export function Layout() {
             to="/" 
             className="block text-xs font-bold tracking-widest uppercase py-2 border-b border-[#1A1A1A]/5 dark:border-white/5"
           >
-            Biblioteca
+            {t("library")}
           </Link>
           <Link 
             to="/admin" 
             className="block text-xs font-bold tracking-widest uppercase py-2 border-b border-[#1A1A1A]/5 dark:border-white/5"
           >
-            Painel Admin
+            {t("adminPanel")}
           </Link>
 
           {user ? (
@@ -179,7 +210,7 @@ export function Layout() {
               className="w-full flex items-center justify-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-3 rounded-full font-bold text-xs uppercase tracking-widest mt-2"
             >
               <UserIcon className="w-4 h-4" />
-              <span>Perfil ({profile?.displayName || user.email?.split("@")[0]})</span>
+              <span>{t("profile")} ({profile?.displayName || user.email?.split("@")[0]})</span>
             </button>
           ) : (
             <div className="grid grid-cols-2 gap-3 pt-2">
@@ -187,13 +218,13 @@ export function Layout() {
                 onClick={() => { setMobileMenuOpen(false); openAuth("login"); }}
                 className="w-full border border-[#1A1A1A]/20 dark:border-white/20 py-3 rounded-full font-bold text-xs uppercase tracking-widest text-center"
               >
-                Entrar
+                {t("login")}
               </button>
               <button
                 onClick={() => { setMobileMenuOpen(false); openAuth("register"); }}
                 className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-3 rounded-full font-bold text-xs uppercase tracking-widest text-center"
               >
-                Cadastrar
+                {t("register")}
               </button>
             </div>
           )}
@@ -206,13 +237,13 @@ export function Layout() {
       
       <footer className="w-full bg-[#1A1A1A] dark:bg-[#0A0A0A] text-[#F5F5F0] flex items-center px-6 md:px-16 justify-between h-16 mt-auto">
         <div className="flex items-center space-x-3 md:space-x-6">
-          <span className="text-[9px] uppercase font-bold tracking-widest opacity-80">Biblioteca BTH</span>
+          <span className="text-[9px] uppercase font-bold tracking-widest opacity-80">{t("bthLibrary")}</span>
           <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
           <div className="h-3 w-[1px] bg-white/20"></div>
-          <span className="text-[9px] uppercase font-bold tracking-widest opacity-60 hidden sm:inline">Firebase Online</span>
+          <span className="text-[9px] uppercase font-bold tracking-widest opacity-60 hidden sm:inline">Firebase {t("online")}</span>
         </div>
         <div className="flex items-center space-x-4">
-          <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">Versão 2.2.4-beta</span>
+          <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">{t("version")} 2.2.9-beta</span>
         </div>
       </footer>
 

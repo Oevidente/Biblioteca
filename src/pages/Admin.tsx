@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useAuth, ADMIN_EMAIL } from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import { fileToDataUrl, formatCoverUrl } from "../utils/imageUtils";
 import { BookCoverImage } from "../components/BookCoverImage";
 import { 
@@ -94,6 +95,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs = 60000, stageName = "ope
 }
 
 export function Admin() {
+  const { t } = useLanguage();
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"publish" | "manage" | "comments">("publish");
@@ -198,7 +200,7 @@ export function Admin() {
 
   const handleSaveEdit = async (storyId: string) => {
     if (!editTitle.trim() || !editAuthor.trim()) {
-      setManageMsg("O título e o autor não podem ficar vazios.");
+      setManageMsg(t("emptyFieldsError"));
       return;
     }
     setIsSavingEdit(true);
@@ -240,11 +242,11 @@ export function Admin() {
         console.error(e);
       }
 
-      setManageMsg("História atualizada com sucesso!");
+      setManageMsg(t("storyUpdatedSuccess"));
       setEditingStoryId(null);
     } catch (err: any) {
       console.error("Error updating story:", err);
-      setManageMsg(`Erro ao atualizar história: ${err.message || err}`);
+      setManageMsg(`${t("errorUpdatingStory")}${err.message || err}`);
     } finally {
       setIsSavingEdit(false);
     }
@@ -278,11 +280,11 @@ export function Admin() {
         console.error(e);
       }
 
-      setManageMsg(`A história "${story.title}" foi apagada do banco de dados.`);
+      setManageMsg(t("storyDeletedSuccess", { title: story.title }));
       setStoryToDelete(null);
     } catch (err: any) {
       console.error("Error deleting story:", err);
-      setManageMsg(`Erro ao apagar história: ${err.message || err}`);
+      setManageMsg(`${t("errorDeletingStory")}${err.message || err}`);
     } finally {
       setDeletingStoryId(null);
     }
@@ -308,7 +310,7 @@ export function Admin() {
             storyTitle: storiesMap[storyId],
             text: data.text || "",
             rating: data.rating || 5,
-            userName: data.userName || "Leitor",
+            userName: data.userName || t("reader"),
             userEmail: data.userEmail || "",
             status: data.status || "pending",
             createdAt: data.createdAt
@@ -337,7 +339,7 @@ export function Admin() {
       setComments(prev => prev.map(c => c.id === commentId ? { ...c, status: newStatus } : c));
     } catch (err) {
       console.error("Failed to update comment status:", err);
-      alert("Erro ao atualizar status do comentário.");
+      alert(t("errorUpdatingCommentStatus"));
     }
   };
 
@@ -352,7 +354,7 @@ export function Admin() {
       }
     } catch (err) {
       console.error(err);
-      alert("Login falhou");
+      alert(t("loginFailed"));
     }
   };
 
@@ -399,20 +401,20 @@ export function Admin() {
     setErrorDetails(null);
 
     if (!title || !author || !coverFile || !docxFile) {
-      setMessage("Preencha todos os campos obrigatórios.");
+      setMessage(t("fillAllFields"));
       return;
     }
     
     setIsUploading(true);
     setMessage("");
     setProgressPercent(5);
-    setCurrentStage("Iniciando arquivos...");
+    setCurrentStage(t("startingFiles"));
 
-    let stageName = "Preparação inicial";
+    let stageName = t("initialPrep");
 
     try {
       let finalCoverUrl = "";
-      stageName = "Processamento da imagem de capa";
+      stageName = t("coverProcessing");
       setCurrentStage(stageName);
       setProgressPercent(15);
 
@@ -428,22 +430,22 @@ export function Admin() {
         finalCoverUrl = await fileToDataUrl(coverFile);
       }
 
-      stageName = "Processamento do documento Word (.docx)";
+      stageName = t("docxProcessing");
       setCurrentStage(stageName);
       setProgressPercent(35);
       const pages = await parseDocx(docxFile);
 
       if (!pages || pages.length === 0) {
-        throw new Error("O documento Word lido não possui páginas válidas.");
+        throw new Error(t("docxInvalid"));
       }
 
-      stageName = "Geração automática de gêneros e tags";
+      stageName = t("tagGeneration");
       setCurrentStage(stageName);
       setProgressPercent(45);
       const textSample = pages[0].replace(/<[^>]*>?/gm, ''); 
       const tags = generateTagsLocal(textSample);
 
-      stageName = "Criação do registro principal no banco de dados";
+      stageName = t("dbCreation");
       setCurrentStage(stageName);
       setProgressPercent(55);
       
@@ -488,7 +490,7 @@ export function Admin() {
         const end = Math.min(i + CHUNK_SIZE, pages.length);
         const percent = Math.floor(55 + Math.floor((end / pages.length) * 40));
         setProgressPercent(percent);
-        stageName = `Envio das páginas no banco de dados (${end} de ${pages.length})`;
+        stageName = t("dbPageSending", { end, total: pages.length });
         setCurrentStage(stageName);
 
         const chunk = pages.slice(i, end);
@@ -502,8 +504,8 @@ export function Admin() {
       }
 
       setProgressPercent(100);
-      setCurrentStage("Publicação concluída com sucesso!");
-      setMessage("História publicada com sucesso!");
+      setCurrentStage(t("publishSuccess"));
+      setMessage(t("storyPublishedSuccess"));
       setTitle("");
       setAuthor("");
       setCoverFile(null);
@@ -514,13 +516,13 @@ export function Admin() {
       const errMsg = error?.message || "Ocorreu um erro desconhecido";
       const errCode = error?.code ? ` (Código: ${error.code})` : "";
       
-      setCurrentStage(`Falha na etapa: ${stageName}`);
+      setCurrentStage(t("stageFailed", { stage: stageName }));
       setErrorDetails({
         stage: stageName,
         message: `${errMsg}${errCode}`,
         details: error?.stack || JSON.stringify(error, null, 2)
       });
-      setMessage(`Erro durante o processo: ${errMsg}`);
+      setMessage(`${t("errorProcess")}${errMsg}`);
     } finally {
       setIsUploading(false);
     }
@@ -534,20 +536,20 @@ export function Admin() {
             <Lock className="w-8 h-8 text-white dark:text-[#1A1A1A]" />
           </div>
         </div>
-        <h1 className="text-2xl font-serif font-bold text-center mb-8">Acesso Admin</h1>
+        <h1 className="text-2xl font-serif font-bold text-center mb-8">{t("adminAccess")}</h1>
         <div className="space-y-6">
           <button 
             onClick={handleLogin}
             className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] font-bold text-[10px] uppercase tracking-widest py-4 rounded-full hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors"
           >
-            Entrar com Google
+            {t("loginWithGoogle")}
           </button>
         </div>
       </div>
     );
   }
 
-  if (user.email?.toLowerCase().trim() !== ADMIN_EMAIL) {
+  if ((user.email || "").toLowerCase().trim() !== ADMIN_EMAIL) {
     return (
       <div className="max-w-md mx-auto mt-16 p-8 bg-white dark:bg-[#1A1A1A] rounded-[22px] shadow-sm border border-[#1A1A1A]/10 dark:border-white/10 text-center">
         <div className="flex justify-center mb-6">
@@ -555,9 +557,9 @@ export function Admin() {
             <EyeOff className="w-8 h-8 text-red-500" />
           </div>
         </div>
-        <h1 className="text-2xl font-serif font-bold mb-4">Acesso Restrito</h1>
+        <h1 className="text-2xl font-serif font-bold mb-4">{t("restrictedAccess")}</h1>
         <p className="text-sm opacity-70 mb-2">
-          Esta área é exclusiva para administradores da biblioteca.
+          {t("restrictedAccessDesc")}
         </p>
         <p className="text-xs opacity-50 mb-8 font-mono break-all bg-black/5 dark:bg-white/5 py-1 px-2 rounded">
           {user.email}
@@ -567,13 +569,13 @@ export function Admin() {
             to="/"
             className="block w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] font-bold text-[10px] uppercase tracking-widest py-3.5 rounded-full hover:opacity-90 transition-opacity"
           >
-            Ir para a Biblioteca
+            {t("goToLibrary")}
           </Link>
           <button 
             onClick={() => signOut(auth)}
             className="w-full bg-transparent hover:bg-black/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] border border-[#1A1A1A]/10 dark:border-white/10 font-bold text-[10px] uppercase tracking-widest py-3.5 rounded-full transition-colors"
           >
-            Sair da Conta
+            {t("exitAccount")}
           </button>
         </div>
       </div>
@@ -592,7 +594,7 @@ export function Admin() {
     <div className="max-w-3xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-serif font-bold tracking-tight">Painel Admin</h1>
+          <h1 className="text-3xl sm:text-4xl font-serif font-bold tracking-tight">{t("adminPanel")}</h1>
           <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mt-1">{user.email}</div>
         </div>
         <div className="flex bg-white dark:bg-[#0A0A0A] p-1 rounded-full border border-[#1A1A1A]/10 dark:border-white/10 shadow-sm overflow-x-auto w-full sm:w-auto">
@@ -600,19 +602,19 @@ export function Admin() {
             onClick={() => setActiveTab("publish")}
             className={cn("px-5 py-2.5 rounded-full text-[10px] uppercase font-bold tracking-widest transition-colors whitespace-nowrap", activeTab === "publish" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60 hover:opacity-100")}
           >
-            Publicar
+            {t("publish")}
           </button>
           <button 
             onClick={() => setActiveTab("manage")}
             className={cn("px-5 py-2.5 rounded-full text-[10px] uppercase font-bold tracking-widest transition-colors whitespace-nowrap", activeTab === "manage" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60 hover:opacity-100")}
           >
-            Gerenciar
+            {t("manage")}
           </button>
           <button 
             onClick={() => setActiveTab("comments")}
             className={cn("px-5 py-2.5 rounded-full text-[10px] uppercase font-bold tracking-widest transition-colors whitespace-nowrap flex items-center gap-1.5", activeTab === "comments" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60 hover:opacity-100")}
           >
-            Moderar Comentários
+            {t("moderateComments")}
             {comments.filter(c => c.status === "pending").length > 0 && (
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
             )}
@@ -624,29 +626,29 @@ export function Admin() {
         <form onSubmit={handleUpload} className="space-y-6 bg-white dark:bg-[#1A1A1A] p-6 sm:p-8 rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">Título da História</label>
+              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">{t("storyTitle")}</label>
               <input 
                 type="text" 
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full px-4 py-3 bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white text-sm"
-                placeholder="Ex: O Segredo das Estrelas"
+                placeholder={t("storyTitlePlaceholder")}
                 required
               />
             </div>
             <div>
-              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">Autor</label>
+              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">{t("editAuthor")}</label>
               <input 
                 type="text" 
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
                 className="w-full px-4 py-3 bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white text-sm"
-                placeholder="Ex: Machado de Assis"
+                placeholder={t("authorPlaceholder")}
                 required
               />
             </div>
             <div>
-              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">Data de Publicação</label>
+              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">{t("publishDate")}</label>
               <input 
                 type="date" 
                 value={publicationDate}
@@ -659,7 +661,7 @@ export function Admin() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">Imagem de Capa (JPEG/PNG)</label>
+              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">{t("coverImageLabel")}</label>
               <label className={cn(
                 "flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-colors",
                 coverFile ? "border-[#1A1A1A] dark:border-white bg-[#1A1A1A]/5 dark:bg-white/5" : "border-[#1A1A1A]/20 dark:border-white/20 hover:bg-[#F5F5F0] dark:hover:bg-[#0A0A0A]"
@@ -667,7 +669,7 @@ export function Admin() {
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   <ImageIcon className={cn("w-8 h-8 mb-2", coverFile ? "text-[#1A1A1A] dark:text-white" : "text-[#1A1A1A]/40 dark:text-white/40")} />
                   <p className="text-xs font-bold opacity-60 truncate max-w-[200px] px-2">
-                    {coverFile ? coverFile.name : "Clique para selecionar a capa"}
+                    {coverFile ? coverFile.name : t("coverImagePlaceholder")}
                   </p>
                 </div>
                 <input type="file" accept="image/*" className="hidden" onChange={(e) => setCoverFile(e.target.files?.[0] || null)} required />
@@ -675,7 +677,7 @@ export function Admin() {
             </div>
 
             <div>
-              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">Arquivo da História (DOCX)</label>
+              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">{t("storyFileLabel")}</label>
               <label className={cn(
                 "flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-colors",
                 docxFile ? "border-[#1A1A1A] dark:border-white bg-[#1A1A1A]/5 dark:bg-white/5" : "border-[#1A1A1A]/20 dark:border-white/20 hover:bg-[#F5F5F0] dark:hover:bg-[#0A0A0A]"
@@ -683,7 +685,7 @@ export function Admin() {
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   <FileText className={cn("w-8 h-8 mb-2", docxFile ? "text-[#1A1A1A] dark:text-white" : "text-[#1A1A1A]/40 dark:text-white/40")} />
                   <p className="text-xs font-bold opacity-60 truncate max-w-[200px] px-2">
-                    {docxFile ? docxFile.name : "Clique para selecionar o DOCX"}
+                    {docxFile ? docxFile.name : t("storyFilePlaceholder")}
                   </p>
                 </div>
                 <input type="file" accept=".docx" className="hidden" onChange={(e) => setDocxFile(e.target.files?.[0] || null)} required />
@@ -721,7 +723,7 @@ export function Admin() {
             <div className="p-5 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-800 dark:text-red-300 space-y-3 text-left">
               <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-red-600 dark:text-red-400">
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                Erro em Tempo Real ({errorDetails.stage})
+                {t("realTimeError", { stage: errorDetails.stage })}
               </div>
               <p className="text-sm font-semibold leading-relaxed">
                 {errorDetails.message}
@@ -741,7 +743,7 @@ export function Admin() {
               onClick={handleLogin}
               className="w-full flex items-center justify-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] font-bold text-[10px] uppercase tracking-widest py-4 rounded-full hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors"
             >
-              Autorizar Google Drive para Upload
+              {t("authorizeDrive")}
             </button>
           ) : (
             <button 
@@ -750,7 +752,7 @@ export function Admin() {
               className="w-full flex items-center justify-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] font-bold text-[10px] uppercase tracking-widest py-4 rounded-full hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50"
             >
               {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
-              {isUploading ? "Publicando..." : "Publicar História"}
+              {isUploading ? t("publishing") : t("publishStory")}
             </button>
           )}
         </form>
@@ -763,7 +765,7 @@ export function Admin() {
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
               <input 
                 type="text"
-                placeholder="Buscar por título, autor ou tag..."
+                placeholder={t("searchPlaceholder")}
                 value={searchStoryQuery}
                 onChange={(e) => setSearchStoryQuery(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none"
@@ -774,7 +776,7 @@ export function Admin() {
               disabled={loadingStories}
               className="text-xs font-bold uppercase tracking-wider opacity-60 hover:opacity-100 transition-opacity"
             >
-              {loadingStories ? "Carregando..." : "Atualizar Lista"}
+              {loadingStories ? t("loading") : t("updateList")}
             </button>
           </div>
 
@@ -785,10 +787,10 @@ export function Admin() {
           )}
 
           {loadingStories ? (
-            <div className="text-center py-20 animate-pulse text-sm">Carregando histórias do banco de dados...</div>
+            <div className="text-center py-20 animate-pulse text-sm">{t("loadingStories")}</div>
           ) : storiesList.length === 0 ? (
             <div className="text-center py-20 opacity-50 font-serif border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl">
-              Nenhuma história encontrada no banco de dados.
+              {t("noStoriesAdmin")}
             </div>
           ) : (
             <div className="space-y-4">
@@ -815,12 +817,12 @@ export function Admin() {
                         <div className="space-y-4">
                           <div className="flex justify-between items-center border-b border-[#1A1A1A]/10 dark:border-white/10 pb-3">
                             <span className="text-xs font-bold uppercase tracking-widest opacity-60 flex items-center gap-1.5">
-                              <Pencil className="w-3.5 h-3.5" /> Editar História
+                              <Pencil className="w-3.5 h-3.5" /> {t("editStory")}
                             </span>
                             <button 
                               onClick={handleCancelEdit}
                               className="p-1 rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 opacity-60 hover:opacity-100"
-                              title="Cancelar"
+                              title={t("cancel")}
                             >
                               <X className="w-4 h-4" />
                             </button>
@@ -828,7 +830,7 @@ export function Admin() {
 
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">Título</label>
+                              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("editTitle")}</label>
                               <input 
                                 type="text"
                                 value={editTitle}
@@ -837,7 +839,7 @@ export function Admin() {
                               />
                             </div>
                             <div>
-                              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">Autor</label>
+                              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("editAuthor")}</label>
                               <input 
                                 type="text"
                                 value={editAuthor}
@@ -846,7 +848,7 @@ export function Admin() {
                               />
                             </div>
                             <div>
-                              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">Data de Publicação</label>
+                              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("publishDate")}</label>
                               <input 
                                 type="date"
                                 value={editPublicationDate}
@@ -857,13 +859,13 @@ export function Admin() {
                           </div>
 
                           <div>
-                            <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">Tags (separadas por vírgula)</label>
+                            <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("editTags")}</label>
                             <input 
-                              type="text"
-                              value={editTagsInput}
-                              onChange={(e) => setEditTagsInput(e.target.value)}
-                              className="w-full px-3 py-2 text-sm bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none"
-                              placeholder="Romance, Fantasia, Drama"
+                                type="text"
+                                value={editTagsInput}
+                                onChange={(e) => setEditTagsInput(e.target.value)}
+                                className="w-full px-3 py-2 text-sm bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none"
+                                placeholder={t("editTagsPlaceholder")}
                             />
                           </div>
 
@@ -874,7 +876,7 @@ export function Admin() {
                               disabled={isSavingEdit}
                               className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border border-[#1A1A1A]/20 dark:border-white/20 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5"
                             >
-                              Cancelar
+                              {t("cancel")}
                             </button>
                             <button
                               type="button"
@@ -883,7 +885,7 @@ export function Admin() {
                               className="px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] flex items-center gap-1.5 hover:opacity-90 disabled:opacity-50"
                             >
                               {isSavingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                              Salvar Alterações
+                              {t("saveChanges")}
                             </button>
                           </div>
                         </div>
@@ -900,7 +902,7 @@ export function Admin() {
                             <div className="space-y-1.5">
                               <h3 className="font-serif font-bold text-lg leading-tight">{story.title}</h3>
                               <div className="text-xs opacity-70 flex items-center gap-1">
-                                <UserIcon className="w-3 h-3 opacity-60" /> {story.author || "Autor desconhecido"}
+                                <UserIcon className="w-3 h-3 opacity-60" /> {story.author || t("unknownAuthor")}
                               </div>
 
                               {story.tags && story.tags.length > 0 && (
@@ -917,7 +919,7 @@ export function Admin() {
                               )}
 
                               <div className="text-[10px] font-mono opacity-40 pt-1 flex flex-wrap gap-x-3 gap-y-1">
-                                <span>{story.totalPages} páginas</span>
+                                <span>{story.totalPages} {t("pages")}</span>
                                 {(() => {
                                   let pubDateStr = story.publicationDate;
                                   if (!pubDateStr && story.createdAt) {
@@ -927,7 +929,7 @@ export function Admin() {
                                     } catch (e) {}
                                   }
                                   if (pubDateStr) {
-                                    return <span>• Publicado em: {pubDateStr.split('-').reverse().join('/')}</span>;
+                                    return <span>• {t("publishedOn")}: {pubDateStr.split('-').reverse().join('/')}</span>;
                                   }
                                   return null;
                                 })()}
@@ -941,7 +943,7 @@ export function Admin() {
                               disabled={isDeletingThis}
                               className="flex-1 sm:flex-initial px-4 py-2 bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-[#1A1A1A] hover:text-white dark:hover:bg-white dark:hover:text-[#1A1A1A] transition-colors flex items-center justify-center gap-1.5"
                             >
-                              <Pencil className="w-3.5 h-3.5" /> Editar
+                              <Pencil className="w-3.5 h-3.5" /> {t("editLabel")}
                             </button>
                             <button
                               onClick={() => setStoryToDelete(story)}
@@ -949,7 +951,7 @@ export function Admin() {
                               className="flex-1 sm:flex-initial px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
                             >
                               {isDeletingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                              Apagar
+                              {t("deleteLabel")}
                             </button>
                           </div>
                         </div>
@@ -967,41 +969,41 @@ export function Admin() {
           {/* Filter Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-[#1A1A1A] p-4 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10">
             <div className="text-xs font-bold uppercase tracking-widest opacity-80">
-              Moderação de Comentários
+              {t("commentsApprovalTitle")}
             </div>
             <div className="flex gap-2 bg-[#F5F5F0] dark:bg-[#0A0A0A] p-1 rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 text-[10px] font-bold uppercase tracking-widest">
               <button 
                 onClick={() => setCommentFilter("pending")}
                 className={cn("px-3 py-1.5 rounded-lg transition-colors", commentFilter === "pending" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
               >
-                Pendentes ({comments.filter(c => c.status === "pending").length})
+                {t("commentsPending")} ({comments.filter(c => c.status === "pending").length})
               </button>
               <button 
                 onClick={() => setCommentFilter("approved")}
                 className={cn("px-3 py-1.5 rounded-lg transition-colors", commentFilter === "approved" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
               >
-                Aprovados ({comments.filter(c => c.status === "approved").length})
+                {t("commentsApproved")} ({comments.filter(c => c.status === "approved").length})
               </button>
               <button 
                 onClick={() => setCommentFilter("rejected")}
                 className={cn("px-3 py-1.5 rounded-lg transition-colors", commentFilter === "rejected" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
               >
-                Rejeitados/Ocultos
+                {t("commentsRejected")}
               </button>
               <button 
                 onClick={() => setCommentFilter("all")}
                 className={cn("px-3 py-1.5 rounded-lg transition-colors", commentFilter === "all" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
               >
-                Todos ({comments.length})
+                {t("all")} ({comments.length})
               </button>
             </div>
           </div>
 
           {loadingComments ? (
-            <div className="text-center py-20 animate-pulse text-sm font-serif">Carregando comentários para moderação...</div>
+            <div className="text-center py-20 animate-pulse text-sm font-serif">{t("loadingComments")}</div>
           ) : filteredComments.length === 0 ? (
             <div className="text-center py-20 opacity-50 font-serif border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl">
-              Nenhum comentário nesta categoria.
+              {t("noCommentsCategory")}
             </div>
           ) : (
             filteredComments.map(c => (
@@ -1031,7 +1033,7 @@ export function Admin() {
                       c.status === "pending" && "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400",
                       (c.status === "rejected" || c.status === "hidden") && "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400"
                     )}>
-                      {c.status === "approved" ? "Aprovado" : c.status === "pending" ? "Pendente" : "Rejeitado"}
+                      {c.status === "approved" ? t("approved") : c.status === "pending" ? t("pending") : t("rejected")}
                     </span>
                   </div>
                 </div>
@@ -1044,7 +1046,7 @@ export function Admin() {
 
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#1A1A1A]/10 dark:border-white/10">
                   <span className="text-[10px] font-mono opacity-40">
-                    {c.createdAt?.toDate ? c.createdAt.toDate().toLocaleString() : "Data recente"}
+                    {c.createdAt?.toDate ? c.createdAt.toDate().toLocaleString() : t("recentDate")}
                   </span>
 
                   {/* Moderation Actions */}
@@ -1054,7 +1056,7 @@ export function Admin() {
                         onClick={() => updateCommentStatus(c.storyId, c.id, "approved")}
                         className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-emerald-500 hover:text-white transition-colors"
                       >
-                        <CheckCircle className="w-3.5 h-3.5" /> Aprovar
+                        <CheckCircle className="w-3.5 h-3.5" /> {t("approve")}
                       </button>
                     )}
 
@@ -1063,7 +1065,7 @@ export function Admin() {
                         onClick={() => updateCommentStatus(c.storyId, c.id, "rejected")}
                         className="flex items-center gap-1 px-3 py-1.5 bg-red-500/10 text-red-700 dark:text-red-300 border border-red-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-red-500 hover:text-white transition-colors"
                       >
-                        <XCircle className="w-3.5 h-3.5" /> Rejeitar
+                        <XCircle className="w-3.5 h-3.5" /> {t("reject")}
                       </button>
                     )}
 
@@ -1072,7 +1074,7 @@ export function Admin() {
                         onClick={() => updateCommentStatus(c.storyId, c.id, "hidden")}
                         className="flex items-center gap-1 px-3 py-1.5 bg-black/10 dark:bg-white/10 opacity-70 border border-black/20 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:opacity-100 transition-colors"
                       >
-                        <EyeOff className="w-3.5 h-3.5" /> Ocultar
+                        <EyeOff className="w-3.5 h-3.5" /> {t("hide")}
                       </button>
                     )}
                   </div>
@@ -1092,17 +1094,17 @@ export function Admin() {
                 <Trash2 className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-serif font-bold text-lg text-[#1A1A1A] dark:text-white">Confirmar Exclusão</h3>
-                <p className="text-xs opacity-60">Esta ação é irreversível</p>
+                <h3 className="font-serif font-bold text-lg text-[#1A1A1A] dark:text-white">{t("confirmDeleteTitle")}</h3>
+                <p className="text-xs opacity-60">{t("irreversibleAction")}</p>
               </div>
             </div>
 
             <p className="text-sm leading-relaxed text-[#1A1A1A] dark:text-white/90">
-              Tem certeza de que deseja apagar a história <strong className="font-serif font-bold text-base">{storyToDelete.title}</strong> permanentemente do banco de dados?
+              {t("confirmDeletePrompt", { title: storyToDelete.title })}
             </p>
 
             <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-700 dark:text-red-300 font-medium leading-normal">
-              Esta ação removerá a história, todas as suas páginas e todas as avaliações do banco de dados.
+              {t("confirmDeleteWarning")}
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
@@ -1112,7 +1114,7 @@ export function Admin() {
                 disabled={deletingStoryId === storyToDelete.id}
                 className="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border border-[#1A1A1A]/20 dark:border-white/20 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 transition-colors"
               >
-                Cancelar
+                {t("cancel")}
               </button>
               <button
                 type="button"
@@ -1121,7 +1123,7 @@ export function Admin() {
                 className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50"
               >
                 {deletingStoryId === storyToDelete.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                Sim, Apagar
+                {t("yesDelete")}
               </button>
             </div>
           </div>

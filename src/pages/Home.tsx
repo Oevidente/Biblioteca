@@ -4,6 +4,7 @@ import { BookCoverImage } from "../components/BookCoverImage";
 import { db, collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, updateDoc, getDocs } from "../lib/firebase";
 import { BookOpen, Search, Heart, Clock, Library, Star, UserCheck } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -34,6 +35,7 @@ interface HistoryItem {
 
 export function Home() {
   const { user, profile } = useAuth();
+  const { t } = useLanguage();
   
   const [stories, setStories] = useState<Story[]>(() => {
     try {
@@ -250,7 +252,7 @@ export function Home() {
             </h3>
             {story.author && (
               <p className="text-[10px] uppercase font-bold tracking-widest opacity-60 mt-1 truncate">
-                Por {story.author}
+                {t("by")} {story.author}
               </p>
             )}
             {(() => {
@@ -264,7 +266,7 @@ export function Home() {
               if (pubDateStr) {
                 return (
                   <p className="text-[8px] font-mono opacity-40 mt-1 uppercase tracking-wider">
-                    Publicado em {pubDateStr.split('-').reverse().join('/')}
+                    {t("publishedOn")} {pubDateStr.split('-').reverse().join('/')}
                   </p>
                 );
               }
@@ -289,9 +291,9 @@ export function Home() {
     <div className="pb-28 md:pb-20">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
         <div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold tracking-tight">Acervo</h1>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold tracking-tight">{t("archive")}</h1>
           <p className="opacity-60 text-xs sm:text-sm mt-1.5 font-serif">
-            {user ? `Bem-vindo(a), ${profile?.displayName || user.email?.split("@")[0]}. Explore o acervo digital.` : "Explore histórias incríveis e salve sua leitura."}
+            {user ? t("welcomeUser", { name: profile?.displayName || user.email?.split("@")[0] || "" }) : t("exploreStories")}
           </p>
         </div>
         
@@ -300,29 +302,29 @@ export function Home() {
           <button 
             onClick={() => setActiveTab("library")}
             className={cn("flex items-center justify-center gap-2 px-5 md:px-5 py-2.5 rounded-full text-[10px] uppercase font-bold tracking-widest whitespace-nowrap transition-all", activeTab === "library" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" : "opacity-60 hover:opacity-100")}
-            title="Biblioteca"
-            aria-label="Biblioteca"
+            title={t("library")}
+            aria-label={t("library")}
           >
             <Library className="w-5 h-5 md:w-4 md:h-4" />
-            <span className="hidden md:inline">Biblioteca</span>
+            <span className="hidden md:inline">{t("library")}</span>
           </button>
           <button 
             onClick={() => setActiveTab("history")}
             className={cn("flex items-center justify-center gap-2 px-5 md:px-5 py-2.5 rounded-full text-[10px] uppercase font-bold tracking-widest whitespace-nowrap transition-all", activeTab === "history" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" : "opacity-60 hover:opacity-100")}
-            title="Histórico"
-            aria-label="Histórico"
+            title={t("history")}
+            aria-label={t("history")}
           >
             <Clock className="w-5 h-5 md:w-4 md:h-4" />
-            <span className="hidden md:inline">Histórico</span>
+            <span className="hidden md:inline">{t("history")}</span>
           </button>
           <button 
             onClick={() => setActiveTab("favorites")}
             className={cn("flex items-center justify-center gap-2 px-5 md:px-5 py-2.5 rounded-full text-[10px] uppercase font-bold tracking-widest whitespace-nowrap transition-all", activeTab === "favorites" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" : "opacity-60 hover:opacity-100")}
-            title="Favoritos"
-            aria-label="Favoritos"
+            title={t("favorites")}
+            aria-label={t("favorites")}
           >
             <Heart className="w-5 h-5 md:w-4 md:h-4" />
-            <span className="hidden md:inline">Favoritos</span>
+            <span className="hidden md:inline">{t("favorites")}</span>
           </button>
         </div>
       </div>
@@ -334,7 +336,7 @@ export function Home() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40" />
               <input 
                 type="text" 
-                placeholder="Buscar título, autor ou gênero..." 
+                placeholder={t("searchPlaceholder")} 
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white text-xs sm:text-sm shadow-sm"
@@ -347,7 +349,7 @@ export function Home() {
                 onChange={e => setSelectedGenre(e.target.value)}
                 className="bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-full px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] shadow-sm"
               >
-                {allGenres.map(g => <option key={g} value={g}>{g}</option>)}
+                {allGenres.map(g => <option key={g} value={g}>{g === "All" ? t("any") : g}</option>)}
               </select>
               
               <select 
@@ -355,8 +357,8 @@ export function Home() {
                 onChange={e => setSortBy(e.target.value as any)}
                 className="bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-full px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] shadow-sm"
               >
-                <option value="recent">Mais Recentes</option>
-                <option value="popular">Mais Populares</option>
+                <option value="recent">{t("mostRecent")}</option>
+                <option value="popular">{t("mostPopular")}</option>
               </select>
             </div>
           </div>
@@ -369,7 +371,7 @@ export function Home() {
                 {filteredStories.map(renderStoryCard)}
                 {filteredStories.length === 0 && (
                   <div className="col-span-full text-center py-20 opacity-50 font-serif border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl">
-                    Nenhuma história encontrada.
+                    {t("noStoriesFound")}
                   </div>
                 )}
               </>
@@ -383,7 +385,7 @@ export function Home() {
           {stories.filter(s => favorites.includes(s.id)).map(renderStoryCard)}
           {favorites.length === 0 && (
             <div className="col-span-full text-center py-20 opacity-50 font-serif border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl">
-              Você ainda não adicionou histórias aos favoritos.
+              {t("noFavoritesFound")}
             </div>
           )}
         </div>
@@ -393,7 +395,7 @@ export function Home() {
         <div className="max-w-3xl mx-auto space-y-4">
           {history.length === 0 ? (
             <div className="text-center py-20 opacity-50 font-serif border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl">
-              Seu histórico de leitura está vazio.
+              {t("noHistoryFound")}
             </div>
           ) : (
             history.map((item, idx) => {
@@ -418,7 +420,7 @@ export function Home() {
                     <h3 className="font-serif font-bold text-base sm:text-lg truncate">{item.title}</h3>
                     <div className="flex items-center gap-3 mt-1.5">
                       <span className="text-[10px] uppercase font-bold tracking-widest opacity-60">
-                        Pág. {item.page + 1} de {item.totalPages}
+                        {t("pageOf", { page: item.page + 1, total: item.totalPages })}
                       </span>
                       <span className="text-[10px] uppercase font-bold tracking-widest opacity-40">
                         {new Date(item.timestamp).toLocaleDateString()}
@@ -427,7 +429,7 @@ export function Home() {
                   </div>
                   <div className="shrink-0">
                     <span className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-3.5 py-2 rounded-full font-bold text-[9px] sm:text-[10px] uppercase tracking-widest">
-                      Continuar
+                      {t("continueReading")}
                     </span>
                   </div>
                 </Link>

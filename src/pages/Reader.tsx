@@ -18,6 +18,7 @@ import {
 import { ChevronLeft, ChevronRight, ArrowLeft, Star, MessageSquare, CheckCircle, ShieldAlert, User as UserIcon, ArrowUp } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -44,6 +45,7 @@ interface CommentData {
 export function Reader() {
   const { id } = useParams<{ id: string }>();
   const { user, profile } = useAuth();
+  const { t } = useLanguage();
 
   const [story, setStory] = useState<StoryData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -174,12 +176,12 @@ export function Reader() {
             console.error(e);
           }
         } else {
-          setPageContent("<p>Página não encontrada.</p>");
+          setPageContent("<p>" + t("pageNotFound") + "</p>");
         }
       } catch (err) {
         console.error(err);
         if (!cachedPage) {
-          setPageContent("<p>Erro ao carregar página.</p>");
+          setPageContent("<p>" + t("errorLoadingPage") + "</p>");
         }
       } finally {
         setLoadingPage(false);
@@ -206,7 +208,7 @@ export function Reader() {
               id: docSnap.id,
               text: data.text,
               rating: data.rating,
-              userName: data.userName || "Leitor",
+              userName: data.userName || t("reader"),
               status: data.status,
               createdAt: data.createdAt
             });
@@ -268,7 +270,7 @@ export function Reader() {
     if (!id || rating === 0) return;
     setIsSubmitting(true);
     try {
-      const userName = profile?.displayName || user?.email?.split("@")[0] || "Leitor";
+      const userName = profile?.displayName || user?.email?.split("@")[0] || t("reader");
       
       // Save comment with pending approval status
       await addDoc(collection(db, `stories/${id}/comments`), {
@@ -291,7 +293,7 @@ export function Reader() {
       setSubmitted(true);
     } catch (err) {
       console.error(err);
-      alert("Erro ao enviar avaliação.");
+      alert(t("errorSubmitReview"));
     } finally {
       setIsSubmitting(false);
     }
@@ -301,7 +303,7 @@ export function Reader() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
         <div className="w-10 h-10 border-4 border-[#1A1A1A] dark:border-[#F5F5F0] border-t-transparent rounded-full animate-spin"></div>
-        <div className="font-serif text-sm opacity-60">Abrindo história...</div>
+        <div className="font-serif text-sm opacity-60">{t("loadingStory")}</div>
       </div>
     );
   }
@@ -309,9 +311,9 @@ export function Reader() {
   if (!story) {
     return (
       <div className="text-center py-20 font-serif space-y-4">
-        <p className="text-xl">História não encontrada.</p>
+        <p className="text-xl">{t("storyNotFound")}</p>
         <Link to="/" className="inline-block font-bold text-xs uppercase tracking-widest border-b border-current pb-1">
-          Voltar para a Biblioteca
+          {t("backToLibrary")}
         </Link>
       </div>
     );
@@ -326,28 +328,28 @@ export function Reader() {
         to="/" 
         className="inline-flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest opacity-60 hover:opacity-100 mb-8 transition-opacity"
       >
-        <ArrowLeft className="w-4 h-4" /> Voltar à Biblioteca
+        <ArrowLeft className="w-4 h-4" /> {t("backToLibrary")}
       </Link>
       
       {/* Resume Progress Prompt */}
       {promptProgress && (
         <div className="bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-2xl p-4 sm:p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in duration-300">
           <div className="space-y-1 text-center sm:text-left">
-            <p className="text-sm font-bold font-serif">Leitura Retomada</p>
-            <p className="text-xs opacity-60">Sua leitura foi restaurada automaticamente na página {promptProgress.page + 1}.</p>
+            <p className="text-sm font-bold font-serif">{t("readingResumed")}</p>
+            <p className="text-xs opacity-60">{t("readingRestored", { page: promptProgress.page + 1 })}</p>
           </div>
           <div className="flex gap-2 w-full sm:w-auto justify-end">
             <button 
               onClick={() => { setCurrentPage(0); setPromptProgress(null); }} 
               className="text-xs uppercase tracking-wider px-4 py-2 opacity-60 hover:opacity-100 font-bold border border-[#1A1A1A]/10 dark:border-white/10 rounded-full"
             >
-              Reiniciar (Pág. 1)
+              {t("restartPage1")}
             </button>
             <button 
               onClick={() => setPromptProgress(null)} 
               className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-5 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors shadow-sm"
             >
-              Continuar
+              {t("continueReading")}
             </button>
           </div>
         </div>
@@ -355,15 +357,15 @@ export function Reader() {
 
       <header className="mb-10 text-center">
         <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold mb-3 tracking-tight leading-tight">{story.title}</h1>
-        {story.author && <p className="text-xs sm:text-sm font-bold uppercase tracking-widest opacity-60 mb-6">Por {story.author}</p>}
+        {story.author && <p className="text-xs sm:text-sm font-bold uppercase tracking-widest opacity-60 mb-6">{t("by")} {story.author}</p>}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
           <div className="flex items-center justify-center gap-4 text-[10px] font-bold uppercase tracking-widest opacity-40">
             <span className="w-12 h-[1px] bg-current"></span>
-            <span>Página {currentPage + 1} de {story.totalPages}</span>
+            <span>{t("pageOf", { page: currentPage + 1, total: story.totalPages })}</span>
             <span className="w-12 h-[1px] bg-current"></span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Ir para:</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{t("goTo")}</span>
             <select
               value={currentPage}
               onChange={(e) => setCurrentPage(parseInt(e.target.value, 10))}
@@ -371,7 +373,7 @@ export function Reader() {
             >
               {Array.from({ length: story.totalPages }, (_, i) => (
                 <option key={i} value={i}>
-                  Pág. {i + 1}
+                  {t("pageOf", { page: i + 1, total: story.totalPages }).split(" de ")[0].split(" of ")[0].split(" dari ")[0]}
                 </option>
               ))}
             </select>
@@ -390,7 +392,7 @@ export function Reader() {
               exit={{ opacity: 0 }}
               className="flex justify-center py-20"
             >
-              <div className="animate-pulse text-sm font-serif opacity-50">Carregando página...</div>
+              <div className="animate-pulse text-sm font-serif opacity-50">{t("loadingPage")}</div>
             </motion.div>
           ) : (
             <motion.div
@@ -414,31 +416,42 @@ export function Reader() {
           disabled={!hasPrev}
           className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-5 sm:px-6 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-30 disabled:cursor-not-allowed shadow-sm"
         >
-          <ChevronLeft className="w-4 h-4" /> Anterior
+          <ChevronLeft className="w-4 h-4" /> {t("previous")}
         </button>
         
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Página</span>
-          <select
-            value={currentPage}
-            onChange={(e) => setCurrentPage(parseInt(e.target.value, 10))}
-            className="bg-[#F5F5F0] dark:bg-[#1A1A1A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl px-3 py-1.5 text-xs font-bold font-mono text-[#1A1A1A] dark:text-[#F5F5F0] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] dark:focus:ring-white"
-          >
-            {Array.from({ length: story.totalPages }, (_, i) => (
-              <option key={i} value={i}>
-                {i + 1}
-              </option>
-            ))}
-          </select>
-          <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">de {story.totalPages}</span>
-        </div>
+        {(() => {
+          const parts = t("pageOf", { total: story.totalPages }).split("{page}");
+          const prefix = parts[0]?.trim() || "";
+          const suffix = parts[1]?.trim() || "";
+          return (
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                {prefix}
+              </span>
+              <select
+                value={currentPage}
+                onChange={(e) => setCurrentPage(parseInt(e.target.value, 10))}
+                className="bg-[#F5F5F0] dark:bg-[#1A1A1A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl px-3 py-1.5 text-xs font-bold font-mono text-[#1A1A1A] dark:text-[#F5F5F0] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] dark:focus:ring-white"
+              >
+                {Array.from({ length: story.totalPages }, (_, i) => (
+                  <option key={i} value={i}>
+                    {i + 1}
+                  </option>
+                ))}
+              </select>
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                {suffix}
+              </span>
+            </div>
+          );
+        })()}
         
         <button
           onClick={() => setCurrentPage(p => Math.min(story.totalPages - 1, p + 1))}
           disabled={!hasNext}
           className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-5 sm:px-6 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-30 disabled:cursor-not-allowed shadow-sm"
         >
-          Próxima <ChevronRight className="w-4 h-4" />
+          {t("next")} <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
@@ -447,7 +460,7 @@ export function Reader() {
         <div className="mt-16 pt-12 border-t border-[#1A1A1A]/10 dark:border-white/10 space-y-6">
           <div className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4 opacity-60" />
-            <h3 className="font-serif font-bold text-xl">Comentários Aprovados</h3>
+            <h3 className="font-serif font-bold text-xl">{t("approvedComments")}</h3>
           </div>
 
           <div className="space-y-4">
@@ -481,22 +494,22 @@ export function Reader() {
           className="mt-16 border-t border-[#1A1A1A]/10 dark:border-white/10 pt-12"
         >
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-serif font-bold mb-2">Fim da História</h2>
-            <p className="opacity-60 text-xs sm:text-sm font-serif">Gostou da leitura? Deixe sua avaliação.</p>
+            <h2 className="text-2xl font-serif font-bold mb-2">{t("endOfStory")}</h2>
+            <p className="opacity-60 text-xs sm:text-sm font-serif">{t("enjoyedReading")}</p>
           </div>
           
           {submitted ? (
             <div className="bg-white dark:bg-[#0A0A0A] rounded-2xl p-8 text-center border border-[#1A1A1A]/10 dark:border-white/10 space-y-3">
               <CheckCircle className="w-10 h-10 mx-auto text-emerald-500 mb-2" />
-              <p className="font-bold uppercase tracking-widest text-xs">Avaliação Enviada!</p>
+              <p className="font-bold uppercase tracking-widest text-xs">{t("reviewSent")}</p>
               <p className="opacity-60 text-xs max-w-sm mx-auto">
-                Sua avaliação foi registrada. Caso tenha incluído um comentário, ele passará pela moderação antes de ser publicado.
+                {t("reviewSavedPending")}
               </p>
             </div>
           ) : (
             <form onSubmit={handleReviewSubmit} className="bg-white dark:bg-[#0A0A0A] rounded-2xl p-6 sm:p-8 border border-[#1A1A1A]/10 dark:border-white/10 max-w-lg mx-auto space-y-6 shadow-sm">
               <div className="text-center">
-                <label className="block text-[10px] font-bold uppercase tracking-widest opacity-60 mb-4">Sua Nota</label>
+                <label className="block text-[10px] font-bold uppercase tracking-widest opacity-60 mb-4">{t("yourRating")}</label>
                 <div className="flex justify-center gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -504,7 +517,7 @@ export function Reader() {
                       type="button"
                       onClick={() => setRating(star)}
                       className="focus:outline-none transition-transform hover:scale-125"
-                      title={`${star} estrelas`}
+                      title={`${star} / 5`}
                     >
                       <Star className={cn("w-8 h-8", rating >= star ? "fill-amber-400 text-amber-400" : "text-black/20 dark:text-white/20")} />
                     </button>
@@ -514,16 +527,16 @@ export function Reader() {
               
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2 flex items-center gap-1.5">
-                  <MessageSquare className="w-3.5 h-3.5" /> Comentário (Sujeito à moderação)
+                  <MessageSquare className="w-3.5 h-3.5" /> {t("commentLabel")}
                 </label>
                 <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   className="w-full bg-[#F5F5F0] dark:bg-[#1A1A1A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white resize-none text-xs sm:text-sm"
                   rows={4}
-                  placeholder="Escreva sua opinião sobre a história..."
+                  placeholder={t("commentPlaceholder")}
                 />
-                <p className="text-[10px] opacity-50 mt-1">Os comentários são revisados pelo administrador antes de ficarem visíveis publicamente.</p>
+                <p className="text-[10px] opacity-50 mt-1">{t("moderationNotice")}</p>
               </div>
               
               <button 
@@ -531,7 +544,7 @@ export function Reader() {
                 disabled={rating === 0 || isSubmitting}
                 className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-4 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50 shadow-sm"
               >
-                {isSubmitting ? "Enviando..." : "Enviar Avaliação"}
+                {isSubmitting ? t("sending") : t("submitReview")}
               </button>
             </form>
           )}
