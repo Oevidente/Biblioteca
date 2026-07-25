@@ -206,7 +206,7 @@ export function Home() {
 
   const renderSkeletonCard = (i: number) => (
     <div key={i} className="flex flex-col h-full animate-pulse">
-      <div className="aspect-[5/7] w-full bg-[#EAE8E2] dark:bg-[#2A2A2A] rounded-[22px]"></div>
+      <div className="aspect-[2/3] w-full bg-[#EAE8E2] dark:bg-[#2A2A2A] rounded-[22px]"></div>
       <div className="mt-3 px-1 space-y-2">
         <div className="h-4 bg-black/10 dark:bg-white/10 rounded w-3/4"></div>
         <div className="h-3 bg-black/10 dark:bg-white/10 rounded w-1/2"></div>
@@ -223,7 +223,7 @@ export function Home() {
     return (
       <Link key={story.id} to={`/story/${story.id}`} className="group flex flex-col h-full">
         {/* Cover Image Container */}
-        <div className="relative aspect-[5/7] w-full bg-[#EAE8E2] dark:bg-[#2A2A2A] rounded-[22px] overflow-hidden shadow-sm border border-black/5 dark:border-white/5 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-md">
+        <div className="relative aspect-[2/3] w-full bg-[#EAE8E2] dark:bg-[#2A2A2A] rounded-[22px] overflow-hidden shadow-sm border border-black/5 dark:border-white/5 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-md">
           <BookCoverImage 
             src={story.coverImage} 
             alt={story.title} 
@@ -408,7 +408,7 @@ export function Home() {
                   to={`/story/${item.id}`} 
                   className="flex items-center gap-4 sm:gap-6 p-4 bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-2xl hover:border-[#1A1A1A]/30 transition-all group shadow-sm"
                 >
-                  <div className="w-14 sm:w-16 h-18 sm:h-20 bg-[#EAE8E2] dark:bg-[#2A2A2A] rounded-lg overflow-hidden shrink-0">
+                  <div className="w-14 sm:w-16 aspect-[2/3] h-auto bg-[#EAE8E2] dark:bg-[#2A2A2A] rounded-lg overflow-hidden shrink-0">
                     <BookCoverImage 
                       src={cover} 
                       alt={item.title} 

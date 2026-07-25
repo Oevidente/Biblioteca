@@ -125,6 +125,8 @@ export function Admin() {
   const [editAuthor, setEditAuthor] = useState("");
   const [editTagsInput, setEditTagsInput] = useState("");
   const [editPublicationDate, setEditPublicationDate] = useState("");
+  const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
+  const [editCoverImage, setEditCoverImage] = useState<string>("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [storyToDelete, setStoryToDelete] = useState<StoryItem | null>(null);
   const [deletingStoryId, setDeletingStoryId] = useState<string | null>(null);
@@ -176,6 +178,8 @@ export function Admin() {
     setEditTitle(story.title);
     setEditAuthor(story.author || "");
     setEditTagsInput((story.tags || []).join(", "));
+    setEditCoverImage(story.coverImage || "");
+    setEditCoverFile(null);
     
     let initialPubDate = story.publicationDate || "";
     if (!initialPubDate && story.createdAt) {
@@ -196,6 +200,19 @@ export function Admin() {
     setEditAuthor("");
     setEditTagsInput("");
     setEditPublicationDate("");
+    setEditCoverImage("");
+    setEditCoverFile(null);
+  };
+
+  const handleEditCoverChange = async (file: File | null) => {
+    if (!file) return;
+    setEditCoverFile(file);
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setEditCoverImage(dataUrl);
+    } catch (err) {
+      console.error("Error generating preview:", err);
+    }
   };
 
   const handleSaveEdit = async (storyId: string) => {
@@ -211,18 +228,35 @@ export function Admin() {
         .map((t) => t.trim())
         .filter((t) => t.length > 0);
 
+      let finalCoverUrl = editCoverImage;
+
+      if (editCoverFile) {
+        if (accessToken) {
+          try {
+            const driveLink = await uploadToDrive(editCoverFile, accessToken);
+            finalCoverUrl = formatCoverUrl(driveLink);
+          } catch (driveErr) {
+            console.warn("Upload para o Drive falhou, convertendo imagem localmente...", driveErr);
+            finalCoverUrl = await fileToDataUrl(editCoverFile);
+          }
+        } else {
+          finalCoverUrl = await fileToDataUrl(editCoverFile);
+        }
+      }
+
       const storyRef = doc(db, "stories", storyId);
       await updateDoc(storyRef, {
         title: editTitle.trim(),
         author: editAuthor.trim(),
         tags: tagsArray,
-        publicationDate: editPublicationDate
+        publicationDate: editPublicationDate,
+        coverImage: finalCoverUrl
       });
 
       setStoriesList((prev) =>
         prev.map((s) =>
           s.id === storyId
-            ? { ...s, title: editTitle.trim(), author: editAuthor.trim(), tags: tagsArray, publicationDate: editPublicationDate }
+            ? { ...s, title: editTitle.trim(), author: editAuthor.trim(), tags: tagsArray, publicationDate: editPublicationDate, coverImage: finalCoverUrl }
             : s
         )
       );
@@ -233,7 +267,7 @@ export function Admin() {
           const list = JSON.parse(cached);
           const updatedList = list.map((item: any) =>
             item.id === storyId
-              ? { ...item, title: editTitle.trim(), author: editAuthor.trim(), tags: tagsArray, publicationDate: editPublicationDate }
+              ? { ...item, title: editTitle.trim(), author: editAuthor.trim(), tags: tagsArray, publicationDate: editPublicationDate, coverImage: finalCoverUrl }
               : item
           );
           localStorage.setItem("luminary_cached_stories", JSON.stringify(updatedList));
@@ -244,6 +278,8 @@ export function Admin() {
 
       setManageMsg(t("storyUpdatedSuccess"));
       setEditingStoryId(null);
+      setEditCoverFile(null);
+      setEditCoverImage("");
     } catch (err: any) {
       console.error("Error updating story:", err);
       setManageMsg(`${t("errorUpdatingStory")}${err.message || err}`);
@@ -858,6 +894,43 @@ export function Admin() {
                             </div>
                           </div>
 
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                            <div className="md:col-span-1 flex flex-col">
+                              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1.5">{t("coverImageLabel")}</label>
+                              <div className="relative w-20 aspect-[2/3] h-auto rounded-xl overflow-hidden border border-[#1A1A1A]/10 dark:border-white/10 shadow-sm shrink-0 bg-[#F5F5F0] dark:bg-[#0A0A0A] flex items-center justify-center">
+                                {editCoverImage ? (
+                                  <img src={editCoverImage} alt="Cover Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                ) : (
+                                  <ImageIcon className="w-6 h-6 opacity-20" />
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="md:col-span-3 flex flex-col">
+                              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1.5">{t("coverImageLabel")} (Nova)</label>
+                              <label className={cn(
+                                "flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer transition-colors",
+                                editCoverFile ? "border-[#1A1A1A] dark:border-white bg-[#1A1A1A]/5 dark:bg-white/5" : "border-[#1A1A1A]/20 dark:border-white/20 hover:bg-[#F5F5F0] dark:hover:bg-[#0A0A0A]"
+                              )}>
+                                <div className="flex flex-col items-center justify-center pt-2 pb-2">
+                                  <Upload className={cn("w-6 h-6 mb-1", editCoverFile ? "text-[#1A1A1A] dark:text-white" : "text-[#1A1A1A]/40 dark:text-white/40")} />
+                                  <p className="text-xs font-bold opacity-60 truncate max-w-[200px] px-2 text-center">
+                                    {editCoverFile ? editCoverFile.name : t("coverImagePlaceholder")}
+                                  </p>
+                                </div>
+                                <input 
+                                  type="file" 
+                                  accept="image/*" 
+                                  className="hidden" 
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0] || null;
+                                    handleEditCoverChange(file);
+                                  }} 
+                                />
+                              </label>
+                            </div>
+                          </div>
+
                           <div>
                             <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("editTags")}</label>
                             <input 
@@ -896,7 +969,7 @@ export function Admin() {
                               src={story.coverImage}
                               alt={story.title}
                               title={story.title}
-                              className="w-16 h-20 object-cover rounded-lg shadow-sm border border-[#1A1A1A]/10 dark:border-white/10 shrink-0"
+                              className="w-16 aspect-[2/3] h-auto object-cover rounded-lg shadow-sm border border-[#1A1A1A]/10 dark:border-white/10 shrink-0"
                             />
 
                             <div className="space-y-1.5">
