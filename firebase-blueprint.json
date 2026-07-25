@@ -1,0 +1,47 @@
+{
+  "models": [
+    {
+      "name": "User",
+      "properties": [
+        { "name": "uid", "type": "string", "isRequired": true },
+        { "name": "email", "type": "string", "isRequired": true },
+        { "name": "displayName", "type": "string", "isRequired": false },
+        { "name": "createdAt", "type": "timestamp", "isRequired": true }
+      ]
+    },
+    {
+      "name": "Story",
+      "properties": [
+        { "name": "title", "type": "string", "isRequired": true },
+        { "name": "author", "type": "string", "isRequired": false },
+        { "name": "pages", "type": "string[]", "isRequired": false },
+        { "name": "coverImage", "type": "string", "isRequired": true },
+        { "name": "tags", "type": "string[]", "isRequired": true },
+        { "name": "rating", "type": "number", "isRequired": false },
+        { "name": "ratingsCount", "type": "number", "isRequired": false },
+        { "name": "createdAt", "type": "timestamp", "isRequired": true }
+      ]
+    },
+    {
+      "name": "Comment",
+      "properties": [
+        { "name": "storyId", "type": "string", "isRequired": true },
+        { "name": "userId", "type": "string", "isRequired": true },
+        { "name": "userName", "type": "string", "isRequired": true },
+        { "name": "text", "type": "string", "isRequired": true },
+        { "name": "rating", "type": "number", "isRequired": true },
+        { "name": "status", "type": "string", "isRequired": true },
+        { "name": "createdAt", "type": "timestamp", "isRequired": true }
+      ]
+    },
+    {
+      "name": "UserProgress",
+      "properties": [
+        { "name": "storyId", "type": "string", "isRequired": true },
+        { "name": "page", "type": "number", "isRequired": true },
+        { "name": "totalPages", "type": "number", "isRequired": true },
+        { "name": "updatedAt", "type": "timestamp", "isRequired": true }
+      ]
+    }
+  ]
+}
