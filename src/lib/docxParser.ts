@@ -43,15 +43,11 @@ export async function parseDocx(file: File): Promise<string[]> {
             styleMap: [
               "p[style-name='Page Break'] => hr.page-break:empty"
             ],
-            // Ignore images during mammoth conversion
             ignoreEmptyParagraphs: false
           }
         );
 
         let rawHtml = result.value || "";
-
-        // Completely strip all img tags embedded inside the DOCX
-        rawHtml = rawHtml.replace(/<img[^>]*>/gi, "");
 
         // 1. Split into raw pages first
         let rawPages = rawHtml.split('<hr class="page-break" />');

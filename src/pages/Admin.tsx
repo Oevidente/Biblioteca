@@ -4,23 +4,23 @@ import { useAuth, ADMIN_EMAIL } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { fileToDataUrl, formatCoverUrl } from "../utils/imageUtils";
 import { BookCoverImage } from "../components/BookCoverImage";
-import { 
-  Lock, 
-  Upload, 
-  Image as ImageIcon, 
-  FileText, 
-  Loader2, 
-  User as UserIcon, 
-  MessageSquare, 
-  Star, 
-  Pencil, 
-  Trash2, 
-  Save, 
-  X, 
-  Search, 
-  BookOpen, 
-  Check, 
-  EyeOff, 
+import {
+  Lock,
+  Upload,
+  Image as ImageIcon,
+  FileText,
+  Loader2,
+  User as UserIcon,
+  MessageSquare,
+  Star,
+  Pencil,
+  Trash2,
+  Save,
+  X,
+  Search,
+  BookOpen,
+  Check,
+  EyeOff,
   AlertCircle,
   CheckCircle,
   XCircle,
@@ -38,27 +38,27 @@ import {
   ChevronDown,
   ChevronUp
 } from "lucide-react";
-import { 
-  db, 
-  collection, 
-  addDoc, 
-  Timestamp, 
-  auth, 
-  provider, 
-  signInWithPopup, 
-  onAuthStateChanged, 
+import {
+  db,
+  collection,
+  addDoc,
+  Timestamp,
+  auth,
+  provider,
+  signInWithPopup,
+  onAuthStateChanged,
   signOut,
-  User, 
-  query, 
-  orderBy, 
-  getDocs, 
-  doc, 
-  setDoc, 
-  updateDoc, 
+  User,
+  query,
+  orderBy,
+  getDocs,
+  doc,
+  setDoc,
+  updateDoc,
   deleteDoc,
   collectionGroup
 } from "../lib/firebase";
-import { parseDocx } from "../lib/docxParser";
+import mammoth from "mammoth";
 import { generateTagsLocal } from "../lib/tagger";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -134,10 +134,10 @@ export function Admin() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const isAdmin = profile?.role === "admin" || (user?.email || "").toLowerCase().trim() === ADMIN_EMAIL;
-  
+
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"publish" | "manage" | "comments" | "superadmin" | "analytics">("publish");
-  
+
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [publicationDate, setPublicationDate] = useState(new Date().toISOString().split('T')[0]);
@@ -318,7 +318,7 @@ export function Admin() {
     setEditTagsInput((story.tags || []).join(", "));
     setEditCoverImage(story.coverImage || "");
     setEditCoverFile(null);
-    
+
     let initialPubDate = story.publicationDate || "";
     if (!initialPubDate && story.createdAt) {
       try {
@@ -371,7 +371,7 @@ export function Admin() {
       if (editCoverFile) {
         if (accessToken) {
           try {
-            const driveLink = await uploadToDrive(editCoverFile, accessToken);
+            const driveLink = await uploadToDrive(editCoverFile, accessToken, "covers", `cover_${editingStoryId}_${Date.now()}.jpg`);
             finalCoverUrl = formatCoverUrl(driveLink);
           } catch (driveErr) {
             console.warn("Upload para o Drive falhou, convertendo imagem localmente...", driveErr);
@@ -559,9 +559,9 @@ export function Admin() {
       const result = await signInWithPopup(auth, provider);
       const cred = (provider as any).credentialFromResult?.(result);
       if (cred?.accessToken) {
-         setAccessToken(cred.accessToken);
+        setAccessToken(cred.accessToken);
       } else {
-         setAccessToken((result as any)._tokenResponse?.oauthAccessToken);
+        setAccessToken((result as any)._tokenResponse?.oauthAccessToken);
       }
     } catch (err) {
       console.error(err);
@@ -569,10 +569,10 @@ export function Admin() {
     }
   };
 
-  const getOrCreateCapasFolder = async (token: string): Promise<string> => {
+  const getOrCreateDriveFolder = async (token: string, folderName: string): Promise<string> => {
     try {
       const searchRes = await fetch(
-        `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent("mimeType='application/vnd.google-apps.folder' and name='capas' and trashed=false")}&fields=files(id,name)`,
+        `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`)}&fields=files(id,name)`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (searchRes.ok) {
@@ -589,7 +589,7 @@ export function Admin() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          name: 'capas',
+          name: folderName,
           mimeType: 'application/vnd.google-apps.folder'
         })
       });
@@ -598,15 +598,15 @@ export function Admin() {
         return folderData.id;
       }
     } catch (e) {
-      console.warn("Drive capas folder check warning:", e);
+      console.warn(`Drive ${folderName} folder check warning:`, e);
     }
     return 'root';
   };
 
-  const uploadToDrive = async (file: File, token: string) => {
-    const parentFolderId = await getOrCreateCapasFolder(token);
+  const uploadToDrive = async (file: File | Blob, token: string, folderName: string, fileName: string) => {
+    const parentFolderId = await getOrCreateDriveFolder(token, folderName);
     const metadata = {
-      name: file.name,
+      name: fileName,
       parents: [parentFolderId]
     };
     const form = new FormData();
@@ -618,18 +618,18 @@ export function Admin() {
       headers: { Authorization: `Bearer ${token}` },
       body: form
     });
-    
+
     if (!res.ok) {
       const errText = await res.text().catch(() => "Sem resposta do servidor");
       throw new Error(`Google Drive HTTP ${res.status}: ${errText}`);
     }
     const data = await res.json();
-    
+
     const permRes = await fetch(`https://www.googleapis.com/drive/v3/files/${data.id}/permissions`, {
       method: 'POST',
-      headers: { 
+      headers: {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json' 
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({ role: 'reader', type: 'anyone' })
     });
@@ -694,7 +694,7 @@ export function Admin() {
         return;
       }
     }
-    
+
     setIsUploading(true);
     setMessage("");
     setProgressPercent(5);
@@ -711,7 +711,7 @@ export function Admin() {
       if (coverFile) {
         if (accessToken) {
           try {
-            const driveLink = await uploadToDrive(coverFile, accessToken);
+            const driveLink = await uploadToDrive(coverFile, accessToken, "covers", `cover_${Date.now()}.jpg`);
             finalCoverUrl = formatCoverUrl(driveLink);
           } catch (driveErr) {
             console.warn("Upload para o Drive falhou, convertendo imagem localmente...", driveErr);
@@ -728,19 +728,54 @@ export function Admin() {
       let tags: string[] = [];
       let wordCount = 0;
 
-      stageName = t("docxProcessing");
-      setCurrentStage(stageName);
-      setProgressPercent(35);
-      pages = await parseDocx(docxFile!);
+      if (creationMode === "docx" && docxFile) {
+        stageName = t("docxProcessing");
+        setCurrentStage(stageName);
+        setProgressPercent(35);
 
-      if (!pages || pages.length === 0) {
-        throw new Error(t("docxInvalid"));
+        const imageConverter = async (image: any) => {
+          const imageBuffer = await image.read();
+          const imageBlob = new Blob([imageBuffer], { type: image.contentType });
+          const fileName = `story_image_${Date.now()}.${image.contentType.split('/')[1] || 'png'}`;
+
+          let imageUrl = "";
+          if (accessToken) {
+            try {
+              imageUrl = await uploadToDrive(imageBlob, accessToken, "storyImages", fileName);
+            } catch (driveErr) {
+              console.warn("Upload de imagem da história para o Drive falhou, usando data URI como fallback...", driveErr);
+              const dataUrl = await new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(imageBlob);
+              });
+              imageUrl = dataUrl;
+            }
+          } else {
+            const dataUrl = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(imageBlob);
+            });
+            imageUrl = dataUrl;
+          }
+
+          return { src: formatCoverUrl(imageUrl) };
+        };
+
+        const arrayBuffer = await docxFile.arrayBuffer();
+        const result = await mammoth.convertToHtml({ arrayBuffer }, { convertImage: mammoth.images.imgElement(imageConverter) });
+        const fullHtml = result.value;
+
+        // Simple pagination logic by splitting content.
+        // This replaces the external parseDocx and can be refined.
+        pages = fullHtml.split(/<hr \/>|<hr>|<!-- pagebreak -->/i).map(p => p.trim()).filter(p => p.length > 0);
       }
 
       stageName = t("tagGeneration");
       setCurrentStage(stageName);
       setProgressPercent(45);
-      const textSample = pages[0].replace(/<[^>]*>?/gm, ''); 
+      const textSample = pages[0].replace(/<[^>]*>?/gm, '');
       tags = generateTagsLocal(textSample);
 
       const fullText = pages.map(p => p.replace(/<[^>]*>?/gm, ' ')).join(' ');
@@ -749,9 +784,9 @@ export function Admin() {
       stageName = t("dbCreation");
       setCurrentStage(stageName);
       setProgressPercent(55);
-      
+
       const storyRef = doc(collection(db, "stories"));
-      
+
       const newStoryObj = {
         id: storyRef.id,
         title,
@@ -827,7 +862,7 @@ export function Admin() {
       console.error("Erro na publicação:", error);
       const errMsg = error?.message || "Ocorreu um erro desconhecido";
       const errCode = error?.code ? ` (Código: ${error.code})` : "";
-      
+
       setCurrentStage(t("stageFailed", { stage: stageName }));
       setErrorDetails({
         stage: stageName,
@@ -861,7 +896,7 @@ export function Admin() {
         </div>
         <h1 className="text-2xl font-serif font-bold text-center mb-8">{t("adminAccess")}</h1>
         <div className="space-y-6">
-          <button 
+          <button
             onClick={handleLogin}
             className="w-full font-bold text-[10px] uppercase tracking-widest py-4 rounded-full transition-all paper-btn-dark"
           >
@@ -882,8 +917,8 @@ export function Admin() {
   });
 
   // Analytics calculations
-  const filteredProgress = selectedStoryId === "all" 
-    ? progressRecords 
+  const filteredProgress = selectedStoryId === "all"
+    ? progressRecords
     : progressRecords.filter(p => p.storyId === selectedStoryId);
 
   const uniqueReadersCount = new Set(filteredProgress.map(p => p.userId)).size;
@@ -908,8 +943,8 @@ export function Admin() {
       return page === totalPages - 1;
     }).length;
   }
-  const completionRatePercent = totalStartsCount > 0 
-    ? Number(((finishedCount / totalStartsCount) * 100).toFixed(1)) 
+  const completionRatePercent = totalStartsCount > 0
+    ? Number(((finishedCount / totalStartsCount) * 100).toFixed(1))
     : 0;
 
   let avgReadingTimeMin = 0;
@@ -946,25 +981,25 @@ export function Admin() {
           <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mt-1">{user.email}</div>
         </div>
         <div className="grid grid-cols-2 sm:flex p-1.5 sm:p-1 rounded-2xl sm:rounded-full w-full sm:w-auto gap-1 sm:gap-0 paper-card">
-          <button 
+          <button
             onClick={() => setActiveTab("publish")}
             className={cn(
               "px-3 py-2.5 rounded-xl sm:rounded-full text-[10px] uppercase font-bold tracking-widest transition-all text-center flex items-center justify-center gap-1.5",
-              activeTab === "publish" 
-                ? "paper-btn-dark shadow-sm" 
+              activeTab === "publish"
+                ? "paper-btn-dark shadow-sm"
                 : "opacity-60 hover:opacity-100 paper-btn-light"
             )}
           >
             <PenTool className="w-3.5 h-3.5" />
             <span>{t("publish")}</span>
           </button>
-          
-          <button 
+
+          <button
             onClick={() => setActiveTab("manage")}
             className={cn(
               "px-3 py-2.5 rounded-xl sm:rounded-full text-[10px] uppercase font-bold tracking-widest transition-all text-center flex items-center justify-center gap-1.5",
-              activeTab === "manage" 
-                ? "paper-btn-dark shadow-sm" 
+              activeTab === "manage"
+                ? "paper-btn-dark shadow-sm"
                 : "opacity-60 hover:opacity-100 paper-btn-light"
             )}
           >
@@ -972,12 +1007,12 @@ export function Admin() {
             <span>{t("manage")}</span>
           </button>
 
-          <button 
+          <button
             onClick={() => setActiveTab("analytics")}
             className={cn(
               "px-3 py-2.5 rounded-xl sm:rounded-full text-[10px] uppercase font-bold tracking-widest transition-all text-center flex items-center justify-center gap-1.5",
-              activeTab === "analytics" 
-                ? "paper-btn-dark shadow-sm" 
+              activeTab === "analytics"
+                ? "paper-btn-dark shadow-sm"
                 : "opacity-60 hover:opacity-100 paper-btn-light"
             )}
           >
@@ -985,12 +1020,12 @@ export function Admin() {
             <span>{t("analytics")}</span>
           </button>
 
-          <button 
+          <button
             onClick={() => setActiveTab("comments")}
             className={cn(
               "px-3 py-2.5 rounded-xl sm:rounded-full text-[10px] uppercase font-bold tracking-widest transition-all text-center flex items-center justify-center gap-1.5",
-              activeTab === "comments" 
-                ? "paper-btn-dark shadow-sm" 
+              activeTab === "comments"
+                ? "paper-btn-dark shadow-sm"
                 : "opacity-60 hover:opacity-100 paper-btn-light"
             )}
           >
@@ -1002,12 +1037,12 @@ export function Admin() {
           </button>
 
           {user && (user.email || "").toLowerCase().trim() === ADMIN_EMAIL && (
-            <button 
+            <button
               onClick={() => setActiveTab("superadmin")}
               className={cn(
                 "col-span-2 sm:col-span-1 px-3 py-2.5 rounded-xl sm:rounded-full text-[10px] uppercase font-bold tracking-widest transition-all text-center flex items-center justify-center gap-1.5",
-                activeTab === "superadmin" 
-                  ? "paper-btn-dark shadow-sm" 
+                activeTab === "superadmin"
+                  ? "paper-btn-dark shadow-sm"
                   : "opacity-60 hover:opacity-100 paper-btn-light"
               )}
             >
@@ -1056,8 +1091,8 @@ export function Admin() {
 
                 {isDropdownOpen && (
                   <>
-                    <div 
-                      className="fixed inset-0 z-10" 
+                    <div
+                      className="fixed inset-0 z-10"
                       onClick={() => setIsDropdownOpen(false)}
                     />
                     <div className="absolute right-0 left-0 mt-2 border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl shadow-lg z-20 max-h-60 overflow-y-auto py-1 animate-in fade-in slide-in-from-top-1 duration-100 paper-card">
@@ -1163,7 +1198,7 @@ export function Admin() {
                           {analyticsStories.map(s => {
                             const storyProgress = progressRecords.filter(p => p.storyId === s.id);
                             const starts = storyProgress.length;
-                            
+
                             let progressSum = 0;
                             let finished = 0;
                             storyProgress.forEach(p => {
@@ -1172,7 +1207,7 @@ export function Admin() {
                               progressSum += Math.min(100, ((page + 1) / total) * 100);
                               if (page === total - 1) finished++;
                             });
-                            
+
                             const avgProg = starts > 0 ? Math.round(progressSum / starts) : 0;
                             const ratingAvg = s.ratingsCount > 0 ? (s.rating / s.ratingsCount).toFixed(1) : "N/A";
 
@@ -1217,7 +1252,7 @@ export function Admin() {
                       {analyticsStories.map(s => {
                         const storyProgress = progressRecords.filter(p => p.storyId === s.id);
                         const starts = storyProgress.length;
-                        
+
                         let progressSum = 0;
                         let finished = 0;
                         storyProgress.forEach(p => {
@@ -1226,7 +1261,7 @@ export function Admin() {
                           progressSum += Math.min(100, ((page + 1) / total) * 100);
                           if (page === total - 1) finished++;
                         });
-                        
+
                         const avgProg = starts > 0 ? Math.round(progressSum / starts) : 0;
                         const ratingAvg = s.ratingsCount > 0 ? (s.rating / s.ratingsCount).toFixed(1) : "N/A";
 
@@ -1285,7 +1320,7 @@ export function Admin() {
                         <span>{t("retentionByPage")}</span>
                       </h3>
                       <p className="text-xs opacity-60">{t("retentionDescription")}</p>
-                      
+
                       <div className="space-y-3 pt-2 max-h-96 overflow-y-auto pr-1">
                         {pageFunnelData.map((data) => (
                           <div key={data.pageIndex}>
@@ -1363,7 +1398,7 @@ export function Admin() {
                 <div className="text-4xl font-serif font-bold">{totalUsers ?? 0}</div>
               )}
             </div>
-            
+
             <div className="p-6 rounded-2xl flex flex-col items-center justify-center text-center paper-card">
               <Heart className="w-8 h-8 opacity-40 mb-4 text-red-500" />
               <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2">{t("totalFavoritesInSite")}</div>
@@ -1379,15 +1414,15 @@ export function Admin() {
             <div>
               <h2 className="text-xl font-serif font-bold mb-2">{t("authorRequests")}</h2>
               <p className="text-xs opacity-60 leading-relaxed mb-4">
-                Abaixo estão os usuários que solicitaram conta de Autor no momento do cadastro. 
+                Abaixo estão os usuários que solicitaram conta de Autor no momento do cadastro.
                 Você pode autorizá-los diretamente clicando em "Autorizar". Isso atualizará o banco de dados.
                 <br /><br />
                 <strong>Importante para Autores usando Google Login (App em Teste):</strong><br />
-                Se o aplicativo no Google Cloud ainda estiver em modo "Testing", além de autorizar aqui, você precisará adicionar o e-mail do autor à lista de <strong>Usuários de Teste</strong> para que ele consiga fazer login com o Google. 
+                Se o aplicativo no Google Cloud ainda estiver em modo "Testing", além de autorizar aqui, você precisará adicionar o e-mail do autor à lista de <strong>Usuários de Teste</strong> para que ele consiga fazer login com o Google.
                 Acesse o <a href="https://console.cloud.google.com/auth/audience?project=robotic-century-498520-e2" target="_blank" rel="noreferrer" className="underline font-bold text-blue-500 dark:text-blue-400 hover:opacity-80">Google Cloud Console (Tela de Consentimento OAuth)</a>, role até a seção "Test users" (Usuários de teste) e adicione o e-mail do autor lá.
                 <br /><br />
                 <strong>Configuração Manual no Firebase (Opcional):</strong><br />
-                Caso a autorização por aqui falhe, acesse o <a href="https://console.firebase.google.com/" target="_blank" rel="noreferrer" className="underline font-bold text-blue-500 dark:text-blue-400 hover:opacity-80">Firebase Console</a>, 
+                Caso a autorização por aqui falhe, acesse o <a href="https://console.firebase.google.com/" target="_blank" rel="noreferrer" className="underline font-bold text-blue-500 dark:text-blue-400 hover:opacity-80">Firebase Console</a>,
                 vá em <strong>Firestore Database</strong> &gt; coleção <strong>users</strong>, encontre o documento pelo e-mail e edite o campo <code>role</code> para <code>"author"</code>.
               </p>
             </div>
@@ -1408,7 +1443,7 @@ export function Admin() {
                       <div className="font-bold text-sm">{req.displayName || t("noName")}</div>
                       <div className="text-xs opacity-60 font-mono mt-1">{req.email}</div>
                     </div>
-                    <button 
+                    <button
                       onClick={() => approveAuthor(req.id)}
                       className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all whitespace-nowrap paper-btn-dark"
                     >
@@ -1431,8 +1466,8 @@ export function Admin() {
               onClick={() => setCreationMode("writer")}
               className={cn(
                 "flex-1 py-2.5 px-4 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all",
-                creationMode === "writer" 
-                  ? "paper-btn-dark shadow-sm" 
+                creationMode === "writer"
+                  ? "paper-btn-dark shadow-sm"
                   : "opacity-60 hover:opacity-100 paper-btn-light"
               )}
             >
@@ -1444,8 +1479,8 @@ export function Admin() {
               onClick={() => setCreationMode("docx")}
               className={cn(
                 "flex-1 py-2.5 px-4 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all",
-                creationMode === "docx" 
-                  ? "paper-btn-dark shadow-sm" 
+                creationMode === "docx"
+                  ? "paper-btn-dark shadow-sm"
                   : "opacity-60 hover:opacity-100 paper-btn-light"
               )}
             >
@@ -1457,8 +1492,8 @@ export function Admin() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">{t("storyTitle")}</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm paper-card"
@@ -1468,8 +1503,8 @@ export function Admin() {
             </div>
             <div>
               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">{t("editAuthor")}</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm paper-card"
@@ -1510,8 +1545,8 @@ export function Admin() {
             </div>
             <div>
               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">{t("publishDate")}</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 value={publicationDate}
                 onChange={(e) => setPublicationDate(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm paper-card"
@@ -1571,8 +1606,8 @@ export function Admin() {
           {(isUploading || progressPercent > 0) && (
             <div className={cn(
               "space-y-3 p-5 rounded-2xl border transition-colors",
-              errorDetails 
-                ? "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-400" 
+              errorDetails
+                ? "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-400"
                 : "bg-[#F5F5F0] dark:bg-[#0A0A0A] border-[#1A1A1A]/10 dark:border-white/10"
             )}>
               <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
@@ -1583,7 +1618,7 @@ export function Admin() {
                 <span className="font-mono text-sm">{progressPercent}%</span>
               </div>
               <div className="w-full bg-[#1A1A1A]/10 dark:bg-white/10 h-2.5 rounded-full overflow-hidden">
-                <div 
+                <div
                   className={cn(
                     "h-full transition-all duration-300 rounded-full",
                     errorDetails ? "bg-red-500" : "bg-[#1A1A1A] dark:bg-[#F5F5F0]"
@@ -1615,7 +1650,7 @@ export function Admin() {
           {/* Action Buttons */}
           {creationMode === "docx" ? (
             <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-[#1A1A1A]/10 dark:border-white/10">
-              <button 
+              <button
                 type="button"
                 disabled={isUploading}
                 onClick={() => handleSaveStory(true)}
@@ -1625,7 +1660,7 @@ export function Admin() {
                 {t("saveDraft")}
               </button>
 
-              <button 
+              <button
                 type="button"
                 disabled={isUploading}
                 onClick={() => handleSaveStory(false)}
@@ -1637,7 +1672,7 @@ export function Admin() {
             </div>
           ) : (
             <div className="pt-4 border-t border-[#1A1A1A]/10 dark:border-white/10">
-              <button 
+              <button
                 type="button"
                 disabled={isUploading}
                 onClick={handleStartWritingOnSite}
@@ -1657,7 +1692,7 @@ export function Admin() {
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <div className="relative w-full sm:w-64">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
-                <input 
+                <input
                   type="text"
                   placeholder={t("searchPlaceholder")}
                   value={searchStoryQuery}
@@ -1689,8 +1724,8 @@ export function Admin() {
               </div>
             </div>
 
-            <button 
-              onClick={loadStoriesList} 
+            <button
+              onClick={loadStoriesList}
               disabled={loadingStories}
               className="text-xs font-bold uppercase tracking-wider opacity-60 hover:opacity-100 transition-opacity paper-btn-light px-3 py-1.5 rounded-xl"
             >
@@ -1729,8 +1764,8 @@ export function Admin() {
                   const isDeletingThis = deletingStoryId === story.id;
 
                   return (
-                    <div 
-                      key={story.id} 
+                    <div
+                      key={story.id}
                       className="p-6 rounded-2xl space-y-4 transition-all paper-card"
                     >
                       {isEditing ? (
@@ -1739,7 +1774,7 @@ export function Admin() {
                             <span className="text-xs font-bold uppercase tracking-widest opacity-60 flex items-center gap-1.5">
                               <Pencil className="w-3.5 h-3.5" /> {t("editStory")}
                             </span>
-                            <button 
+                            <button
                               onClick={handleCancelEdit}
                               className="p-1 rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 opacity-60 hover:opacity-100"
                               title={t("cancel")}
@@ -1751,7 +1786,7 @@ export function Admin() {
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("editTitle")}</label>
-                              <input 
+                              <input
                                 type="text"
                                 value={editTitle}
                                 onChange={(e) => setEditTitle(e.target.value)}
@@ -1760,7 +1795,7 @@ export function Admin() {
                             </div>
                             <div>
                               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("editAuthor")}</label>
-                              <input 
+                              <input
                                 type="text"
                                 value={editAuthor}
                                 onChange={(e) => setEditAuthor(e.target.value)}
@@ -1800,7 +1835,7 @@ export function Admin() {
                             </div>
                             <div>
                               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("publishDate")}</label>
-                              <input 
+                              <input
                                 type="date"
                                 value={editPublicationDate}
                                 onChange={(e) => setEditPublicationDate(e.target.value)}
@@ -1820,7 +1855,7 @@ export function Admin() {
                                 )}
                               </div>
                             </div>
-                            
+
                             <div className="md:col-span-3 flex flex-col">
                               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1.5">{t("coverImageLabel")} (Nova)</label>
                               <label className={cn(
@@ -1833,14 +1868,14 @@ export function Admin() {
                                     {editCoverFile ? editCoverFile.name : t("coverImagePlaceholder")}
                                   </p>
                                 </div>
-                                <input 
-                                  type="file" 
-                                  accept="image/*" 
-                                  className="hidden" 
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
                                   onChange={(e) => {
                                     const file = e.target.files?.[0] || null;
                                     handleEditCoverChange(file);
-                                  }} 
+                                  }}
                                 />
                               </label>
                             </div>
@@ -1848,12 +1883,12 @@ export function Admin() {
 
                           <div>
                             <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("editTags")}</label>
-                            <input 
-                                type="text"
-                                value={editTagsInput}
-                                onChange={(e) => setEditTagsInput(e.target.value)}
-                                className="w-full px-3 py-2 text-sm bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none"
-                                placeholder={t("editTagsPlaceholder")}
+                            <input
+                              type="text"
+                              value={editTagsInput}
+                              onChange={(e) => setEditTagsInput(e.target.value)}
+                              className="w-full px-3 py-2 text-sm bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none"
+                              placeholder={t("editTagsPlaceholder")}
                             />
                           </div>
 
@@ -1892,8 +1927,8 @@ export function Admin() {
                                 <h3 className="font-serif font-bold text-lg leading-tight">{story.title}</h3>
                                 <span className={cn(
                                   "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                                  story.isDraft 
-                                    ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30" 
+                                  story.isDraft
+                                    ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30"
                                     : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
                                 )}>
                                   {story.isDraft ? t("isDraftBadge") : t("isPublishedBadge")}
@@ -1907,8 +1942,8 @@ export function Admin() {
                               {story.tags && story.tags.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mt-2">
                                   {story.tags.map((tag, idx) => (
-                                    <span 
-                                      key={idx} 
+                                    <span
+                                      key={idx}
                                       className="px-2 py-0.5 bg-[#F5F5F0] dark:bg-[#0A0A0A] text-[10px] font-bold uppercase tracking-wider rounded-md border border-[#1A1A1A]/10 dark:border-white/10 opacity-80"
                                     >
                                       {tag}
@@ -1926,7 +1961,7 @@ export function Admin() {
                                     try {
                                       const d = story.createdAt.toDate ? story.createdAt.toDate() : new Date(story.createdAt);
                                       pubDateStr = d.toISOString().split('T')[0];
-                                    } catch (e) {}
+                                    } catch (e) { }
                                   }
                                   if (pubDateStr) {
                                     return <span>• {t("publishedOn")}: {pubDateStr.split('-').reverse().join('/')}</span>;
@@ -1994,7 +2029,7 @@ export function Admin() {
                 <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span>{commentsMsg}</span>
               </div>
-              <button 
+              <button
                 onClick={() => setCommentsMsg(null)}
                 className="opacity-60 hover:opacity-100 p-1 rounded-full hover:bg-emerald-500/15 transition-colors"
                 title="Fechar"
@@ -2010,25 +2045,25 @@ export function Admin() {
               {t("commentsApprovalTitle")}
             </div>
             <div className="flex gap-2 p-1 rounded-xl text-[10px] font-bold uppercase tracking-widest overflow-x-auto w-full sm:w-auto scrollbar-none whitespace-nowrap paper-card">
-              <button 
+              <button
                 onClick={() => setCommentFilter("pending")}
                 className={cn("px-3 py-1.5 rounded-lg transition-colors flex-shrink-0", commentFilter === "pending" ? "paper-btn-dark shadow-sm" : "opacity-60 paper-btn-light")}
               >
                 {t("commentsPending")} ({comments.filter(c => c.status === "pending").length})
               </button>
-              <button 
+              <button
                 onClick={() => setCommentFilter("approved")}
                 className={cn("px-3 py-1.5 rounded-lg transition-colors flex-shrink-0", commentFilter === "approved" ? "paper-btn-dark shadow-sm" : "opacity-60 paper-btn-light")}
               >
                 {t("commentsApproved")} ({comments.filter(c => c.status === "approved").length})
               </button>
-              <button 
+              <button
                 onClick={() => setCommentFilter("rejected")}
                 className={cn("px-3 py-1.5 rounded-lg transition-colors flex-shrink-0", commentFilter === "rejected" ? "paper-btn-dark" : "opacity-60 paper-btn-light")}
               >
                 {t("commentsRejected")}
               </button>
-              <button 
+              <button
                 onClick={() => setCommentFilter("all")}
                 className={cn("px-3 py-1.5 rounded-lg transition-colors flex-shrink-0", commentFilter === "all" ? "paper-btn-dark" : "opacity-60 paper-btn-light")}
               >
