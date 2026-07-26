@@ -48,7 +48,7 @@ export function Home() {
   
   const [stories, setStories] = useState<Story[]>(() => {
     try {
-      const cached = localStorage.getItem("luminary_cached_stories");
+      const cached = localStorage.getItem("inkora_cached_stories");
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -144,7 +144,7 @@ export function Home() {
       setStories(loaded);
       setLoading(false);
       try {
-        localStorage.setItem("luminary_cached_stories", JSON.stringify(loaded));
+        localStorage.setItem("inkora_cached_stories", JSON.stringify(loaded));
       } catch (e) {
         console.error("Cache save error", e);
       }

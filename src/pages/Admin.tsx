@@ -400,7 +400,7 @@ export function Admin() {
       );
 
       try {
-        const cached = localStorage.getItem("luminary_cached_stories");
+        const cached = localStorage.getItem("inkora_cached_stories");
         if (cached) {
           const list = JSON.parse(cached);
           const updatedList = list.map((item: any) =>
@@ -408,7 +408,7 @@ export function Admin() {
               ? { ...item, title: editTitle.trim(), author: editAuthor.trim(), tags: tagsArray, publicationDate: editPublicationDate, coverImage: finalCoverUrl }
               : item
           );
-          localStorage.setItem("luminary_cached_stories", JSON.stringify(updatedList));
+          localStorage.setItem("inkora_cached_stories", JSON.stringify(updatedList));
         }
       } catch (e) {
         console.error(e);
@@ -444,11 +444,11 @@ export function Admin() {
       setStoriesList((prev) => prev.filter((s) => s.id !== story.id));
 
       try {
-        const cached = localStorage.getItem("luminary_cached_stories");
+        const cached = localStorage.getItem("inkora_cached_stories");
         if (cached) {
           const list = JSON.parse(cached);
           const filtered = list.filter((item: any) => item.id !== story.id);
-          localStorage.setItem("luminary_cached_stories", JSON.stringify(filtered));
+          localStorage.setItem("inkora_cached_stories", JSON.stringify(filtered));
         }
       } catch (e) {
         console.error(e);
@@ -819,10 +819,10 @@ export function Admin() {
       }), 60000, stageName);
 
       try {
-        const cached = localStorage.getItem("luminary_cached_stories");
+        const cached = localStorage.getItem("inkora_cached_stories");
         const list = cached ? JSON.parse(cached) : [];
         list.unshift(newStoryObj);
-        localStorage.setItem("luminary_cached_stories", JSON.stringify(list));
+        localStorage.setItem("inkora_cached_stories", JSON.stringify(list));
       } catch (e) {
         console.error("Cache update error:", e);
       }

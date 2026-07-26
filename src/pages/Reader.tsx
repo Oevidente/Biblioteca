@@ -194,10 +194,10 @@ export function Reader() {
       if (!id) return;
       isInitialProgressLoaded.current = false;
 
-      // Check local cached_stories first for immediate render
+      // Check local inkora_cached_stories first for immediate render
       let cachedTotalPages = 1;
       try {
-        const cachedStories = localStorage.getItem("luminary_cached_stories");
+        const cachedStories = localStorage.getItem("inkora_cached_stories");
         if (cachedStories) {
           const list = JSON.parse(cachedStories);
           const found = list.find((s: any) => s.id === id);
