@@ -15,7 +15,8 @@ import {
   increment, 
   writeBatch, 
   setDoc,
-  onSnapshot
+  onSnapshot,
+  collectionGroup
 } from "firebase/firestore";
 import { 
   getAuth, 
@@ -73,6 +74,7 @@ export {
   increment, 
   writeBatch, 
   setDoc, 
-  onSnapshot 
+  onSnapshot,
+  collectionGroup 
 };
 export type { User };

@@ -14,12 +14,13 @@ interface StoryData {
   wordCount?: number;
   authorUid?: string;
   isDraft?: boolean;
+  scheduledReleaseAt?: string;
 }
 
 export function Writer() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { t } = useLanguage();
 
   const [story, setStory] = useState<StoryData | null>(null);
@@ -28,6 +29,7 @@ export function Writer() {
   
   const [editTitle, setEditTitle] = useState("");
   const [editAuthor, setEditAuthor] = useState("");
+  const [scheduledReleaseAt, setScheduledReleaseAt] = useState("");
   const [, setFullText] = useState("");
   const [wordCount, setWordCount] = useState(0);
 
@@ -42,6 +44,7 @@ export function Writer() {
     story,
     editTitle,
     editAuthor,
+    scheduledReleaseAt,
     pages,
     wordCount,
     hasUnsavedChanges,
@@ -55,13 +58,14 @@ export function Writer() {
       story,
       editTitle,
       editAuthor,
+      scheduledReleaseAt,
       pages,
       wordCount,
       hasUnsavedChanges,
       isSaving,
       isAutoSaving
     };
-  }, [id, story, editTitle, editAuthor, pages, wordCount, hasUnsavedChanges, isSaving, isAutoSaving]);
+  }, [id, story, editTitle, editAuthor, scheduledReleaseAt, pages, wordCount, hasUnsavedChanges, isSaving, isAutoSaving]);
 
   // Track edits to mark unsaved
   const isFirstLoad = useRef(true);
@@ -72,7 +76,7 @@ export function Writer() {
       return;
     }
     setHasUnsavedChanges(true);
-  }, [editTitle, editAuthor, pages, loading]);
+  }, [editTitle, editAuthor, pages, scheduledReleaseAt, loading]);
 
   useEffect(() => {
     async function loadStory() {
@@ -89,6 +93,16 @@ export function Writer() {
           setStory(data);
           setEditTitle(data.title);
           setEditAuthor(data.author || "");
+          
+          let rawDate = data.scheduledReleaseAt || "";
+          if (rawDate && rawDate.includes("Z")) {
+            try {
+              rawDate = new Date(rawDate).toISOString().slice(0, 16);
+            } catch (e) {}
+          } else if (rawDate && rawDate.length > 16) {
+            rawDate = rawDate.slice(0, 16);
+          }
+          setScheduledReleaseAt(rawDate);
 
           const pagesSnap = await getDocs(query(collection(db, `stories/${id}/pages`), orderBy("index", "asc")));
           const loadedPages: string[] = [];
@@ -129,6 +143,7 @@ export function Writer() {
           totalPages: cleanPages.length,
           wordCount: state.wordCount,
           tags,
+          scheduledReleaseAt: state.scheduledReleaseAt || "",
           isDraft: state.story.isDraft ?? true
         });
 
@@ -166,6 +181,7 @@ export function Writer() {
         totalPages: cleanPages.length,
         wordCount,
         tags,
+        scheduledReleaseAt: scheduledReleaseAt || "",
         isDraft: asDraft
       });
 
@@ -297,7 +313,7 @@ export function Writer() {
 
       {/* Editor Main Card */}
       <div className="bg-white dark:bg-[#1A1A1A] rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10 p-4 sm:p-8 max-w-full overflow-hidden">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
           <div>
             <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1.5">{t("editTitle")}</label>
             <input 
@@ -314,6 +330,57 @@ export function Writer() {
               value={editAuthor} 
               onChange={(e) => setEditAuthor(e.target.value)}
               className="w-full px-3.5 py-2.5 text-base sm:text-lg font-serif bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none focus:border-[#1A1A1A] dark:focus:border-white transition-colors"
+            />
+            {profile && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {profile.displayName && (
+                  <button
+                    type="button"
+                    onClick={() => setEditAuthor(profile.displayName!)}
+                    className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
+                  >
+                    Usar meu Nome: {profile.displayName}
+                  </button>
+                )}
+                {profile.username && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setEditAuthor(`@${profile.username}`)}
+                      className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
+                    >
+                      Usar meu @Usuário: @{profile.username}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditAuthor(profile.username!)}
+                      className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
+                    >
+                      Usar meu Usuário: {profile.username}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+          <div>
+            <div className="flex justify-between items-center mb-1.5">
+              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60">{t("scheduledRelease")}</label>
+              {scheduledReleaseAt && (
+                <button
+                  type="button"
+                  onClick={() => setScheduledReleaseAt("")}
+                  className="text-[9px] text-red-500 hover:text-red-700 dark:hover:text-red-400 font-bold uppercase tracking-wider transition-all"
+                >
+                  Limpar Agendamento
+                </button>
+              )}
+            </div>
+            <input 
+              type="datetime-local" 
+              value={scheduledReleaseAt} 
+              onChange={(e) => setScheduledReleaseAt(e.target.value)}
+              className="w-full px-3.5 py-2.5 text-xs font-mono bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none focus:border-[#1A1A1A] dark:focus:border-white transition-colors"
             />
           </div>
         </div>

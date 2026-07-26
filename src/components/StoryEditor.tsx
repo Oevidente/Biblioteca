@@ -35,7 +35,7 @@ interface StoryEditorProps {
 }
 
 export function StoryEditor({ initialPages = [], onChange, className }: StoryEditorProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const editorRef = useRef<HTMLDivElement>(null);
   
   // Combine initial pages into editor content
@@ -55,6 +55,8 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
   const [wordsPerPage, setWordsPerPage] = useState<number>(300);
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
   const [previewPageIdx, setPreviewPageIdx] = useState<number>(0);
+  const [showAllToolsMobile, setShowAllToolsMobile] = useState<boolean>(false);
+  const [mobileTab, setMobileTab] = useState<"style" | "format" | "align" | "insert">("format");
 
   // Derived state
   const [computedPages, setComputedPages] = useState<string[]>([]);
@@ -181,8 +183,8 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
     <div className={cn("space-y-4 w-full overflow-hidden", className)}>
       {/* Top Toolbar Header */}
       <div className="bg-[#F5F5F0] dark:bg-[#0A0A0A] p-2.5 sm:p-3 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10 space-y-3 max-w-full overflow-hidden">
-        {/* Format & Tools Bar */}
-        <div className="flex items-center justify-between gap-2 border-b border-[#1A1A1A]/10 dark:border-white/10 pb-3 overflow-x-auto max-w-full">
+        {/* Format & Tools Bar - Desktop / Tablet Layout */}
+        <div className="hidden sm:flex items-center justify-between gap-2 border-b border-[#1A1A1A]/10 dark:border-white/10 pb-3 overflow-x-auto max-w-full">
           <div className="flex items-center gap-1.5 shrink-0">
             {/* Format selector */}
             <div className="flex items-center bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 p-0.5 shrink-0">
@@ -333,6 +335,216 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
               <Split className="w-4 h-4 text-amber-600 dark:text-amber-400" />
               <span className="hidden sm:inline">{t("insertPageBreak")}</span>
             </button>
+          </div>
+        </div>
+
+        {/* Format & Tools Bar - Mobile Touch Layout (Categorized & Grouped Blocks) */}
+        <div className="block sm:hidden space-y-3.5 border-b border-[#1A1A1A]/10 dark:border-white/10 pb-3">
+          {/* Segmented Tab Selector for Mobile Tool Blocks */}
+          <div className="grid grid-cols-4 gap-1 bg-[#1A1A1A]/5 dark:bg-white/5 rounded-xl p-1">
+            <button
+              type="button"
+              onClick={() => setMobileTab("style")}
+              className={cn(
+                "h-10 rounded-lg text-[11px] font-bold transition-all flex flex-col items-center justify-center gap-0.5",
+                mobileTab === "style"
+                  ? "bg-white text-[#1A1A1A] dark:bg-[#1C1C1E] dark:text-[#F5F5F0] shadow-sm"
+                  : "text-[#1A1A1A]/60 dark:text-[#F5F5F0]/60 hover:text-[#1A1A1A] dark:hover:text-[#F5F5F0]"
+              )}
+            >
+              <Pilcrow className="w-3.5 h-3.5" />
+              <span>{language === "pt" || language === "es" ? "Estilo" : language === "id" ? "Gaya" : "Style"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileTab("format")}
+              className={cn(
+                "h-10 rounded-lg text-[11px] font-bold transition-all flex flex-col items-center justify-center gap-0.5",
+                mobileTab === "format"
+                  ? "bg-white text-[#1A1A1A] dark:bg-[#1C1C1E] dark:text-[#F5F5F0] shadow-sm"
+                  : "text-[#1A1A1A]/60 dark:text-[#F5F5F0]/60 hover:text-[#1A1A1A] dark:hover:text-[#F5F5F0]"
+              )}
+            >
+              <Bold className="w-3.5 h-3.5" />
+              <span>{language === "pt" || language === "es" ? "Formato" : language === "id" ? "Format" : "Format"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileTab("align")}
+              className={cn(
+                "h-10 rounded-lg text-[11px] font-bold transition-all flex flex-col items-center justify-center gap-0.5",
+                mobileTab === "align"
+                  ? "bg-white text-[#1A1A1A] dark:bg-[#1C1C1E] dark:text-[#F5F5F0] shadow-sm"
+                  : "text-[#1A1A1A]/60 dark:text-[#F5F5F0]/60 hover:text-[#1A1A1A] dark:hover:text-[#F5F5F0]"
+              )}
+            >
+              <AlignCenter className="w-3.5 h-3.5" />
+              <span>{language === "pt" ? "Alinhar" : language === "es" ? "Alinear" : language === "id" ? "Rata" : "Align"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileTab("insert")}
+              className={cn(
+                "h-10 rounded-lg text-[11px] font-bold transition-all flex flex-col items-center justify-center gap-0.5",
+                mobileTab === "insert"
+                  ? "bg-white text-[#1A1A1A] dark:bg-[#1C1C1E] dark:text-[#F5F5F0] shadow-sm"
+                  : "text-[#1A1A1A]/60 dark:text-[#F5F5F0]/60 hover:text-[#1A1A1A] dark:hover:text-[#F5F5F0]"
+              )}
+            >
+              <Split className="w-3.5 h-3.5" />
+              <span>{language === "pt" ? "Extras" : language === "es" ? "Extras" : language === "id" ? "Ekstra" : "Insert"}</span>
+            </button>
+          </div>
+
+          {/* Active Tool Block Pane (Spacious, 44px touch targets, no horizontal scroll) */}
+          <div className="bg-white dark:bg-[#121212] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 p-2.5 shadow-sm">
+            {/* Style Block */}
+            {mobileTab === "style" && (
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleFormatBlock("h2")}
+                  className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[11px] font-bold flex flex-col items-center justify-center gap-1 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
+                >
+                  <Heading1 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>{t("formatTitle")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleFormatBlock("h3")}
+                  className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[11px] font-bold flex flex-col items-center justify-center gap-1 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
+                >
+                  <Heading2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>{t("formatSubtitle")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleFormatBlock("p")}
+                  className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[11px] font-bold flex flex-col items-center justify-center gap-1 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
+                >
+                  <Pilcrow className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>{t("formatParagraph")}</span>
+                </button>
+              </div>
+            )}
+
+            {/* Format Block */}
+            {mobileTab === "format" && (
+              <div className="grid grid-cols-4 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => executeCommand("bold")}
+                  className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
+                >
+                  <Bold className="w-4 h-4" />
+                  <span>{language === "pt" ? "Negrito" : language === "es" ? "Negrita" : language === "id" ? "Tebal" : "Bold"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => executeCommand("italic")}
+                  className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
+                >
+                  <Italic className="w-4 h-4" />
+                  <span>{language === "pt" ? "Itálico" : language === "es" ? "Itálica" : language === "id" ? "Miring" : "Italic"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => executeCommand("underline")}
+                  className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
+                >
+                  <Underline className="w-4 h-4" />
+                  <span>{language === "pt" ? "Sublinhado" : language === "es" ? "Subrayado" : language === "id" ? "Garisbwh" : "Underline"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => executeCommand("strikeThrough")}
+                  className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
+                >
+                  <Strikethrough className="w-4 h-4" />
+                  <span>{language === "pt" ? "Riscado" : language === "es" ? "Tachado" : language === "id" ? "Coret" : "Strike"}</span>
+                </button>
+              </div>
+            )}
+
+            {/* Align Block */}
+            {mobileTab === "align" && (
+              <div className="grid grid-cols-4 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => executeCommand("justifyLeft")}
+                  className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
+                >
+                  <AlignLeft className="w-4 h-4" />
+                  <span>{language === "pt" ? "Esquerda" : language === "es" ? "Izquierda" : language === "id" ? "Kiri" : "Left"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => executeCommand("justifyCenter")}
+                  className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
+                >
+                  <AlignCenter className="w-4 h-4" />
+                  <span>{language === "pt" ? "Centro" : language === "es" ? "Centro" : language === "id" ? "Tengah" : "Center"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => executeCommand("justifyRight")}
+                  className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
+                >
+                  <AlignRight className="w-4 h-4" />
+                  <span>{language === "pt" ? "Direita" : language === "es" ? "Derecha" : language === "id" ? "Kanan" : "Right"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => executeCommand("justifyFull")}
+                  className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
+                >
+                  <AlignJustify className="w-4 h-4" />
+                  <span>{language === "pt" ? "Justificar" : language === "es" ? "Justificar" : language === "id" ? "Rata" : "Justify"}</span>
+                </button>
+              </div>
+            )}
+
+            {/* Insert Block */}
+            {mobileTab === "insert" && (
+              <div className="grid grid-cols-4 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => executeCommand("insertUnorderedList")}
+                  className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
+                  title={t("bulletList")}
+                >
+                  <List className="w-4 h-4" />
+                  <span>{language === "pt" ? "Marcas" : language === "es" ? "Viñetas" : language === "id" ? "Poin" : "Bullets"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => executeCommand("insertOrderedList")}
+                  className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
+                  title={t("numberList")}
+                >
+                  <ListOrdered className="w-4 h-4" />
+                  <span>{language === "pt" ? "Números" : language === "es" ? "Números" : language === "id" ? "Nomor" : "Numbers"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleFormatBlock("blockquote")}
+                  className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
+                  title={t("quote")}
+                >
+                  <Quote className="w-4 h-4" />
+                  <span>{language === "pt" ? "Citar" : language === "es" ? "Cita" : language === "id" ? "Kutipan" : "Quote"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={insertPageBreak}
+                  className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
+                  title={t("insertPageBreak")}
+                >
+                  <Split className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span>{language === "pt" ? "Pág" : language === "es" ? "Pág" : language === "id" ? "Hal" : "Page"}</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

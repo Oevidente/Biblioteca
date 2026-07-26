@@ -15,10 +15,14 @@ import {
   setDoc,
   where 
 } from "../lib/firebase";
-import { ChevronLeft, ChevronRight, ArrowLeft, Star, MessageSquare, CheckCircle, ShieldAlert, User as UserIcon, ArrowUp, Clock, Eye, Sun } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Star, MessageSquare, CheckCircle, ShieldAlert, User as UserIcon, ArrowUp, Clock, Eye, Sun, Type, Download, Bookmark, FileText, Check, ListPlus, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth, ADMIN_EMAIL } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
+import { saveStoryOffline, isStoryDownloaded, removeOfflineStory } from "../lib/offlineStorage";
+import { getBookmarksAndNotes, saveBookmarkNote, deleteBookmarkNote, BookmarkNote } from "../lib/bookmarks";
+import { fetchPublicPlaylists, ReadingList, toggleStoryInPlaylist, createOrUpdatePlaylist } from "../lib/playlists";
+import { unlockAchievement } from "../lib/achievements";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -32,6 +36,8 @@ interface StoryData {
   totalPages: number;
   wordCount?: number;
   coverImage?: string;
+  scheduledReleaseAt?: string;
+  authorUid?: string;
 }
 
 interface CommentData {
@@ -66,6 +72,39 @@ export function Reader() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
+  // Advanced Typography & Themes
+  const [fontFamily, setFontFamily] = useState<"serif" | "sans" | "opendyslexic">(() => {
+    return (localStorage.getItem("inkora_font_family") as any) || "serif";
+  });
+  const [marginSize, setMarginSize] = useState<"narrow" | "normal" | "wide">(() => {
+    return (localStorage.getItem("inkora_margin_size") as any) || "normal";
+  });
+  const [lineSpacing, setLineSpacing] = useState<"compact" | "relaxed" | "loose">(() => {
+    return (localStorage.getItem("inkora_line_spacing") as any) || "relaxed";
+  });
+
+  // Offline and Bookmarks
+  const [isDownloaded, setIsDownloaded] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [notesList, setNotesList] = useState<BookmarkNote[]>([]);
+  const [newNoteInput, setNewNoteInput] = useState("");
+  const [showNotesDrawer, setShowNotesDrawer] = useState(false);
+
+  // Playlists State
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+  const [playlists, setPlaylists] = useState<ReadingList[]>([]);
+  const [newPlaylistTitle, setNewPlaylistTitle] = useState("");
+
+  const loadPlaylists = async () => {
+    const list = await fetchPublicPlaylists();
+    setPlaylists(list);
+  };
+
+  // Multi-criteria Ratings
+  const [plotRating, setPlotRating] = useState(0);
+  const [characterRating, setCharacterRating] = useState(0);
+  const [writingRating, setWritingRating] = useState(0);
+
   // Eye Comfort yellow filter intensity state (0 to 100)
   const [eyeComfortIntensity, setEyeComfortIntensity] = useState<number>(() => {
     try {
@@ -75,6 +114,35 @@ export function Reader() {
       return 0;
     }
   });
+
+  useEffect(() => {
+    localStorage.setItem("inkora_font_family", fontFamily);
+    if (fontFamily === "opendyslexic") {
+      unlockAchievement("polyglot");
+    }
+  }, [fontFamily]);
+
+  useEffect(() => {
+    localStorage.setItem("inkora_margin_size", marginSize);
+  }, [marginSize]);
+
+  useEffect(() => {
+    localStorage.setItem("inkora_line_spacing", lineSpacing);
+  }, [lineSpacing]);
+
+  useEffect(() => {
+    if (id) {
+      isStoryDownloaded(id).then(setIsDownloaded);
+      setNotesList(getBookmarksAndNotes(id));
+      unlockAchievement("first_page");
+
+      // Check night owl achievement
+      const currentHour = new Date().getHours();
+      if (currentHour >= 0 && currentHour < 5) {
+        unlockAchievement("night_owl");
+      }
+    }
+  }, [id]);
 
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
 
@@ -358,6 +426,42 @@ export function Reader() {
     );
   }
 
+  // Check scheduled release constraints
+  const isScheduledFuture = story.scheduledReleaseAt && new Date(story.scheduledReleaseAt).getTime() > Date.now();
+  const isAdmin = profile?.role === "admin" || (user?.email || "").toLowerCase().trim() === ADMIN_EMAIL;
+  const isAuthor = story.authorUid === user?.uid;
+
+  if (isScheduledFuture && !isAdmin && !isAuthor) {
+    const releaseDate = new Date(story.scheduledReleaseAt!);
+    return (
+      <div className="max-w-[600px] mx-auto py-20 px-6 text-center font-serif space-y-6 animate-in fade-in duration-500">
+        <div className="w-16 h-16 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <Clock className="w-8 h-8" />
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-bold text-[#1A1A1A] dark:text-[#F5F5F0]">
+          {story.title}
+        </h2>
+        {story.author && (
+          <p className="text-xs uppercase font-bold tracking-widest opacity-60">
+            {t("by")} {story.author}
+          </p>
+        )}
+        <div className="h-[1px] w-12 bg-[#1A1A1A]/10 dark:bg-white/10 mx-auto my-4"></div>
+        <p className="text-sm text-[#1A1A1A]/70 dark:text-[#F5F5F0]/70 leading-relaxed max-w-md mx-auto">
+          Esta obra está agendada e será lançada em breve! Prepare-se para embarcar nesta leitura no dia:
+        </p>
+        <div className="inline-block px-4 py-2 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-xl font-mono text-sm font-bold">
+          {releaseDate.toLocaleString()}
+        </div>
+        <div className="pt-6">
+          <Link to="/" className="inline-flex items-center gap-2 text-xs uppercase font-bold tracking-widest border-b border-current pb-1 hover:opacity-80 transition-opacity">
+            <ArrowLeft className="w-3.5 h-3.5" /> {t("backToLibrary")}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const hasNext = currentPage < (story?.totalPages || 1) - 1;
   const hasPrev = currentPage > 0;
 
@@ -436,8 +540,119 @@ export function Reader() {
         </div>
       </header>
 
-      {/* Eye Comfort & Reading Customization Toolbar */}
-      <div className="mb-6 bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-2xl p-4 sm:p-5 shadow-sm transition-all">
+      {/* Customization Toolbar (Typography, Theme, Offline & Bookmarks) */}
+      <div className="mb-6 bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-2xl p-3.5 sm:p-5 shadow-sm space-y-3 sm:space-y-4">
+        {/* Row 1: Font Family & Tools Grid */}
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pb-3 border-b border-black/5 dark:border-white/5">
+          {/* Font Family Selector */}
+          <div className="flex items-center gap-2 w-full lg:w-auto">
+            <Type className="w-4 h-4 opacity-60 shrink-0 hidden sm:inline" />
+            <span className="text-xs font-bold uppercase tracking-wider opacity-70 hidden sm:inline">{t("fontFamily")}:</span>
+            <div className="flex items-center gap-1 bg-[#F5F5F0] dark:bg-[#1A1A1A] p-1 rounded-xl border border-black/5 dark:border-white/5 w-full lg:w-auto">
+              <button
+                onClick={() => setFontFamily("serif")}
+                className={cn(
+                  "flex-1 lg:flex-none px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-serif font-bold transition-all text-center",
+                  fontFamily === "serif" ? "bg-white dark:bg-[#0A0A0A] text-black dark:text-white shadow-sm" : "opacity-60 hover:opacity-100"
+                )}
+              >
+                Serif
+              </button>
+              <button
+                onClick={() => setFontFamily("sans")}
+                className={cn(
+                  "flex-1 lg:flex-none px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-sans font-bold transition-all text-center",
+                  fontFamily === "sans" ? "bg-white dark:bg-[#0A0A0A] text-black dark:text-white shadow-sm" : "opacity-60 hover:opacity-100"
+                )}
+              >
+                Sans
+              </button>
+              <button
+                onClick={() => setFontFamily("opendyslexic")}
+                className={cn(
+                  "flex-1 lg:flex-none px-2 py-1.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-bold transition-all font-opendyslexic text-center truncate",
+                  fontFamily === "opendyslexic" ? "bg-amber-400 text-black shadow-sm font-extrabold" : "opacity-70 hover:opacity-100"
+                )}
+                title={t("openDyslexic")}
+              >
+                OpenDyslexic
+              </button>
+            </div>
+          </div>
+
+          {/* Tools Buttons */}
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full lg:w-auto">
+            {/* Offline Download Button */}
+            <button
+              onClick={async () => {
+                if (!id || !story) return;
+                if (isDownloaded) {
+                  await removeOfflineStory(id);
+                  setIsDownloaded(false);
+                } else {
+                  setIsDownloading(true);
+                  // Load all pages into story object
+                  const pagesMap: { [pageIndex: number]: string } = {};
+                  try {
+                    const pSnap = await getDocs(query(collection(db, `stories/${id}/pages`), orderBy("index", "asc")));
+                    pSnap.docs.forEach((d) => {
+                      const data = d.data();
+                      pagesMap[data.index || 0] = data.content || "";
+                    });
+                    await saveStoryOffline({
+                      id,
+                      title: story.title,
+                      author: story.author,
+                      coverImage: story.coverImage,
+                      totalPages: story.totalPages,
+                      wordCount: story.wordCount,
+                      pages: pagesMap,
+                      downloadedAt: new Date().toISOString()
+                    });
+                    setIsDownloaded(true);
+                  } catch (e) {
+                    console.error("Error saving offline:", e);
+                  } finally {
+                    setIsDownloading(false);
+                  }
+                }
+              }}
+              disabled={isDownloading}
+              className={cn(
+                "px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider border transition-all flex items-center justify-center gap-1.5",
+                isDownloaded 
+                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30" 
+                  : "border-black/10 dark:border-white/10 opacity-70 hover:opacity-100"
+              )}
+            >
+              <Download className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{isDownloading ? "..." : isDownloaded ? t("downloadedOffline") : t("downloadForOffline")}</span>
+            </button>
+
+            {/* Private Notes & Bookmarks Drawer Button */}
+            <button
+              onClick={() => setShowNotesDrawer(true)}
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider border border-black/10 dark:border-white/10 opacity-80 hover:opacity-100 flex items-center justify-center gap-1.5 bg-[#F5F5F0] dark:bg-[#1A1A1A]"
+            >
+              <Bookmark className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <span>{t("bookmarks")} ({notesList.length})</span>
+            </button>
+
+            {/* Add to Playlist Button */}
+            <button
+              onClick={() => {
+                loadPlaylists();
+                setShowPlaylistModal(true);
+              }}
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider border border-black/10 dark:border-white/10 opacity-80 hover:opacity-100 flex items-center justify-center gap-1.5 bg-[#F5F5F0] dark:bg-[#1A1A1A] col-span-2 sm:col-span-1"
+            >
+              <ListPlus className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+              <span>{t("addToPlaylist")}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Row 2: Eye Comfort Yellow Filter */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Label and Info */}
           <div className="flex items-center gap-3 w-full md:w-auto">
@@ -514,7 +729,7 @@ export function Reader() {
       </div>
 
       {/* Reader Page Frame */}
-      <div className="relative min-h-[50vh] bg-white dark:bg-[#0A0A0A] p-6 sm:p-10 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10 shadow-sm overflow-hidden">
+      <div className="relative min-h-[50vh] p-6 sm:p-10 rounded-2xl border transition-all shadow-sm overflow-hidden bg-white dark:bg-[#0A0A0A] border-[#1A1A1A]/10 dark:border-white/10">
         {/* Eye Comfort Warm Yellow Filter Overlay */}
         {eyeComfortIntensity > 0 && (
           <div 
@@ -546,7 +761,11 @@ export function Reader() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
               ref={containerRef}
-              className="prose prose-lg dark:prose-invert prose-neutral mx-auto font-serif prose-p:leading-[1.8] prose-p:mb-6 prose-p:text-base sm:prose-p:text-lg prose-headings:font-serif prose-headings:tracking-tight"
+              className={cn(
+                "prose prose-lg dark:prose-invert prose-neutral mx-auto prose-p:mb-6 prose-p:text-base sm:prose-p:text-lg prose-headings:tracking-tight",
+                fontFamily === "opendyslexic" ? "font-opendyslexic" : fontFamily === "sans" ? "font-sans" : "font-serif",
+                lineSpacing === "compact" ? "prose-p:leading-[1.4]" : lineSpacing === "loose" ? "prose-p:leading-[2.2]" : "prose-p:leading-[1.8]"
+              )}
               dangerouslySetInnerHTML={{ __html: pageContent }}
             />
           )}
@@ -710,6 +929,209 @@ export function Reader() {
           </motion.button>
         )}
       </AnimatePresence>
+
+      {/* Bookmarks & Private Notes Drawer Modal */}
+      {showNotesDrawer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1A1A1A] w-full max-w-lg rounded-2xl p-6 shadow-2xl border border-black/10 dark:border-white/10 space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex justify-between items-center pb-3 border-b border-black/5 dark:border-white/5 shrink-0">
+              <div className="flex items-center gap-2">
+                <Bookmark className="w-5 h-5 text-amber-500" />
+                <h3 className="font-serif font-bold text-lg">{t("bookmarks")}</h3>
+              </div>
+              <button 
+                onClick={() => setShowNotesDrawer(false)}
+                className="text-xs uppercase font-bold tracking-widest opacity-60 hover:opacity-100"
+              >
+                {t("close")}
+              </button>
+            </div>
+
+            {/* Add new Note for current page */}
+            <div className="space-y-2 shrink-0">
+              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60">
+                {t("addNoteForPage", { page: currentPage + 1 })}
+              </label>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={newNoteInput}
+                  onChange={(e) => setNewNoteInput(e.target.value)}
+                  placeholder="Anotação ou citação privada..."
+                  className="flex-1 p-2.5 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-black/10 dark:border-white/10 rounded-xl focus:outline-none"
+                />
+                <button
+                  onClick={() => {
+                    if (!id) return;
+                    saveBookmarkNote({
+                      id: `note_${Date.now()}`,
+                      storyId: id,
+                      pageIndex: currentPage,
+                      noteText: newNoteInput,
+                      createdAt: new Date().toISOString()
+                    });
+                    setNewNoteInput("");
+                    setNotesList(getBookmarksAndNotes(id));
+                  }}
+                  className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest shrink-0"
+                >
+                  {t("save")}
+                </button>
+              </div>
+            </div>
+
+            {/* Notes List */}
+            <div className="flex-1 overflow-y-auto space-y-3 pt-2 pr-1 custom-scrollbar">
+              {notesList.length === 0 ? (
+                <div className="text-center py-10 opacity-50 font-serif text-xs">
+                  Nenhuma anotação criada para esta história.
+                </div>
+              ) : (
+                notesList.map((n) => (
+                  <div key={n.id} className="p-3.5 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl border border-black/5 dark:border-white/5 space-y-2">
+                    <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider opacity-60">
+                      <span>Página {n.pageIndex + 1}</span>
+                      <span>{new Date(n.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    {n.noteText && <p className="text-xs font-serif leading-relaxed opacity-90">{n.noteText}</p>}
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button 
+                        onClick={() => setCurrentPage(n.pageIndex)}
+                        className="text-[9px] bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold uppercase tracking-wider px-2 py-1 rounded-md"
+                      >
+                        Ir para página
+                      </button>
+                      <button 
+                        onClick={() => {
+                          if (!id) return;
+                          deleteBookmarkNote(id, n.id);
+                          setNotesList(getBookmarksAndNotes(id));
+                        }}
+                        className="text-[9px] text-red-500 font-bold uppercase tracking-wider px-2 py-1 rounded-md hover:bg-red-500/10"
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Playlist Selector Modal */}
+      {showPlaylistModal && id && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-[#1A1A1A] w-full max-w-md rounded-2xl p-6 shadow-2xl border border-black/10 dark:border-white/10 space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-black/5 dark:border-white/5">
+              <div>
+                <h3 className="font-serif font-bold text-lg flex items-center gap-2">
+                  <ListPlus className="w-5 h-5 text-blue-500" />
+                  <span>{t("addToPlaylist")}</span>
+                </h3>
+                <p className="text-[11px] opacity-60 truncate max-w-[280px]">{story?.title || "História"}</p>
+              </div>
+              <button 
+                onClick={() => setShowPlaylistModal(false)}
+                className="p-1 rounded-full opacity-60 hover:opacity-100"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* List of Playlists */}
+            <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+              {playlists.length === 0 ? (
+                <p className="text-xs opacity-60 italic text-center py-4">{t("emptyPlaylist")}</p>
+              ) : (
+                playlists.map((pl) => {
+                  const inPlaylist = pl.storyIds.includes(id);
+                  return (
+                    <div 
+                      key={pl.id} 
+                      className="p-3 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl flex items-center justify-between border border-black/5 dark:border-white/5"
+                    >
+                      <div className="min-w-0 flex-1 pr-2">
+                        <h4 className="font-serif font-bold text-xs truncate">{pl.title}</h4>
+                        <p className="text-[10px] opacity-50 uppercase font-mono">{pl.storyIds.length} histórias</p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const updated = await toggleStoryInPlaylist(pl, id);
+                          setPlaylists(prev => prev.map(p => p.id === updated.id ? updated : p));
+                        }}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 shrink-0",
+                          inPlaylist 
+                            ? "bg-emerald-500 text-white shadow-sm" 
+                            : "bg-black/10 dark:bg-white/10 hover:bg-black/20 text-black dark:text-white"
+                        )}
+                      >
+                        {inPlaylist ? (
+                          <>
+                            <Check className="w-3 h-3" />
+                            <span>Remover</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-3 h-3" />
+                            <span>Adicionar</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Inline Quick Create Playlist */}
+            <div className="pt-2 border-t border-black/5 dark:border-white/5 space-y-2">
+              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60">{t("createPlaylist")}</label>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={newPlaylistTitle}
+                  onChange={(e) => setNewPlaylistTitle(e.target.value)}
+                  placeholder="Nome da nova playlist..."
+                  className="flex-1 p-2 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-black/10 dark:border-white/10 rounded-xl focus:outline-none"
+                />
+                <button
+                  onClick={async () => {
+                    if (!newPlaylistTitle.trim()) return;
+                    const newPl: ReadingList = {
+                      id: `pl_${Date.now()}`,
+                      title: newPlaylistTitle,
+                      description: "Coleção de leituras",
+                      userId: user?.uid || "guest",
+                      userName: profile?.username ? `@${profile.username}` : (profile?.displayName || "Leitor"),
+                      isPublic: true,
+                      storyIds: [id],
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString()
+                    };
+                    await createOrUpdatePlaylist(newPl);
+                    setNewPlaylistTitle("");
+                    await loadPlaylists();
+                  }}
+                  className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider shrink-0"
+                >
+                  Criar & Incluir
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button 
+                onClick={() => setShowPlaylistModal(false)}
+                className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest"
+              >
+                Concluído
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

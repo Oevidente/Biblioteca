@@ -237,7 +237,97 @@ export const translations = {
     numberList: "Numeração",
     quote: "Citação",
     typeContentHere: "Escreva sua história aqui...",
-    pagesGenerated: "Páginas geradas"
+    pagesGenerated: "Páginas geradas",
+
+    // Advanced Typographic Accessibility & Themes
+    openDyslexic: "OpenDyslexic (Acessibilidade)",
+    fontFamily: "Fonte da Leitura",
+    serifFont: "Serifada Elegante",
+    sansFont: "Sem Serifa Moderna",
+    dyslexicFont: "OpenDyslexic (Dislexia)",
+    marginSize: "Margens",
+    narrowMargin: "Estreita",
+    normalMargin: "Padrão",
+    wideMargin: "Larga",
+    lineSpacing: "Entrelinhas",
+    compactLine: "Compacto (1.4)",
+    relaxedLine: "Aconchegante (1.8)",
+    looseLine: "Expandido (2.2)",
+    readingTheme: "Tema do Leitor",
+    sepiaTheme: "Sépia Acolhedor",
+    lightTheme: "Claro Padrão",
+    darkTheme: "Escuro Noturno",
+
+    // Analytics & Metrics
+    analyticsDashboard: "Análise e Métricas",
+    avgReadingTime: "Tempo Médio de Leitura",
+    completionRate: "Taxa de Retenção",
+    totalViews: "Visualizações Totais",
+    topPages: "Capítulos Mais Lidos",
+    retentionRate: "Conclusão de Leitura",
+    readingMetrics: "Métricas dos Leitores",
+    readerEngagement: "Engajamento",
+    authorMetrics: "Métricas de Desempenho",
+
+    // Scheduled Release
+    scheduledRelease: "Lançamento Agendado",
+    scheduledReleaseAt: "Data/Hora de Lançamento",
+    releaseScheduledFor: "Agendado para {date}",
+    scheduledStatus: "Agendados",
+    notYetReleased: "História ainda não lançada publicamente.",
+    isScheduledBadge: "AGENDADO",
+
+    // Multi-criteria Ratings
+    plotRating: "Enredo e Trama",
+    characterRating: "Desenvolvimento de Personagens",
+    writingRating: "Qualidade da Escrita",
+    overallRating: "Nota Geral",
+    criteriaBreakdown: "Avaliação Detalhada por Critério",
+
+    // Playlists / Reading Lists
+    playlists: "Playlists de Livros",
+    createPlaylist: "Criar Lista de Leitura",
+    playlistTitle: "Título da Playlist",
+    playlistDescription: "Descrição",
+    addToPlaylist: "Adicionar à Lista",
+    removeFromPlaylist: "Remover da Lista",
+    publicPlaylists: "Coleções Públicas",
+    myPlaylists: "Minhas Listas",
+    emptyPlaylist: "Nenhuma história nesta lista.",
+    isPublicList: "Lista Pública",
+    managePlaylist: "Gerenciar Playlist",
+    addStories: "Adicionar Histórias",
+    editPlaylist: "Editar Playlist",
+    deletePlaylist: "Excluir Playlist",
+    selectStoriesToAdd: "Selecione histórias para incluir nesta playlist:",
+    storiesCount: "{count} histórias",
+
+    // Achievements & Badges
+    achievements: "Conquistas e Emblemas",
+    badges: "Medalhas",
+    myAchievements: "Minhas Conquistas",
+    unlockedAt: "Desbloqueado em",
+    progress: "Progresso",
+
+    // Offline Mode
+    offlineMode: "Modo Offline",
+    downloadForOffline: "Baixar para Ler Offline",
+    downloadedOffline: "Salvo no Dispositivo",
+    removeOffline: "Remover Download",
+    offlineAvailable: "Disponível Offline",
+    savedOfflineStories: "Histórias Baixadas",
+
+    // Bookmarks & Private Notes
+    bookmarks: "Marcadores",
+    privateNotes: "Anotações Privadas",
+    addBookmark: "Marcar Página",
+    addNote: "Adicionar Nota",
+    addNoteForPage: "Nova anotação na Página {page}",
+    yourNotes: "Minhas Notas nesta História",
+    notePlaceholder: "Escreva uma reflexão ou anotação pessoal...",
+    saveNote: "Salvar Nota",
+    jumpToPage: "Ir para Pág. {page}",
+    bookmarkSaved: "Página marcada com sucesso!"
   },
   es: {
     // Navigation / Header / Footer
@@ -473,7 +563,97 @@ export const translations = {
     numberList: "Numeración",
     quote: "Cita",
     typeContentHere: "Escribe tu historia aquí...",
-    pagesGenerated: "Páginas generadas"
+    pagesGenerated: "Páginas generadas",
+
+    // Advanced Typographic Accessibility & Themes
+    openDyslexic: "OpenDyslexic (Accesibilidad)",
+    fontFamily: "Fuente de Lectura",
+    serifFont: "Serifada Elegante",
+    sansFont: "Sin Serifas Moderna",
+    dyslexicFont: "OpenDyslexic (Dislexia)",
+    marginSize: "Márgenes",
+    narrowMargin: "Estrecho",
+    normalMargin: "Estándar",
+    wideMargin: "Ancho",
+    lineSpacing: "Interlineado",
+    compactLine: "Compacto (1.4)",
+    relaxedLine: "Agradable (1.8)",
+    looseLine: "Expandido (2.2)",
+    readingTheme: "Tema del Lector",
+    sepiaTheme: "Sepia Acogedor",
+    lightTheme: "Claro Estándar",
+    darkTheme: "Oscuro Nocturno",
+
+    // Analytics & Metrics
+    analyticsDashboard: "Análisis y Métricas",
+    avgReadingTime: "Tiempo Medio de Lectura",
+    completionRate: "Tasa de Retención",
+    totalViews: "Visualizaciones Totales",
+    topPages: "Capítulos Más Leídos",
+    retentionRate: "Conclusión de Lectura",
+    readingMetrics: "Métricas de Lectores",
+    readerEngagement: "Compromiso",
+    authorMetrics: "Métricas de Rendimiento",
+
+    // Scheduled Release
+    scheduledRelease: "Lanzamiento Programado",
+    scheduledReleaseAt: "Fecha/Hora de Lanzamiento",
+    releaseScheduledFor: "Programado para {date}",
+    scheduledStatus: "Programados",
+    notYetReleased: "Historia aún no lanzada públicamente.",
+    isScheduledBadge: "PROGRAMADO",
+
+    // Multi-criteria Ratings
+    plotRating: "Trama y Argumento",
+    characterRating: "Desarrollo de Personajes",
+    writingRating: "Calidad de Escritura",
+    overallRating: "Calificación General",
+    criteriaBreakdown: "Desglose por Criterios",
+
+    // Playlists / Reading Lists
+    playlists: "Playlists de Libros",
+    createPlaylist: "Crear Lista de Lectura",
+    playlistTitle: "Título de la Playlist",
+    playlistDescription: "Descripción",
+    addToPlaylist: "Añadir a la Lista",
+    removeFromPlaylist: "Quitar de la Lista",
+    publicPlaylists: "Colecciones Públicas",
+    myPlaylists: "Mis Listas",
+    emptyPlaylist: "Sin historias en esta lista.",
+    isPublicList: "Lista Pública",
+    managePlaylist: "Gestionar Lista",
+    addStories: "Añadir Historias",
+    editPlaylist: "Editar Lista",
+    deletePlaylist: "Eliminar Lista",
+    selectStoriesToAdd: "Selecciona historias para incluir en esta lista:",
+    storiesCount: "{count} historias",
+
+    // Achievements & Badges
+    achievements: "Logros y Medallas",
+    badges: "Medallas",
+    myAchievements: "Mis Logros",
+    unlockedAt: "Desbloqueado en",
+    progress: "Progreso",
+
+    // Offline Mode
+    offlineMode: "Modo Offline",
+    downloadForOffline: "Descargar para Leer Offline",
+    downloadedOffline: "Guardado en el Dispositivo",
+    removeOffline: "Eliminar Descarga",
+    offlineAvailable: "Disponible Offline",
+    savedOfflineStories: "Historias Descargadas",
+
+    // Bookmarks & Private Notes
+    bookmarks: "Marcadores",
+    privateNotes: "Notas Privadas",
+    addBookmark: "Marcar Página",
+    addNote: "Añadir Nota",
+    addNoteForPage: "Nueva nota en la Página {page}",
+    yourNotes: "Mis Notas en esta Historia",
+    notePlaceholder: "Escribe una reflexión o nota personal...",
+    saveNote: "Guardar Nota",
+    jumpToPage: "Ir a Pág. {page}",
+    bookmarkSaved: "¡Página marcada con éxito!"
   },
   en: {
     // Navigation / Header / Footer
@@ -709,7 +889,97 @@ export const translations = {
     numberList: "Numbered List",
     quote: "Quote",
     typeContentHere: "Write your story here...",
-    pagesGenerated: "Pages generated"
+    pagesGenerated: "Pages generated",
+
+    // Advanced Typographic Accessibility & Themes
+    openDyslexic: "OpenDyslexic (Accessibility)",
+    fontFamily: "Reading Font",
+    serifFont: "Elegant Serif",
+    sansFont: "Modern Sans-Serif",
+    dyslexicFont: "OpenDyslexic (Dyslexia)",
+    marginSize: "Margins",
+    narrowMargin: "Narrow",
+    normalMargin: "Standard",
+    wideMargin: "Wide",
+    lineSpacing: "Line Spacing",
+    compactLine: "Compact (1.4)",
+    relaxedLine: "Relaxed (1.8)",
+    looseLine: "Loose (2.2)",
+    readingTheme: "Reader Theme",
+    sepiaTheme: "Warm Sepia",
+    lightTheme: "Standard Light",
+    darkTheme: "Night Dark",
+
+    // Analytics & Metrics
+    analyticsDashboard: "Analytics & Metrics",
+    avgReadingTime: "Avg. Reading Time",
+    completionRate: "Retention Rate",
+    totalViews: "Total Views",
+    topPages: "Most Read Chapters",
+    retentionRate: "Completion Rate",
+    readingMetrics: "Reader Metrics",
+    readerEngagement: "Engagement",
+    authorMetrics: "Performance Metrics",
+
+    // Scheduled Release
+    scheduledRelease: "Scheduled Release",
+    scheduledReleaseAt: "Release Date & Time",
+    releaseScheduledFor: "Scheduled for {date}",
+    scheduledStatus: "Scheduled",
+    notYetReleased: "Story has not been publicly released yet.",
+    isScheduledBadge: "SCHEDULED",
+
+    // Multi-criteria Ratings
+    plotRating: "Plot & Storyline",
+    characterRating: "Character Development",
+    writingRating: "Writing Quality",
+    overallRating: "Overall Rating",
+    criteriaBreakdown: "Detailed Criteria Breakdown",
+
+    // Playlists / Reading Lists
+    playlists: "Book Playlists",
+    createPlaylist: "Create Reading List",
+    playlistTitle: "Playlist Title",
+    playlistDescription: "Description",
+    addToPlaylist: "Add to Playlist",
+    removeFromPlaylist: "Remove from Playlist",
+    publicPlaylists: "Public Collections",
+    myPlaylists: "My Lists",
+    emptyPlaylist: "No stories in this playlist.",
+    isPublicList: "Public List",
+    managePlaylist: "Manage Playlist",
+    addStories: "Add Stories",
+    editPlaylist: "Edit Playlist",
+    deletePlaylist: "Delete Playlist",
+    selectStoriesToAdd: "Select stories to include in this playlist:",
+    storiesCount: "{count} stories",
+
+    // Achievements & Badges
+    achievements: "Achievements & Badges",
+    badges: "Badges",
+    myAchievements: "My Achievements",
+    unlockedAt: "Unlocked on",
+    progress: "Progress",
+
+    // Offline Mode
+    offlineMode: "Offline Mode",
+    downloadForOffline: "Download for Offline Reading",
+    downloadedOffline: "Saved to Device",
+    removeOffline: "Remove Download",
+    offlineAvailable: "Available Offline",
+    savedOfflineStories: "Downloaded Stories",
+
+    // Bookmarks & Private Notes
+    bookmarks: "Bookmarks",
+    privateNotes: "Private Notes",
+    addBookmark: "Bookmark Page",
+    addNote: "Add Note",
+    addNoteForPage: "New note on Page {page}",
+    yourNotes: "My Notes on this Story",
+    notePlaceholder: "Write a personal reflection or note...",
+    saveNote: "Save Note",
+    jumpToPage: "Jump to Page {page}",
+    bookmarkSaved: "Page bookmarked successfully!"
   },
   id: {
     // Navigation / Header / Footer
@@ -945,7 +1215,97 @@ export const translations = {
     numberList: "Daftar Angka",
     quote: "Kutipan",
     typeContentHere: "Tulis cerita Anda di sini...",
-    pagesGenerated: "Halaman dihasilkan"
+    pagesGenerated: "Halaman dihasilkan",
+
+    // Advanced Typographic Accessibility & Themes
+    openDyslexic: "OpenDyslexic (Aksesibilitas)",
+    fontFamily: "Font Membaca",
+    serifFont: "Serif Elegan",
+    sansFont: "Sans-Serif Modern",
+    dyslexicFont: "OpenDyslexic (Disleksia)",
+    marginSize: "Margin",
+    narrowMargin: "Sempit",
+    normalMargin: "Standar",
+    wideMargin: "Lebar",
+    lineSpacing: "Jarak Antar Baris",
+    compactLine: "Kompak (1.4)",
+    relaxedLine: "Nyaman (1.8)",
+    looseLine: "Longgar (2.2)",
+    readingTheme: "Tema Pembaca",
+    sepiaTheme: "Sepia Hangat",
+    lightTheme: "Terang Standar",
+    darkTheme: "Gelap Malam",
+
+    // Analytics & Metrics
+    analyticsDashboard: "Analisis & Metrik",
+    avgReadingTime: "Rata-rata Waktu Membaca",
+    completionRate: "Tingkat Retensi",
+    totalViews: "Total Tampilan",
+    topPages: "Bab Paling Banyak Dibaca",
+    retentionRate: "Tingkat Penyelesaian",
+    readingMetrics: "Metrik Pembaca",
+    readerEngagement: "Keterlibatan",
+    authorMetrics: "Metrik Kinerja",
+
+    // Scheduled Release
+    scheduledRelease: "Rilis Terjadwal",
+    scheduledReleaseAt: "Tanggal & Waktu Rilis",
+    releaseScheduledFor: "Dijadwalkan untuk {date}",
+    scheduledStatus: "Dijadwalkan",
+    notYetReleased: "Cerita belum dirilis secara publik.",
+    isScheduledBadge: "DIJADWALKAN",
+
+    // Multi-criteria Ratings
+    plotRating: "Alur & Jalan Cerita",
+    characterRating: "Pengembangan Karakter",
+    writingRating: "Kualitas Penulisan",
+    overallRating: "Penilaian Keseluruhan",
+    criteriaBreakdown: "Rincian Berdasarkan Kriteria",
+
+    // Playlists / Reading Lists
+    playlists: "Daftar Putar Buku",
+    createPlaylist: "Buat Daftar Bacaan",
+    playlistTitle: "Judul Daftar Putar",
+    playlistDescription: "Deskripsi",
+    addToPlaylist: "Tambahkan ke Daftar",
+    removeFromPlaylist: "Hapus dari Daftar",
+    publicPlaylists: "Koleksi Publik",
+    myPlaylists: "Daftar Saya",
+    emptyPlaylist: "Tidak ada cerita dalam daftar ini.",
+    isPublicList: "Daftar Publik",
+    managePlaylist: "Kelola Playlist",
+    addStories: "Tambah Cerita",
+    editPlaylist: "Edit Playlist",
+    deletePlaylist: "Hapus Playlist",
+    selectStoriesToAdd: "Pilih cerita untuk dimasukkan ke playlist:",
+    storiesCount: "{count} cerita",
+
+    // Achievements & Badges
+    achievements: "Pencapaian & Lencana",
+    badges: "Lencana",
+    myAchievements: "Pencapaian Saya",
+    unlockedAt: "Dibuka pada",
+    progress: "Kemajuan",
+
+    // Offline Mode
+    offlineMode: "Mode Luring",
+    downloadForOffline: "Unduh untuk Membaca Luring",
+    downloadedOffline: "Tersimpan di Perangkat",
+    removeOffline: "Hapus Unduhan",
+    offlineAvailable: "Tersedia Luring",
+    savedOfflineStories: "Cerita Terunduh",
+
+    // Bookmarks & Private Notes
+    bookmarks: "Penanda Buku",
+    privateNotes: "Catatan Pribadi",
+    addBookmark: "Tandai Halaman",
+    addNote: "Tambah Catatan",
+    addNoteForPage: "Catatan baru di Halaman {page}",
+    yourNotes: "Catatan Saya di Cerita Ini",
+    notePlaceholder: "Tulis refleksi atau catatan pribadi...",
+    saveNote: "Simpan Catatan",
+    jumpToPage: "Lompat ke Hal. {page}",
+    bookmarkSaved: "Halaman berhasil ditandai!"
   }
 } as const;
 

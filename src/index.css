@@ -8,6 +8,33 @@
   --font-sans: "Helvetica Neue", Arial, sans-serif;
 }
 
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-opendyslexic {
+  font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif !important;
+  letter-spacing: 0.04em;
+  word-spacing: 0.08em;
+}
+
+.bg-sepia {
+  background-color: #FBF0D9 !important;
+  color: #3D2D1D !important;
+}
+
+.bg-sepia .prose {
+  color: #3D2D1D !important;
+}
+
+.bg-sepia .prose p, .bg-sepia .prose h1, .bg-sepia .prose h2, .bg-sepia .prose h3, .bg-sepia .prose span, .bg-sepia .prose blockquote {
+  color: #3D2D1D !important;
+}
+
 html {
   scrollbar-gutter: stable both-edges;
   scrollbar-width: thin;

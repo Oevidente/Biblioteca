@@ -1,7 +1,9 @@
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
-import { X, Lock, Mail, User as UserIcon, KeyRound, CheckCircle2, AlertCircle, ShieldCheck, Eye, EyeOff, AtSign } from "lucide-react";
+import { X, Lock, Mail, User as UserIcon, KeyRound, CheckCircle2, AlertCircle, ShieldCheck, Eye, EyeOff, AtSign, Award, BookOpen, MessageSquare, Moon, ListPlus, Globe, Feather } from "lucide-react";
+import { ACHIEVEMENTS, getUnlockedAchievements, unlockAchievement } from "../lib/achievements";
+import { db, collection, query, where, getDocs, doc, updateDoc } from "../lib/firebase";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -11,7 +13,76 @@ interface AuthModalProps {
 
 export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalProps) {
   const { user, profile, login, register, logout, changePassword, checkEmailExists, resetPasswordDirect } = useAuth();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
+  
+  const [profileTab, setProfileTab] = useState<"security" | "achievements">("achievements");
+  const [unlockedBadges, setUnlockedBadges] = useState<string[]>([]);
+
+  useEffect(() => {
+    const checkAchievementsAndLoad = async () => {
+      if (!user) return;
+      
+      // Get current achievements
+      let unlocked = getUnlockedAchievements();
+      let changed = false;
+      
+      try {
+        const storiesRef = collection(db, "stories");
+        
+        // 1. Check if they have a story with their authorUid
+        const qUid = query(storiesRef, where("authorUid", "==", user.uid));
+        const snapUid = await getDocs(qUid);
+        let hasPublished = !snapUid.empty;
+        
+        // 2. Check if author name matches displayName or username (for manual input cases)
+        if (!hasPublished && profile) {
+          const namesToCheck: string[] = [];
+          if (profile.displayName) namesToCheck.push(profile.displayName.trim());
+          if (profile.username) {
+            namesToCheck.push(profile.username.trim());
+            namesToCheck.push(`@${profile.username.trim()}`);
+          }
+          
+          if (namesToCheck.length > 0) {
+            for (const nameToCheck of namesToCheck) {
+              const qName = query(storiesRef, where("author", "==", nameToCheck));
+              const snapName = await getDocs(qName);
+              if (!snapName.empty) {
+                hasPublished = true;
+                
+                // Backfill authorUid so they are permanently recognized in the future
+                for (const docSnap of snapName.docs) {
+                  try {
+                    await updateDoc(doc(db, "stories", docSnap.id), { authorUid: user.uid });
+                    console.log(`Successfully linked story ${docSnap.id} to user ${user.uid}`);
+                  } catch (updateErr) {
+                    console.warn(`Could not update authorUid for story ${docSnap.id}:`, updateErr);
+                  }
+                }
+                break;
+              }
+            }
+          }
+        }
+        
+        // If we found any story, unlock the achievement!
+        if (hasPublished) {
+          if (!unlocked.includes("published_author")) {
+            unlockAchievement("published_author");
+            changed = true;
+          }
+        }
+      } catch (err) {
+        console.error("Error checking achievements:", err);
+      }
+      
+      setUnlockedBadges(getUnlockedAchievements());
+    };
+
+    if (isOpen && user) {
+      checkAchievementsAndLoad();
+    }
+  }, [isOpen, user, profile]);
   
   const [mode, setMode] = useState<"login" | "register" | "forgot" | "changePassword">(
     user ? "changePassword" : initialMode === "profile" ? "login" : initialMode
@@ -190,13 +261,78 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
               <p className="text-xs opacity-60 mt-1 font-mono">{user.email}</p>
             </div>
 
-            <div className="flex border-b border-[#1A1A1A]/10 dark:border-white/10 gap-4 justify-center">
+            <div className="flex border-b border-[#1A1A1A]/10 dark:border-white/10 gap-4 justify-center text-xs font-bold uppercase tracking-widest mb-4">
               <button 
-                className="pb-2 text-xs font-bold uppercase tracking-widest border-b-2 border-[#1A1A1A] dark:border-[#F5F5F0]"
+                type="button"
+                onClick={() => setProfileTab("achievements")}
+                className={`pb-2 border-b-2 transition-colors ${
+                  profileTab === "achievements" ? "border-[#1A1A1A] dark:border-[#F5F5F0] opacity-100" : "border-transparent opacity-50 hover:opacity-100"
+                }`}
+              >
+                {t("achievements")}
+              </button>
+              <button 
+                type="button"
+                onClick={() => setProfileTab("security")}
+                className={`pb-2 border-b-2 transition-colors ${
+                  profileTab === "security" ? "border-[#1A1A1A] dark:border-[#F5F5F0] opacity-100" : "border-transparent opacity-50 hover:opacity-100"
+                }`}
               >
                 {t("changePassword")}
               </button>
             </div>
+
+            {profileTab === "achievements" ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider opacity-70">
+                  <span>{t("badges")} ({unlockedBadges.length}/{ACHIEVEMENTS.length})</span>
+                  <span>{Math.round((unlockedBadges.length / ACHIEVEMENTS.length) * 100)}%</span>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-2.5 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                  {ACHIEVEMENTS.map((a) => {
+                    const isUnlocked = unlockedBadges.includes(a.id);
+                    const renderIcon = () => {
+                      if (a.icon === "BookOpen") return <BookOpen className="w-5 h-5" />;
+                      if (a.icon === "Award") return <Award className="w-5 h-5" />;
+                      if (a.icon === "MessageSquare") return <MessageSquare className="w-5 h-5" />;
+                      if (a.icon === "Moon") return <Moon className="w-5 h-5" />;
+                      if (a.icon === "ListPlus") return <ListPlus className="w-5 h-5" />;
+                      if (a.icon === "Globe") return <Globe className="w-5 h-5" />;
+                      if (a.icon === "Feather") return <Feather className="w-5 h-5" />;
+                      return <Award className="w-5 h-5" />;
+                    };
+
+                    return (
+                      <div 
+                        key={a.id}
+                        className={`p-3 rounded-xl border flex items-center gap-3 transition-all ${
+                          isUnlocked 
+                            ? "bg-amber-500/10 border-amber-500/30 text-[#1A1A1A] dark:text-[#F5F5F0]" 
+                            : "bg-[#F5F5F0]/50 dark:bg-[#0A0A0A]/50 border-black/5 dark:border-white/5 opacity-40 grayscale"
+                        }`}
+                      >
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                          isUnlocked ? "bg-amber-500 text-white" : "bg-black/10 dark:bg-white/10"
+                        }`}>
+                          {renderIcon()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-xs flex items-center justify-between">
+                            <span className="truncate">{a.title[language] || a.title.pt}</span>
+                            {isUnlocked && <span className="text-[9px] bg-amber-500/20 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">OK</span>}
+                          </h4>
+                          <p className="text-[11px] opacity-70 line-clamp-1 leading-tight mt-0.5">
+                            {a.description[language] || a.description.pt}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div>
 
             {errorMessage && (
               <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-xl text-xs flex items-center gap-2">
@@ -259,6 +395,8 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                 {isSubmitting ? t("updating") : t("saveNewPassword")}
               </button>
             </form>
+          </div>
+        )}
 
             <div className="pt-4 border-t border-[#1A1A1A]/10 dark:border-white/10">
               <button 

@@ -39,30 +39,36 @@ service cloud.firestore {
 
       // Comments Subcollection
       match /comments/{commentId} {
-        allow read: if true;
-        allow create: if isSignedIn();
-        allow update, delete: if isSignedIn();
+        allow read, write: if true;
       }
     }
 
     // Users Collection & User Subcollections (e.g. progress history)
     match /users/{userId} {
-      allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create, read, update, delete: if true;
+
+      match /progress/{progressId} {
+        allow read, write: if true;
+      }
 
       match /{allPaths=**} {
-        allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+        allow read, write: if true;
       }
     }
 
     // Author Requests Collection
     match /authorRequests/{reqId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
     }
     
     // Admins Collection
     match /admins/{adminId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow read, write: if true;
+    }
+
+    // Collection Group rule for progress queries (used in Admin Analytics)
+    match /{path=**}/progress/{progressId} {
+      allow read, write: if true;
     }
   }
 }

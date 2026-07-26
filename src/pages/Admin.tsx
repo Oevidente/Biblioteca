@@ -30,7 +30,11 @@ import {
   Layers,
   Send,
   Eye,
-  RotateCcw
+  RotateCcw,
+  BarChart2,
+  TrendingUp,
+  Clock,
+  Users
 } from "lucide-react";
 import { 
   db, 
@@ -49,7 +53,8 @@ import {
   doc, 
   setDoc, 
   updateDoc, 
-  deleteDoc 
+  deleteDoc,
+  collectionGroup
 } from "../lib/firebase";
 import { parseDocx } from "../lib/docxParser";
 import { generateTagsLocal } from "../lib/tagger";
@@ -129,7 +134,7 @@ export function Admin() {
   const isAdmin = profile?.role === "admin" || (user?.email || "").toLowerCase().trim() === ADMIN_EMAIL;
   
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"publish" | "manage" | "comments" | "superadmin">("publish");
+  const [activeTab, setActiveTab] = useState<"publish" | "manage" | "comments" | "superadmin" | "analytics">("publish");
   
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
@@ -152,6 +157,10 @@ export function Admin() {
   const [comments, setComments] = useState<CommentData[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [commentFilter, setCommentFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
+  const [commentToDeleteText, setCommentToDeleteText] = useState<CommentData | null>(null);
+  const [commentToDeleteAll, setCommentToDeleteAll] = useState<CommentData | null>(null);
+  const [commentActionLoading, setCommentActionLoading] = useState(false);
+  const [commentsMsg, setCommentsMsg] = useState<string | null>(null);
 
   // Manage stories state
   const [storiesList, setStoriesList] = useState<StoryItem[]>([]);
@@ -175,6 +184,12 @@ export function Admin() {
   const [loadingSuperadmin, setLoadingSuperadmin] = useState(false);
   const [authorRequests, setAuthorRequests] = useState<any[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
+
+  // Analytics State
+  const [analyticsStories, setAnalyticsStories] = useState<any[]>([]);
+  const [progressRecords, setProgressRecords] = useState<any[]>([]);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [selectedStoryId, setSelectedStoryId] = useState<string>("all");
 
   const loadStoriesList = async () => {
     setLoadingStories(true);
@@ -237,6 +252,41 @@ export function Admin() {
     }
   };
 
+  const loadAnalytics = async () => {
+    setLoadingAnalytics(true);
+    try {
+      const snap = await getDocs(collection(db, "stories"));
+      const loadedStories: any[] = [];
+      snap.forEach((d) => {
+        const data = d.data();
+        if (!isAdmin && data.authorUid !== user?.uid) return;
+        loadedStories.push({ id: d.id, ...data });
+      });
+      setAnalyticsStories(loadedStories);
+
+      const progSnap = await getDocs(collectionGroup(db, "progress"));
+      const loadedProgress: any[] = [];
+      progSnap.forEach((d) => {
+        const data = d.data();
+        const uId = d.ref.parent?.parent?.id || "unknown";
+        if (!isAdmin) {
+          const isAllowedStory = loadedStories.some(s => s.id === data.storyId);
+          if (!isAllowedStory) return;
+        }
+        loadedProgress.push({
+          id: d.id,
+          userId: uId,
+          ...data
+        });
+      });
+      setProgressRecords(loadedProgress);
+    } catch (err) {
+      console.error("Error loading analytics:", err);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  };
+
   const approveAuthor = async (userId: string) => {
     try {
       await updateDoc(doc(db, "users", userId), { role: "author" });
@@ -253,6 +303,8 @@ export function Admin() {
       loadStoriesList();
     } else if (activeTab === "superadmin" && user && (user.email || "").toLowerCase().trim() === ADMIN_EMAIL) {
       loadSuperadminMetrics();
+    } else if (activeTab === "analytics" && user) {
+      loadAnalytics();
     }
   }, [activeTab, user]);
 
@@ -458,21 +510,44 @@ export function Admin() {
       const commentRef = doc(db, `stories/${storyId}/comments`, commentId);
       await updateDoc(commentRef, { status: newStatus });
       setComments(prev => prev.map(c => c.id === commentId ? { ...c, status: newStatus } : c));
-    } catch (err) {
+      setCommentsMsg(t("commentUpdatedSuccess") || "Status do comentário atualizado com sucesso.");
+    } catch (err: any) {
       console.error("Failed to update comment status:", err);
-      alert(t("errorUpdatingCommentStatus"));
+      setCommentsMsg((t("errorUpdatingCommentStatus") || "Erro ao atualizar comentário.") + " " + (err.message || ""));
     }
   };
 
-  const deleteCommentText = async (storyId: string, commentId: string) => {
-    if (!window.confirm(t("confirmDeleteCommentText") || "Tem certeza que deseja excluir o texto deste comentário? A nota será mantida.")) return;
+  const confirmDeleteCommentText = async (storyId: string, commentId: string) => {
+    setCommentActionLoading(true);
+    setCommentsMsg(null);
     try {
       const commentRef = doc(db, `stories/${storyId}/comments`, commentId);
       await updateDoc(commentRef, { text: "" });
       setComments(prev => prev.map(c => c.id === commentId ? { ...c, text: "" } : c));
-    } catch (err) {
+      setCommentsMsg("Texto do comentário excluído com sucesso. A avaliação foi mantida.");
+      setCommentToDeleteText(null);
+    } catch (err: any) {
       console.error("Failed to delete comment text:", err);
-      alert(t("errorUpdatingCommentStatus") || "Erro ao atualizar comentário.");
+      setCommentsMsg("Erro ao excluir texto do comentário: " + (err.message || err));
+    } finally {
+      setCommentActionLoading(false);
+    }
+  };
+
+  const deleteCommentAll = async (storyId: string, commentId: string) => {
+    setCommentActionLoading(true);
+    setCommentsMsg(null);
+    try {
+      const commentRef = doc(db, `stories/${storyId}/comments`, commentId);
+      await deleteDoc(commentRef);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+      setCommentsMsg("Avaliação excluída permanentemente com sucesso.");
+      setCommentToDeleteAll(null);
+    } catch (err: any) {
+      console.error("Failed to delete comment:", err);
+      setCommentsMsg("Erro ao excluir avaliação: " + (err.message || err));
+    } finally {
+      setCommentActionLoading(false);
     }
   };
 
@@ -803,6 +878,63 @@ export function Admin() {
     return true;
   });
 
+  // Analytics calculations
+  const filteredProgress = selectedStoryId === "all" 
+    ? progressRecords 
+    : progressRecords.filter(p => p.storyId === selectedStoryId);
+
+  const uniqueReadersCount = new Set(filteredProgress.map(p => p.userId)).size;
+  const totalStartsCount = filteredProgress.length;
+
+  let avgCompRate = 0;
+  if (filteredProgress.length > 0) {
+    const totalPercentage = filteredProgress.reduce((acc, curr) => {
+      const page = curr.page || 0;
+      const totalPages = curr.totalPages || 1;
+      const pct = Math.min(100, ((page + 1) / totalPages) * 100);
+      return acc + pct;
+    }, 0);
+    avgCompRate = Number((totalPercentage / filteredProgress.length).toFixed(1));
+  }
+
+  let finishedCount = 0;
+  if (filteredProgress.length > 0) {
+    finishedCount = filteredProgress.filter(curr => {
+      const page = curr.page || 0;
+      const totalPages = curr.totalPages || 1;
+      return page === totalPages - 1;
+    }).length;
+  }
+  const completionRatePercent = totalStartsCount > 0 
+    ? Number(((finishedCount / totalStartsCount) * 100).toFixed(1)) 
+    : 0;
+
+  let avgReadingTimeMin = 0;
+  if (filteredProgress.length > 0) {
+    const totalWordsRead = filteredProgress.reduce((acc, curr) => {
+      const storyObj = analyticsStories.find(s => s.id === curr.storyId);
+      const totalWords = storyObj?.wordCount || (curr.totalPages * 250);
+      const page = curr.page || 0;
+      const totalPages = curr.totalPages || 1;
+      const wordsRead = (Math.min(totalPages, page + 1) / totalPages) * totalWords;
+      return acc + wordsRead;
+    }, 0);
+    const avgWordsRead = totalWordsRead / filteredProgress.length;
+    avgReadingTimeMin = Number((avgWordsRead / 200).toFixed(1));
+  }
+
+  const selectedStory = analyticsStories.find(s => s.id === selectedStoryId);
+  const totalPagesForFunnel = selectedStory?.totalPages || 1;
+  const pageFunnelData = Array.from({ length: totalPagesForFunnel }).map((_, idx) => {
+    const readersOnOrPastPage = filteredProgress.filter(p => (p.page || 0) >= idx).length;
+    const pct = totalStartsCount > 0 ? (readersOnOrPastPage / totalStartsCount) * 100 : 0;
+    return {
+      pageIndex: idx,
+      readersCount: readersOnOrPastPage,
+      percentage: Number(pct.toFixed(1))
+    };
+  });
+
   return (
     <div className="max-w-3xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
@@ -810,38 +942,356 @@ export function Admin() {
           <h1 className="text-3xl sm:text-4xl font-serif font-bold tracking-tight">{t("adminPanel")}</h1>
           <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mt-1">{user.email}</div>
         </div>
-        <div className="flex bg-white dark:bg-[#0A0A0A] p-1 rounded-full border border-[#1A1A1A]/10 dark:border-white/10 shadow-sm overflow-x-auto w-full sm:w-auto">
+        <div className="grid grid-cols-2 sm:flex bg-white dark:bg-[#0A0A0A] p-1.5 sm:p-1 rounded-2xl sm:rounded-full border border-[#1A1A1A]/10 dark:border-white/10 shadow-sm w-full sm:w-auto gap-1 sm:gap-0">
           <button 
             onClick={() => setActiveTab("publish")}
-            className={cn("px-5 py-2.5 rounded-full text-[10px] uppercase font-bold tracking-widest transition-colors whitespace-nowrap", activeTab === "publish" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60 hover:opacity-100")}
+            className={cn(
+              "px-3 py-2.5 rounded-xl sm:rounded-full text-[10px] uppercase font-bold tracking-widest transition-all text-center flex items-center justify-center gap-1.5",
+              activeTab === "publish" 
+                ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" 
+                : "opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
+            )}
           >
-            {t("publish")}
+            <PenTool className="w-3.5 h-3.5" />
+            <span>{t("publish")}</span>
           </button>
+          
           <button 
             onClick={() => setActiveTab("manage")}
-            className={cn("px-5 py-2.5 rounded-full text-[10px] uppercase font-bold tracking-widest transition-colors whitespace-nowrap", activeTab === "manage" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60 hover:opacity-100")}
+            className={cn(
+              "px-3 py-2.5 rounded-xl sm:rounded-full text-[10px] uppercase font-bold tracking-widest transition-all text-center flex items-center justify-center gap-1.5",
+              activeTab === "manage" 
+                ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" 
+                : "opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
+            )}
           >
-            {t("manage")}
+            <Layers className="w-3.5 h-3.5" />
+            <span>{t("manage")}</span>
           </button>
+
+          <button 
+            onClick={() => setActiveTab("analytics")}
+            className={cn(
+              "px-3 py-2.5 rounded-xl sm:rounded-full text-[10px] uppercase font-bold tracking-widest transition-all text-center flex items-center justify-center gap-1.5",
+              activeTab === "analytics" 
+                ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" 
+                : "opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
+            )}
+          >
+            <BarChart2 className="w-3.5 h-3.5" />
+            <span>{t("analytics")}</span>
+          </button>
+
           <button 
             onClick={() => setActiveTab("comments")}
-            className={cn("px-5 py-2.5 rounded-full text-[10px] uppercase font-bold tracking-widest transition-colors whitespace-nowrap flex items-center gap-1.5", activeTab === "comments" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60 hover:opacity-100")}
+            className={cn(
+              "px-3 py-2.5 rounded-xl sm:rounded-full text-[10px] uppercase font-bold tracking-widest transition-all text-center flex items-center justify-center gap-1.5",
+              activeTab === "comments" 
+                ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" 
+                : "opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
+            )}
           >
-            {t("moderateComments")}
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span className="truncate">{t("moderateComments")}</span>
             {comments.filter(c => c.status === "pending").length > 0 && (
-              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0"></span>
             )}
           </button>
+
           {user && (user.email || "").toLowerCase().trim() === ADMIN_EMAIL && (
             <button 
               onClick={() => setActiveTab("superadmin")}
-              className={cn("px-5 py-2.5 rounded-full text-[10px] uppercase font-bold tracking-widest transition-colors whitespace-nowrap", activeTab === "superadmin" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60 hover:opacity-100")}
+              className={cn(
+                "col-span-2 sm:col-span-1 px-3 py-2.5 rounded-xl sm:rounded-full text-[10px] uppercase font-bold tracking-widest transition-all text-center flex items-center justify-center gap-1.5",
+                activeTab === "superadmin" 
+                  ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" 
+                  : "opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
+              )}
             >
-              SUPERADMIN
+              <Lock className="w-3.5 h-3.5" />
+              <span>SUPERADMIN</span>
             </button>
           )}
         </div>
       </div>
+
+      {activeTab === "analytics" && (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10 space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#1A1A1A]/10 dark:border-white/10 pb-5">
+              <div>
+                <h2 className="font-serif font-bold text-2xl flex items-center gap-2">
+                  <BarChart2 className="w-6 h-6 text-amber-500" />
+                  <span>{t("analyticsDashboard", "Análise e Métricas")}</span>
+                </h2>
+                <p className="text-xs opacity-60 mt-1">Métricas consolidadas do desempenho de leitura, retenção e capítulos das histórias em tempo real.</p>
+              </div>
+              <div className="w-full sm:w-64">
+                <select
+                  value={selectedStoryId}
+                  onChange={(e) => setSelectedStoryId(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] dark:focus:ring-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  <option value="all">📊 {t("all", "Todas as Histórias")}</option>
+                  {analyticsStories.map(s => (
+                    <option key={s.id} value={s.id}>📖 {s.title}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {loadingAnalytics ? (
+              <div className="flex flex-col items-center justify-center py-16 space-y-4">
+                <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+                <span className="text-xs opacity-60">Processando e compilando dados de leitura reais...</span>
+              </div>
+            ) : progressRecords.length === 0 ? (
+              <div className="text-center py-12 border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl p-6 bg-[#F5F5F0]/30 dark:bg-[#0A0A0A]/30 space-y-3">
+                <Sparkles className="w-8 h-8 mx-auto opacity-40 text-amber-500" />
+                <h4 className="font-serif font-bold text-sm">Sem dados de leitura ainda</h4>
+                <p className="text-xs opacity-60 max-w-sm mx-auto">
+                  As métricas de retenção e progresso são geradas automaticamente quando os leitores começam a ler as suas obras na biblioteca.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="p-4 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-2xl border border-black/5 dark:border-white/5 space-y-1">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider opacity-60">
+                      <Clock className="w-4 h-4 text-amber-500" />
+                      <span>{t("avgReadingTime")}</span>
+                    </div>
+                    <div className="text-2xl font-serif font-bold">
+                      {avgReadingTimeMin > 0 ? `${avgReadingTimeMin} min` : "0 min"}
+                    </div>
+                    <p className="text-[10px] opacity-50">Tempo estimado gasto por sessão de leitura</p>
+                  </div>
+
+                  <div className="p-4 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-2xl border border-black/5 dark:border-white/5 space-y-1">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider opacity-60">
+                      <Users className="w-4 h-4 text-blue-500" />
+                      <span>{t("readingMetrics", "Leitores Ativos")}</span>
+                    </div>
+                    <div className="text-2xl font-serif font-bold">{uniqueReadersCount}</div>
+                    <p className="text-[10px] opacity-50">{totalStartsCount} {totalStartsCount === 1 ? 'leitura iniciada' : 'leituras iniciadas'}</p>
+                  </div>
+
+                  <div className="p-4 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-2xl border border-black/5 dark:border-white/5 space-y-1">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider opacity-60">
+                      <TrendingUp className="w-4 h-4 text-emerald-500" />
+                      <span>{t("retentionRate")}</span>
+                    </div>
+                    <div className="text-2xl font-serif font-bold">{completionRatePercent}%</div>
+                    <p className="text-[10px] opacity-50">Taxa de conclusão até a página final</p>
+                  </div>
+                </div>
+
+                {selectedStoryId === "all" ? (
+                  <div className="space-y-4 pt-4 border-t border-[#1A1A1A]/10 dark:border-white/10">
+                    <h3 className="font-serif font-bold text-sm uppercase tracking-wider opacity-80">Desempenho por História</h3>
+                    {/* Desktop View: Styled Data Table */}
+                    <div className="hidden sm:block overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-[#1A1A1A]/10 dark:border-white/10 opacity-60">
+                            <th className="py-3 font-bold uppercase tracking-wider">História</th>
+                            <th className="py-3 font-bold uppercase tracking-wider text-center">Inícios</th>
+                            <th className="py-3 font-bold uppercase tracking-wider text-center">Progresso Médio</th>
+                            <th className="py-3 font-bold uppercase tracking-wider text-center">Conclusões</th>
+                            <th className="py-3 font-bold uppercase tracking-wider text-right">Nota Geral</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#1A1A1A]/5 dark:divide-white/5">
+                          {analyticsStories.map(s => {
+                            const storyProgress = progressRecords.filter(p => p.storyId === s.id);
+                            const starts = storyProgress.length;
+                            
+                            let progressSum = 0;
+                            let finished = 0;
+                            storyProgress.forEach(p => {
+                              const page = p.page || 0;
+                              const total = p.totalPages || 1;
+                              progressSum += Math.min(100, ((page + 1) / total) * 100);
+                              if (page === total - 1) finished++;
+                            });
+                            
+                            const avgProg = starts > 0 ? Math.round(progressSum / starts) : 0;
+                            const ratingAvg = s.ratingsCount > 0 ? (s.rating / s.ratingsCount).toFixed(1) : "N/A";
+
+                            return (
+                              <tr key={s.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                <td className="py-4 font-bold pr-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-10 rounded overflow-hidden flex-shrink-0 bg-black/10">
+                                      <img src={formatCoverUrl(s.coverImage)} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                    </div>
+                                    <div>
+                                      <div className="font-serif text-sm">{s.title}</div>
+                                      <div className="text-[10px] opacity-60">Por {s.author} • {s.totalPages} {s.totalPages === 1 ? 'página' : 'páginas'}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-4 text-center font-mono font-bold text-sm">{starts}</td>
+                                <td className="py-4 text-center">
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <div className="w-12 bg-black/10 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
+                                      <div className="bg-amber-500 h-full" style={{ width: `${avgProg}%` }}></div>
+                                    </div>
+                                    <span className="font-mono font-bold text-[11px]">{avgProg}%</span>
+                                  </div>
+                                </td>
+                                <td className="py-4 text-center font-mono">{finished}</td>
+                                <td className="py-4 text-right">
+                                  <div className="flex items-center justify-end gap-1 font-bold text-amber-500">
+                                    <Star className="w-3.5 h-3.5 fill-current" />
+                                    <span>{ratingAvg}</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile View: High-fidelity, card-based analytics list */}
+                    <div className="block sm:hidden space-y-4">
+                      {analyticsStories.map(s => {
+                        const storyProgress = progressRecords.filter(p => p.storyId === s.id);
+                        const starts = storyProgress.length;
+                        
+                        let progressSum = 0;
+                        let finished = 0;
+                        storyProgress.forEach(p => {
+                          const page = p.page || 0;
+                          const total = p.totalPages || 1;
+                          progressSum += Math.min(100, ((page + 1) / total) * 100);
+                          if (page === total - 1) finished++;
+                        });
+                        
+                        const avgProg = starts > 0 ? Math.round(progressSum / starts) : 0;
+                        const ratingAvg = s.ratingsCount > 0 ? (s.rating / s.ratingsCount).toFixed(1) : "N/A";
+
+                        return (
+                          <div key={s.id} className="p-4 bg-[#F5F5F0]/50 dark:bg-[#0A0A0A]/50 rounded-2xl border border-black/5 dark:border-white/5 space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-10 rounded overflow-hidden flex-shrink-0 bg-black/10 shadow-sm">
+                                  <img src={formatCoverUrl(s.coverImage)} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                </div>
+                                <div>
+                                  <h4 className="font-serif font-bold text-sm leading-tight">{s.title}</h4>
+                                  <p className="text-[10px] opacity-60">Por {s.author} • {s.totalPages} {s.totalPages === 1 ? 'página' : 'páginas'}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-lg">
+                                <Star className="w-3.5 h-3.5 fill-current" />
+                                <span className="text-[11px]">{ratingAvg}</span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2 text-center bg-white dark:bg-[#1A1A1A]/40 p-2.5 rounded-xl border border-black/5 dark:border-white/5">
+                              <div>
+                                <div className="text-[9px] font-bold uppercase tracking-wider opacity-50">Inícios</div>
+                                <div className="text-sm font-mono font-bold mt-0.5">{starts}</div>
+                              </div>
+                              <div>
+                                <div className="text-[9px] font-bold uppercase tracking-wider opacity-50">Prog. Médio</div>
+                                <div className="text-sm font-mono font-bold mt-0.5">{avgProg}%</div>
+                              </div>
+                              <div>
+                                <div className="text-[9px] font-bold uppercase tracking-wider opacity-50">Conclusões</div>
+                                <div className="text-sm font-mono font-bold mt-0.5">{finished}</div>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-[9px] opacity-50 font-bold uppercase tracking-wider">
+                                <span>Progresso Geral</span>
+                                <span>{avgProg}%</span>
+                              </div>
+                              <div className="w-full bg-black/10 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
+                                <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${avgProg}%` }}></div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-[#1A1A1A]/10 dark:border-white/10">
+                    <div className="p-5 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-2xl border border-black/5 dark:border-white/5 space-y-3">
+                      <h3 className="font-serif font-bold text-sm uppercase tracking-wider opacity-80 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-amber-500" />
+                        <span>Retenção por Página</span>
+                      </h3>
+                      <p className="text-xs opacity-60">Percentual de leitores que alcançaram ou superaram cada página do livro.</p>
+                      
+                      <div className="space-y-3 pt-2 max-h-96 overflow-y-auto pr-1">
+                        {pageFunnelData.map((data) => (
+                          <div key={data.pageIndex}>
+                            <div className="flex justify-between text-[11px] font-bold mb-1">
+                              <span>Página {data.pageIndex + 1}</span>
+                              <span className="opacity-60 font-mono">{data.readersCount} {data.readersCount === 1 ? 'leitor' : 'leitores'} ({data.percentage}%)</span>
+                            </div>
+                            <div className="w-full bg-black/10 dark:bg-white/10 h-2 rounded-full overflow-hidden">
+                              <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${data.percentage}%` }}></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p-5 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-2xl border border-black/5 dark:border-white/5 flex flex-col justify-between space-y-4">
+                      <div>
+                        <h3 className="font-serif font-bold text-sm uppercase tracking-wider opacity-80 flex items-center gap-2">
+                          <Star className="w-4 h-4 text-amber-500" />
+                          <span>Engajamento e Avaliações</span>
+                        </h3>
+                        <p className="text-xs opacity-60 mt-1">Estatísticas qualitativas extraídas das avaliações públicas deixadas por leitores.</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 py-2">
+                        <div className="p-4 bg-white dark:bg-[#1A1A1A] rounded-xl border border-black/5 dark:border-white/5 text-center">
+                          <div className="text-2xl font-serif font-bold text-amber-500">
+                            {selectedStory?.ratingsCount > 0 ? (selectedStory.rating / selectedStory.ratingsCount).toFixed(1) : "N/A"}
+                          </div>
+                          <div className="text-[10px] font-bold uppercase tracking-wider opacity-50 mt-1">Nota Média Geral</div>
+                        </div>
+
+                        <div className="p-4 bg-white dark:bg-[#1A1A1A] rounded-xl border border-black/5 dark:border-white/5 text-center">
+                          <div className="text-2xl font-serif font-bold">
+                            {selectedStory?.ratingsCount || 0}
+                          </div>
+                          <div className="text-[10px] font-bold uppercase tracking-wider opacity-50 mt-1">Total de Notas</div>
+                        </div>
+                      </div>
+
+                      {selectedStory?.criteriaBreakdown && (
+                        <div className="space-y-2 text-xs border-t border-black/5 dark:border-white/5 pt-3">
+                          <div className="flex justify-between text-[11px] opacity-75">
+                            <span>Enredo & Trama</span>
+                            <span className="font-bold">{selectedStory.criteriaBreakdown.plot?.toFixed(1) || "5.0"}</span>
+                          </div>
+                          <div className="flex justify-between text-[11px] opacity-75">
+                            <span>Personagens</span>
+                            <span className="font-bold">{selectedStory.criteriaBreakdown.character?.toFixed(1) || "5.0"}</span>
+                          </div>
+                          <div className="flex justify-between text-[11px] opacity-75">
+                            <span>Qualidade de Escrita</span>
+                            <span className="font-bold">{selectedStory.criteriaBreakdown.writing?.toFixed(1) || "5.0"}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {activeTab === "superadmin" && user && (user.email || "").toLowerCase().trim() === ADMIN_EMAIL && (
         <div className="space-y-6">
@@ -968,6 +1418,37 @@ export function Admin() {
                 placeholder={t("authorPlaceholder")}
                 required
               />
+              {profile && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {profile.displayName && (
+                    <button
+                      type="button"
+                      onClick={() => setAuthor(profile.displayName!)}
+                      className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
+                    >
+                      Usar meu Nome: {profile.displayName}
+                    </button>
+                  )}
+                  {profile.username && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setAuthor(`@${profile.username}`)}
+                        className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
+                      >
+                        Usar meu @Usuário: @{profile.username}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAuthor(profile.username!)}
+                        className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
+                      >
+                        Usar meu Usuário: {profile.username}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">{t("publishDate")}</label>
@@ -1227,6 +1708,37 @@ export function Admin() {
                                 onChange={(e) => setEditAuthor(e.target.value)}
                                 className="w-full px-3 py-2 text-sm bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none"
                               />
+                              {profile && (
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  {profile.displayName && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditAuthor(profile.displayName!)}
+                                      className="text-[8px] font-bold uppercase tracking-wider px-2 py-1 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
+                                    >
+                                      Usar: {profile.displayName}
+                                    </button>
+                                  )}
+                                  {profile.username && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditAuthor(`@${profile.username}`)}
+                                        className="text-[8px] font-bold uppercase tracking-wider px-2 py-1 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
+                                      >
+                                        Usar: @{profile.username}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditAuthor(profile.username!)}
+                                        className="text-[8px] font-bold uppercase tracking-wider px-2 py-1 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
+                                      >
+                                        Usar: {profile.username}
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              )}
                             </div>
                             <div>
                               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("publishDate")}</label>
@@ -1418,33 +1930,49 @@ export function Admin() {
 
       {activeTab === "comments" && (
         <div className="space-y-6">
+          {commentsMsg && (
+            <div className="flex items-center justify-between gap-3 bg-emerald-500/10 border border-emerald-500/25 p-4 rounded-2xl text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>{commentsMsg}</span>
+              </div>
+              <button 
+                onClick={() => setCommentsMsg(null)}
+                className="opacity-60 hover:opacity-100 p-1 rounded-full hover:bg-emerald-500/15 transition-colors"
+                title="Fechar"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* Filter Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-[#1A1A1A] p-4 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-[#1A1A1A] p-4 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10">
             <div className="text-xs font-bold uppercase tracking-widest opacity-80">
               {t("commentsApprovalTitle")}
             </div>
-            <div className="flex gap-2 bg-[#F5F5F0] dark:bg-[#0A0A0A] p-1 rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 text-[10px] font-bold uppercase tracking-widest">
+            <div className="flex gap-2 bg-[#F5F5F0] dark:bg-[#0A0A0A] p-1 rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 text-[10px] font-bold uppercase tracking-widest overflow-x-auto w-full sm:w-auto scrollbar-none whitespace-nowrap">
               <button 
                 onClick={() => setCommentFilter("pending")}
-                className={cn("px-3 py-1.5 rounded-lg transition-colors", commentFilter === "pending" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
+                className={cn("px-3 py-1.5 rounded-lg transition-colors flex-shrink-0", commentFilter === "pending" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" : "opacity-60")}
               >
                 {t("commentsPending")} ({comments.filter(c => c.status === "pending").length})
               </button>
               <button 
                 onClick={() => setCommentFilter("approved")}
-                className={cn("px-3 py-1.5 rounded-lg transition-colors", commentFilter === "approved" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
+                className={cn("px-3 py-1.5 rounded-lg transition-colors flex-shrink-0", commentFilter === "approved" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" : "opacity-60")}
               >
                 {t("commentsApproved")} ({comments.filter(c => c.status === "approved").length})
               </button>
               <button 
                 onClick={() => setCommentFilter("rejected")}
-                className={cn("px-3 py-1.5 rounded-lg transition-colors", commentFilter === "rejected" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
+                className={cn("px-3 py-1.5 rounded-lg transition-colors flex-shrink-0", commentFilter === "rejected" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
               >
                 {t("commentsRejected")}
               </button>
               <button 
                 onClick={() => setCommentFilter("all")}
-                className={cn("px-3 py-1.5 rounded-lg transition-colors", commentFilter === "all" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
+                className={cn("px-3 py-1.5 rounded-lg transition-colors flex-shrink-0", commentFilter === "all" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
               >
                 {t("all")} ({comments.length})
               </button>
@@ -1459,28 +1987,28 @@ export function Admin() {
             </div>
           ) : (
             filteredComments.map(c => (
-              <div key={c.id} className="bg-white dark:bg-[#1A1A1A] p-6 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10 space-y-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                  <div>
-                    <span className="text-[10px] uppercase font-bold tracking-widest opacity-60 block mb-1">
+              <div key={c.id} className="bg-white dark:bg-[#1A1A1A] p-4 sm:p-6 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10 space-y-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div className="space-y-1 w-full">
+                    <span className="text-[9px] uppercase font-bold tracking-widest opacity-60 block">
                       {c.storyTitle}
                     </span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm">{c.userName}</span>
-                      {c.userEmail && <span className="text-xs font-mono opacity-40">({c.userEmail})</span>}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                      <span className="font-serif font-bold text-sm text-[#1A1A1A] dark:text-[#F5F5F0]">{c.userName}</span>
+                      {c.userEmail && <span className="text-[10px] font-mono opacity-40 truncate block max-w-xs">{c.userEmail}</span>}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto border-t sm:border-t-0 border-[#1A1A1A]/5 dark:border-white/5 pt-2 sm:pt-0">
+                    <div className="flex items-center gap-0.5">
                       {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={cn("w-3.5 h-3.5", i < c.rating ? "fill-amber-400 text-amber-400" : "opacity-20")} />
+                        <Star key={i} className={cn("w-3.5 h-3.5", i < c.rating ? "fill-amber-400 text-amber-400" : "opacity-15")} />
                       ))}
                     </div>
 
                     {/* Status Badge */}
                     <span className={cn(
-                      "text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border",
+                      "text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border shrink-0",
                       c.status === "approved" && "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400",
                       c.status === "pending" && "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400",
                       (c.status === "rejected" || c.status === "hidden") && "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400"
@@ -1491,54 +2019,67 @@ export function Admin() {
                 </div>
 
                 {c.text && (
-                  <p className="font-serif text-sm leading-relaxed bg-[#F5F5F0] dark:bg-[#0A0A0A] p-4 rounded-xl border border-[#1A1A1A]/5 dark:border-white/5">
+                  <p className="font-serif text-sm leading-relaxed bg-[#F5F5F0] dark:bg-[#0A0A0A] p-4 rounded-xl border border-[#1A1A1A]/5 dark:border-white/5 italic">
                     "{c.text}"
                   </p>
                 )}
 
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#1A1A1A]/10 dark:border-white/10">
-                  <span className="text-[10px] font-mono opacity-40">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-[#1A1A1A]/10 dark:border-white/10">
+                  <span className="text-[10px] font-mono opacity-45">
                     {c.createdAt?.toDate ? c.createdAt.toDate().toLocaleString() : t("recentDate")}
                   </span>
 
-                  {/* Moderation Actions */}
-                  <div className="flex gap-2">
+                  {/* Moderation Actions - Optimized Grid/Flex for high fidelity and zero-overflow */}
+                  <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
                     {c.status !== "approved" && (
                       <button
                         onClick={() => updateCommentStatus(c.storyId, c.id, "approved")}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-emerald-500 hover:text-white transition-colors"
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-emerald-500 hover:text-white transition-all active:scale-95 shadow-sm min-h-[44px]"
                       >
-                        <CheckCircle className="w-3.5 h-3.5" /> {t("approve")}
+                        <CheckCircle className="w-4 h-4 shrink-0" />
+                        <span>{t("approve")}</span>
                       </button>
                     )}
 
                     {c.status !== "rejected" && (
                       <button
                         onClick={() => updateCommentStatus(c.storyId, c.id, "rejected")}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-red-500/10 text-red-700 dark:text-red-300 border border-red-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-red-500 hover:text-white transition-colors"
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/25 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-red-500 hover:text-white transition-all active:scale-95 shadow-sm min-h-[44px]"
                       >
-                        <XCircle className="w-3.5 h-3.5" /> {t("reject")}
+                        <XCircle className="w-4 h-4 shrink-0" />
+                        <span>{t("reject")}</span>
                       </button>
                     )}
 
                     {c.status !== "hidden" && c.status === "approved" && (
                       <button
                         onClick={() => updateCommentStatus(c.storyId, c.id, "hidden")}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-black/10 dark:bg-white/10 opacity-70 border border-black/20 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:opacity-100 transition-colors"
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[#1A1A1A]/5 dark:bg-white/5 opacity-80 border border-[#1A1A1A]/15 dark:border-white/15 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-[#1A1A1A] hover:text-white hover:opacity-100 transition-all active:scale-95 min-h-[44px]"
                       >
-                        <EyeOff className="w-3.5 h-3.5" /> {t("hide")}
+                        <EyeOff className="w-4 h-4 shrink-0" />
+                        <span>{t("hide")}</span>
                       </button>
                     )}
 
                     {c.text && (
                       <button
-                        onClick={() => deleteCommentText(c.storyId, c.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-red-500/10 text-red-700 dark:text-red-300 border border-red-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-red-500 hover:text-white transition-colors ml-2"
-                        title={t("deleteCommentText") || "Excluir apenas o texto"}
+                        onClick={() => setCommentToDeleteText(c)}
+                        className="col-span-2 sm:col-span-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-amber-500 hover:text-white transition-all active:scale-95 min-h-[44px]"
+                        title="Excluir apenas o texto do comentário, mantendo a avaliação e estrelas"
                       >
-                        <Trash2 className="w-3.5 h-3.5" /> {t("delete")}
+                        <XCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <span>Apagar Texto</span>
                       </button>
                     )}
+
+                    <button
+                      onClick={() => setCommentToDeleteAll(c)}
+                      className="col-span-2 sm:col-span-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/25 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-red-500 hover:text-white transition-all active:scale-95 min-h-[44px]"
+                      title="Excluir a avaliação inteira (comentário e nota)"
+                    >
+                      <Trash2 className="w-4 h-4 shrink-0" />
+                      <span>Excluir Tudo</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1585,6 +2126,106 @@ export function Admin() {
                 className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50"
               >
                 {deletingStoryId === storyToDelete.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {t("yesDelete")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Comment Text Deletion */}
+      {commentToDeleteText && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#1A1A1A] max-w-md w-full rounded-2xl p-6 shadow-2xl border border-[#1A1A1A]/10 dark:border-white/10 space-y-4">
+            <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
+              <div className="p-3 bg-amber-500/10 rounded-full">
+                <XCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-serif font-bold text-lg text-[#1A1A1A] dark:text-white">Excluir apenas o texto</h3>
+                <p className="text-xs opacity-60">A avaliação de estrelas será preservada</p>
+              </div>
+            </div>
+
+            <p className="text-sm leading-relaxed text-[#1A1A1A] dark:text-white/90">
+              Tem certeza que deseja excluir o texto do comentário de <strong>{commentToDeleteText.userName}</strong> na obra <strong>{commentToDeleteText.storyTitle}</strong>?
+            </p>
+
+            <div className="p-3 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl border border-black/5 dark:border-white/5 text-xs text-[#1A1A1A]/70 dark:text-white/70 italic max-h-24 overflow-y-auto">
+              "{commentToDeleteText.text}"
+            </div>
+
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-700 dark:text-amber-300 font-medium leading-normal">
+              O texto do comentário será apagado permanentemente. A nota de {commentToDeleteText.rating} estrelas e a contagem geral de avaliações do livro não sofrerão alterações.
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setCommentToDeleteText(null)}
+                disabled={commentActionLoading}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border border-[#1A1A1A]/20 dark:border-white/20 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 transition-colors"
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={() => confirmDeleteCommentText(commentToDeleteText.storyId, commentToDeleteText.id)}
+                disabled={commentActionLoading}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-amber-600 text-white hover:bg-amber-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {commentActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                Apagar Texto
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Entire Comment Deletion */}
+      {commentToDeleteAll && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#1A1A1A] max-w-md w-full rounded-2xl p-6 shadow-2xl border border-[#1A1A1A]/10 dark:border-white/10 space-y-4">
+            <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
+              <div className="p-3 bg-red-500/10 rounded-full">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-serif font-bold text-lg text-[#1A1A1A] dark:text-white">Excluir avaliação completa</h3>
+                <p className="text-xs opacity-60">{t("irreversibleAction")}</p>
+              </div>
+            </div>
+
+            <p className="text-sm leading-relaxed text-[#1A1A1A] dark:text-white/90">
+              Tem certeza que deseja excluir toda a avaliação (texto e a nota de {commentToDeleteAll.rating} estrelas) de <strong>{commentToDeleteAll.userName}</strong> na obra <strong>{commentToDeleteAll.storyTitle}</strong>?
+            </p>
+
+            {commentToDeleteAll.text && (
+              <div className="p-3 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl border border-black/5 dark:border-white/5 text-xs text-[#1A1A1A]/70 dark:text-white/70 italic max-h-20 overflow-y-auto">
+                "{commentToDeleteAll.text}"
+              </div>
+            )}
+
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-700 dark:text-red-300 font-medium leading-normal">
+              Esta ação removerá totalmente o comentário e as estrelas do banco de dados de forma definitiva.
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setCommentToDeleteAll(null)}
+                disabled={commentActionLoading}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border border-[#1A1A1A]/20 dark:border-white/20 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 transition-colors"
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteCommentAll(commentToDeleteAll.storyId, commentToDeleteAll.id)}
+                disabled={commentActionLoading}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {commentActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                 {t("yesDelete")}
               </button>
             </div>
