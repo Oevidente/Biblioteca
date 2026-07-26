@@ -1,6 +1,6 @@
-# Biblioteca
+# Inkora
 
-Biblioteca é uma plataforma digital sofisticada para publicação, catalogação e leitura de obras literárias a partir de arquivos DOCX. Desenvolvido com foco em legibilidade, design minimalista e performance, o sistema oferece um ambiente de leitura imersivo, paginação automatizada e controle robusto de publicações através de um painel administrativo integrado.
+Inkora é uma plataforma digital sofisticada para publicação, catalogação e leitura de obras literárias a partir de arquivos DOCX. Desenvolvido com foco em legibilidade, design minimalista e performance, o sistema oferece um ambiente de leitura imersivo, paginação automatizada e controle robusto de publicações através de um painel administrativo integrado.
 
 ## Funcionalidades Principais
 
