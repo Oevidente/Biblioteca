@@ -6,7 +6,7 @@ export const translations = {
   pt: {
     // Navigation / Header / Footer
     library: "Biblioteca",
-    admin: "Admin",
+    admin: "Área do Autor",
     toggleTheme: "Alternar modo claro e escuro",
     login: "Entrar",
     register: "Cadastrar",
@@ -85,6 +85,8 @@ export const translations = {
     confirmPasswordPlaceholder: "Digite a senha novamente",
     nameLabel: "Nome Completo",
     namePlaceholder: "Seu nome",
+    usernameLabel: "Nome de Usuário (@)",
+    usernamePlaceholder: "seu_usuario",
     forgotPasswordLink: "Esqueci minha senha",
     alreadyHaveAccount: "Já tem uma conta?",
     dontHaveAccount: "Ainda não possui uma conta?",
@@ -109,7 +111,7 @@ export const translations = {
     forgotStep1InstructionsEmail: "Informe o e-mail da sua conta para redefinir a senha diretamente na plataforma.",
     
     // Admin Page
-    adminPanel: "Painel Admin",
+    adminPanel: "Painel do Autor",
     publish: "Publicar",
     manage: "Gerenciar",
     moderateComments: "Moderar Comentários",
@@ -142,9 +144,9 @@ export const translations = {
     editTagsPlaceholder: "Romance, Fantasia, Drama",
     refresh: "Atualizar",
     loginWithGoogle: "Entrar com Google",
-    adminAccess: "Acesso Admin",
+    adminAccess: "Acesso de Autor",
     restrictedAccess: "Acesso Restrito",
-    restrictedAccessDesc: "Esta área é exclusiva para administradores da biblioteca.",
+    restrictedAccessDesc: "Esta área é exclusiva para autores da biblioteca.",
     goToLibrary: "Ir para a Biblioteca",
     exitAccount: "Sair da Conta",
     emptyFieldsError: "O título e o autor não podem ficar vazios.",
@@ -195,7 +197,7 @@ export const translations = {
   es: {
     // Navigation / Header / Footer
     library: "Biblioteca",
-    admin: "Admin",
+    admin: "Área de Autor",
     toggleTheme: "Alternar modo claro y oscuro",
     login: "Iniciar Sesión",
     register: "Registrarse",
@@ -274,6 +276,8 @@ export const translations = {
     confirmPasswordPlaceholder: "Ingresa la contraseña de nuevo",
     nameLabel: "Nombre Completo",
     namePlaceholder: "Tu nombre",
+    usernameLabel: "Nombre de Usuario (@)",
+    usernamePlaceholder: "tu_usuario",
     forgotPasswordLink: "Olvidé mi contraseña",
     alreadyHaveAccount: "¿Ya tienes una cuenta?",
     dontHaveAccount: "¿Aún no tienes una cuenta?",
@@ -298,7 +302,7 @@ export const translations = {
     forgotStep1InstructionsEmail: "Ingresa el correo de tu cuenta para restablecer tu contraseña directamente en la plataforma.",
     
     // Admin Page
-    adminPanel: "Panel de Admin",
+    adminPanel: "Panel de Autor",
     publish: "Publicar",
     manage: "Gestionar",
     moderateComments: "Moderar Comentarios",
@@ -331,9 +335,9 @@ export const translations = {
     editTagsPlaceholder: "Romance, Fantasía, Drama",
     refresh: "Actualizar",
     loginWithGoogle: "Iniciar sesión con Google",
-    adminAccess: "Acceso Admin",
+    adminAccess: "Acceso de Autor",
     restrictedAccess: "Acceso Restringido",
-    restrictedAccessDesc: "Esta área es exclusiva para administradores de la biblioteca.",
+    restrictedAccessDesc: "Esta área es exclusiva para autores de la biblioteca.",
     goToLibrary: "Ir a la Biblioteca",
     exitAccount: "Cerrar Sesión",
     emptyFieldsError: "El título y el autor no pueden estar vacíos.",
@@ -384,7 +388,7 @@ export const translations = {
   en: {
     // Navigation / Header / Footer
     library: "Library",
-    admin: "Admin",
+    admin: "Author Area",
     toggleTheme: "Toggle light and dark mode",
     login: "Log In",
     register: "Register",
@@ -463,6 +467,8 @@ export const translations = {
     confirmPasswordPlaceholder: "Enter password again",
     nameLabel: "Full Name",
     namePlaceholder: "Your name",
+    usernameLabel: "Username (@)",
+    usernamePlaceholder: "your_username",
     forgotPasswordLink: "Forgot my password",
     alreadyHaveAccount: "Already have an account?",
     dontHaveAccount: "Don't have an account yet?",
@@ -487,7 +493,7 @@ export const translations = {
     forgotStep1InstructionsEmail: "Enter your account email to reset your password directly on the platform.",
     
     // Admin Page
-    adminPanel: "Admin Panel",
+    adminPanel: "Author Panel",
     publish: "Publish",
     manage: "Manage",
     moderateComments: "Moderate Comments",
@@ -520,9 +526,9 @@ export const translations = {
     editTagsPlaceholder: "Romance, Fantasy, Drama",
     refresh: "Refresh",
     loginWithGoogle: "Log in with Google",
-    adminAccess: "Admin Access",
+    adminAccess: "Author Access",
     restrictedAccess: "Restricted Access",
-    restrictedAccessDesc: "This area is exclusive for library administrators.",
+    restrictedAccessDesc: "This area is exclusive for library authors.",
     goToLibrary: "Go to Library",
     exitAccount: "Log Out",
     emptyFieldsError: "The title and author cannot be empty.",
@@ -573,7 +579,7 @@ export const translations = {
   id: {
     // Navigation / Header / Footer
     library: "Perpustakaan",
-    admin: "Admin",
+    admin: "Area Penulis",
     toggleTheme: "Ubah mode terang dan gelap",
     login: "Masuk",
     register: "Daftar",
@@ -652,6 +658,8 @@ export const translations = {
     confirmPasswordPlaceholder: "Masukkan kata sandi lagi",
     nameLabel: "Nama Lengkap",
     namePlaceholder: "Nama Anda",
+    usernameLabel: "Nama Pengguna (@)",
+    usernamePlaceholder: "nama_pengguna",
     forgotPasswordLink: "Lupa kata sandi",
     alreadyHaveAccount: "Sudah punya akun?",
     dontHaveAccount: "Belum punya akun?",
@@ -676,7 +684,7 @@ export const translations = {
     forgotStep1InstructionsEmail: "Masukkan email akun Anda untuk menyetel ulang kata sandi Anda langsung di platform.",
     
     // Admin Page
-    adminPanel: "Panel Admin",
+    adminPanel: "Panel Penulis",
     publish: "Terbitkan",
     manage: "Kelola",
     moderateComments: "Moderat Komentar",
@@ -709,9 +717,9 @@ export const translations = {
     editTagsPlaceholder: "Romansa, Fantasi, Drama",
     refresh: "Segarkan",
     loginWithGoogle: "Masuk dengan Google",
-    adminAccess: "Akses Admin",
+    adminAccess: "Akses Penulis",
     restrictedAccess: "Akses Terbatas",
-    restrictedAccessDesc: "Area ini eksklusif untuk administrator perpustakaan.",
+    restrictedAccessDesc: "Area ini eksklusif untuk penulis perpustakaan.",
     goToLibrary: "Pergi ke Perpustakaan",
     exitAccount: "Keluar Akun",
     emptyFieldsError: "Judul dan penulis tidak boleh kosong.",

@@ -23,7 +23,8 @@ import {
   EyeOff, 
   AlertCircle,
   CheckCircle,
-  XCircle
+  XCircle,
+  Heart
 } from "lucide-react";
 import { 
   db, 
@@ -99,7 +100,7 @@ export function Admin() {
   const { t } = useLanguage();
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"publish" | "manage" | "comments">("publish");
+  const [activeTab, setActiveTab] = useState<"publish" | "manage" | "comments" | "superadmin">("publish");
   
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
@@ -132,6 +133,11 @@ export function Admin() {
   const [storyToDelete, setStoryToDelete] = useState<StoryItem | null>(null);
   const [deletingStoryId, setDeletingStoryId] = useState<string | null>(null);
   const [manageMsg, setManageMsg] = useState<string | null>(null);
+
+  // Superadmin State
+  const [totalUsers, setTotalUsers] = useState<number | null>(null);
+  const [totalFavorites, setTotalFavorites] = useState<number | null>(null);
+  const [loadingSuperadmin, setLoadingSuperadmin] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
@@ -169,9 +175,33 @@ export function Admin() {
     }
   };
 
+  const loadSuperadminMetrics = async () => {
+    setLoadingSuperadmin(true);
+    try {
+      const snap = await getDocs(collection(db, "users"));
+      let userCount = 0;
+      let favCount = 0;
+      snap.forEach((d) => {
+        userCount++;
+        const data = d.data();
+        if (data.favorites && Array.isArray(data.favorites)) {
+          favCount += data.favorites.length;
+        }
+      });
+      setTotalUsers(userCount);
+      setTotalFavorites(favCount);
+    } catch (err) {
+      console.error("Error loading superadmin metrics:", err);
+    } finally {
+      setLoadingSuperadmin(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "manage" && user) {
       loadStoriesList();
+    } else if (activeTab === "superadmin" && user && (user.email || "").toLowerCase().trim() === ADMIN_EMAIL) {
+      loadSuperadminMetrics();
     }
   }, [activeTab, user]);
 
@@ -592,38 +622,6 @@ export function Admin() {
     );
   }
 
-  if ((user.email || "").toLowerCase().trim() !== ADMIN_EMAIL) {
-    return (
-      <div className="max-w-md mx-auto mt-16 p-8 bg-white dark:bg-[#1A1A1A] rounded-[22px] shadow-sm border border-[#1A1A1A]/10 dark:border-white/10 text-center">
-        <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 bg-red-50 dark:bg-red-950/30 rounded-full flex items-center justify-center">
-            <EyeOff className="w-8 h-8 text-red-500" />
-          </div>
-        </div>
-        <h1 className="text-2xl font-serif font-bold mb-4">{t("restrictedAccess")}</h1>
-        <p className="text-sm opacity-70 mb-2">
-          {t("restrictedAccessDesc")}
-        </p>
-        <p className="text-xs opacity-50 mb-8 font-mono break-all bg-black/5 dark:bg-white/5 py-1 px-2 rounded">
-          {user.email}
-        </p>
-        <div className="space-y-3">
-          <Link
-            to="/"
-            className="block w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] font-bold text-[10px] uppercase tracking-widest py-3.5 rounded-full hover:opacity-90 transition-opacity"
-          >
-            {t("goToLibrary")}
-          </Link>
-          <button 
-            onClick={() => signOut(auth)}
-            className="w-full bg-transparent hover:bg-black/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] border border-[#1A1A1A]/10 dark:border-white/10 font-bold text-[10px] uppercase tracking-widest py-3.5 rounded-full transition-colors"
-          >
-            {t("exitAccount")}
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   const filteredComments = comments.filter(c => {
     if (commentFilter === "all") return true;
@@ -662,8 +660,42 @@ export function Admin() {
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
             )}
           </button>
+          {user && (user.email || "").toLowerCase().trim() === ADMIN_EMAIL && (
+            <button 
+              onClick={() => setActiveTab("superadmin")}
+              className={cn("px-5 py-2.5 rounded-full text-[10px] uppercase font-bold tracking-widest transition-colors whitespace-nowrap", activeTab === "superadmin" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60 hover:opacity-100")}
+            >
+              SUPERADMIN
+            </button>
+          )}
         </div>
       </div>
+
+      {activeTab === "superadmin" && user && (user.email || "").toLowerCase().trim() === ADMIN_EMAIL && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10 flex flex-col items-center justify-center text-center">
+              <UserIcon className="w-8 h-8 opacity-40 mb-4" />
+              <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2">Total de Usuários Cadastrados</div>
+              {loadingSuperadmin ? (
+                <Loader2 className="w-6 h-6 animate-spin opacity-40" />
+              ) : (
+                <div className="text-4xl font-serif font-bold">{totalUsers ?? 0}</div>
+              )}
+            </div>
+            
+            <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10 flex flex-col items-center justify-center text-center">
+              <Heart className="w-8 h-8 opacity-40 mb-4 text-red-500" />
+              <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2">Total de Favoritos no Site</div>
+              {loadingSuperadmin ? (
+                <Loader2 className="w-6 h-6 animate-spin opacity-40" />
+              ) : (
+                <div className="text-4xl font-serif font-bold">{totalFavorites ?? 0}</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {activeTab === "publish" && (
         <form onSubmit={handleUpload} className="space-y-6 bg-white dark:bg-[#1A1A1A] p-6 sm:p-8 rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10">

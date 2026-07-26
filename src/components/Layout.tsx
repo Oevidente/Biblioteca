@@ -161,7 +161,7 @@ export function Layout() {
               className="flex items-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-4 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors shadow-sm"
             >
               <UserIcon className="w-3.5 h-3.5" />
-              <span className="max-w-[120px] truncate">{profile?.displayName || user.email?.split("@")[0]}</span>
+              <span className="max-w-[120px] truncate">{profile?.username ? `@${profile.username}` : (profile?.displayName || user.email?.split("@")[0])}</span>
             </button>
           ) : (
             <div className="flex items-center gap-2">
@@ -255,7 +255,7 @@ export function Layout() {
               className="w-full flex items-center justify-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-3 rounded-full font-bold text-xs uppercase tracking-widest mt-2"
             >
               <UserIcon className="w-4 h-4" />
-              <span>{t("profile")} ({profile?.displayName || user.email?.split("@")[0]})</span>
+              <span>{t("profile")} ({profile?.username ? `@${profile.username}` : (profile?.displayName || user.email?.split("@")[0])})</span>
             </button>
           ) : (
             <div className="grid grid-cols-2 gap-3 pt-2">

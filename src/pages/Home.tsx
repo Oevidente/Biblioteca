@@ -5,6 +5,7 @@ import { db, collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, update
 import { BookOpen, Search, Heart, Clock, Library, Star, UserCheck } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
+import { getCanonicalTag, getLocalizedTag } from "../lib/tagger";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -37,7 +38,7 @@ interface HistoryItem {
 
 export function Home() {
   const { user, profile } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   
   const [stories, setStories] = useState<Story[]>(() => {
     try {
@@ -190,14 +191,24 @@ export function Home() {
   };
 
   // Derive genres
-  const allGenres = ["All", ...Array.from(new Set(stories.flatMap(s => s.tags)))].slice(0, 15);
+  const canonicalGenres = new Set<string>();
+  stories.forEach(s => {
+    if (s.tags) {
+      s.tags.forEach(t => canonicalGenres.add(getCanonicalTag(t)));
+    }
+  });
+  const allGenres = ["All", ...Array.from(canonicalGenres).sort((a, b) => getLocalizedTag(a, language).localeCompare(getLocalizedTag(b, language)))].slice(0, 16);
 
   // Filter & Sort stories
   const filteredStories = stories.filter(story => {
     const matchSearch = story.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                         (story.author && story.author.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                        story.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchGenre = selectedGenre === "All" || story.tags.includes(selectedGenre);
+                        story.tags.some(t => {
+                          const canonical = getCanonicalTag(t);
+                          const localized = getLocalizedTag(canonical, language);
+                          return localized.toLowerCase().includes(searchQuery.toLowerCase()) || canonical.toLowerCase().includes(searchQuery.toLowerCase());
+                        });
+    const matchGenre = selectedGenre === "All" || story.tags.some(t => getCanonicalTag(t) === selectedGenre);
     return matchSearch && matchGenre;
   }).sort((a, b) => {
     if (sortBy === "popular") {
@@ -282,15 +293,20 @@ export function Home() {
               return null;
             })()}
           </div>
-          {story.tags && story.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {story.tags.slice(0, 4).map(tag => (
-                <span key={tag} className="text-[8px] bg-[#1A1A1A]/5 dark:bg-white/10 text-[#1A1A1A] dark:text-[#F5F5F0] px-2 py-0.5 rounded-md uppercase font-bold tracking-wider">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
+          {story.tags && story.tags.length > 0 && (() => {
+            const displayTags = Array.from(new Set(story.tags.map(t => getCanonicalTag(t))))
+                                     .map(c => getLocalizedTag(c, language))
+                                     .slice(0, 4);
+            return (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {displayTags.map(tag => (
+                  <span key={tag} className="text-[8px] bg-[#1A1A1A]/5 dark:bg-white/10 text-[#1A1A1A] dark:text-[#F5F5F0] px-2 py-0.5 rounded-md uppercase font-bold tracking-wider">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </Link>
     );
@@ -302,7 +318,7 @@ export function Home() {
         <div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold tracking-tight">{t("archive")}</h1>
           <p className="opacity-60 text-xs sm:text-sm mt-1.5 font-serif">
-            {user ? t("welcomeUser", { name: profile?.displayName || user.email?.split("@")[0] || "" }) : t("exploreStories")}
+            {user ? t("welcomeUser", { name: profile?.username ? `@${profile.username}` : (profile?.displayName || user.email?.split("@")[0] || "") }) : t("exploreStories")}
           </p>
         </div>
         
@@ -358,7 +374,7 @@ export function Home() {
                 onChange={e => setSelectedGenre(e.target.value)}
                 className="bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-full px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] shadow-sm"
               >
-                {allGenres.map(g => <option key={g} value={g}>{g === "All" ? t("any") : g}</option>)}
+                {allGenres.map(g => <option key={g} value={g}>{g === "All" ? t("any") : getLocalizedTag(g, language)}</option>)}
               </select>
               
               <select 

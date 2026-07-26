@@ -281,7 +281,7 @@ export function Reader() {
     if (!id || rating === 0) return;
     setIsSubmitting(true);
     try {
-      const userName = profile?.displayName || user?.email?.split("@")[0] || t("reader");
+      const userName = profile?.username ? `@${profile.username}` : (profile?.displayName || user?.email?.split("@")[0] || t("reader"));
       
       // Save comment with pending approval status
       await addDoc(collection(db, `stories/${id}/comments`), {

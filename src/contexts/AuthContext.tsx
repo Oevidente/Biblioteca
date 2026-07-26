@@ -26,6 +26,7 @@ export interface UserProfile {
   uid: string;
   email: string;
   displayName?: string;
+  username?: string;
   createdAt?: string;
   role?: string;
   favorites?: string[];
@@ -37,7 +38,7 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   login: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
-  register: (email: string, pass: string, name?: string) => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, pass: string, name?: string, username?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   changePassword: (currentPass: string, newPass: string) => Promise<{ success: boolean; error?: string }>;
   checkEmailExists: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -61,15 +62,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (userSnap.exists()) {
         const data = userSnap.data() as UserProfile;
+        let updates: Partial<UserProfile> = {};
         if (data.role !== expectedRole) {
           data.role = expectedRole;
-          await updateDoc(userRef, { role: expectedRole }).catch(() => {});
+          updates.role = expectedRole;
+        }
+        if (isAdminEmail && !data.username) {
+          data.username = "Oevidente";
+          updates.username = "Oevidente";
+        }
+        if (Object.keys(updates).length > 0) {
+          await updateDoc(userRef, updates).catch(() => {});
         }
         setProfile(data);
       } else {
         const newProf: UserProfile = {
           uid,
           email,
+          username: isAdminEmail ? "Oevidente" : email.split("@")[0].replace(/[^a-z0-9_]/g, ""),
           createdAt: new Date().toISOString(),
           role: expectedRole,
           favorites: []
@@ -166,25 +176,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (email: string, pass: string, name?: string) => {
+  const register = async (email: string, pass: string, name?: string, username?: string) => {
     try {
       const cleanEmail = email.trim();
+      let cleanUsername = (username || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+
       if (!cleanEmail || !cleanEmail.includes("@")) {
         return { success: false, error: "Por favor, insira um e-mail válido." };
       }
       if (!pass || pass.length < 6) {
         return { success: false, error: "A senha deve ter no mínimo 6 caracteres." };
       }
+      if (!cleanUsername) {
+        cleanUsername = cleanEmail.split("@")[0].replace(/[^a-z0-9_]/g, "");
+      }
 
       // First check if email is already taken in Firestore
       try {
-        const q = query(collection(db, "users"), where("email", "==", cleanEmail));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
+        const qEmail = query(collection(db, "users"), where("email", "==", cleanEmail));
+        const snapEmail = await getDocs(qEmail);
+        if (!snapEmail.empty) {
           return { success: false, error: "Este e-mail já está cadastrado no sistema." };
         }
+
+        const qUsername = query(collection(db, "users"), where("username", "==", cleanUsername));
+        const snapUsername = await getDocs(qUsername);
+        if (!snapUsername.empty) {
+          return { success: false, error: "Este nome de usuário já está em uso." };
+        }
       } catch (e) {
-        console.warn("Check existing email error:", e);
+        console.warn("Check existing email/username error:", e);
       }
 
       let uid = "";
@@ -210,6 +231,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         uid,
         email: cleanEmail,
         displayName: name || cleanEmail.split("@")[0],
+        username: isAdminEmail && cleanEmail === ADMIN_EMAIL ? "Oevidente" : cleanUsername,
         createdAt: new Date().toISOString(),
         role: isAdminEmail ? "admin" : "user",
         favorites: [],

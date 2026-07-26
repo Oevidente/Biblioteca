@@ -1,7 +1,7 @@
 import { useState, FormEvent } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
-import { X, Lock, Mail, User as UserIcon, KeyRound, CheckCircle2, AlertCircle, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import { X, Lock, Mail, User as UserIcon, KeyRound, CheckCircle2, AlertCircle, ShieldCheck, Eye, EyeOff, AtSign } from "lucide-react";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -25,6 +25,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -41,6 +42,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
     setPassword("");
     setConfirmPassword("");
     setName("");
+    setUsername("");
     setCurrentPassword("");
     setNewPassword("");
     setErrorMessage("");
@@ -81,7 +83,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
     }
 
     setIsSubmitting(true);
-    const res = await register(email, password, name);
+    const res = await register(email, password, name, username);
     setIsSubmitting(false);
 
     if (res.success) {
@@ -180,9 +182,9 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
           <div className="space-y-6">
             <div className="text-center">
               <div className="w-16 h-16 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] rounded-full mx-auto flex items-center justify-center font-serif font-bold text-2xl mb-3">
-                {(profile?.displayName || user.email || "U")[0].toUpperCase()}
+                {(profile?.username || profile?.displayName || user.email || "U")[0].toUpperCase()}
               </div>
-              <h2 className="font-serif font-bold text-2xl tracking-tight">{profile?.displayName || t("myProfile")}</h2>
+              <h2 className="font-serif font-bold text-2xl tracking-tight">{profile?.username ? `@${profile.username}` : (profile?.displayName || t("myProfile"))}</h2>
               <p className="text-xs opacity-60 mt-1 font-mono">{user.email}</p>
             </div>
 
@@ -380,6 +382,21 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                       onChange={(e) => setName(e.target.value)}
                       className="w-full pl-9 pr-4 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
                       placeholder={t("namePlaceholder")}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("usernameLabel", "Nome de Usuário (@)")}</label>
+                  <div className="relative">
+                    <AtSign className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
+                    <input 
+                      type="text" 
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                      className="w-full pl-9 pr-4 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
+                      placeholder={t("usernamePlaceholder", "seu_usuario")}
+                      required
                     />
                   </div>
                 </div>
