@@ -76,6 +76,7 @@ interface StoryItem {
   wordCount?: number;
   createdAt?: any;
   publicationDate?: string;
+  authorUid?: string;
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs = 60000, stageName = "operação"): Promise<T> {
@@ -98,7 +99,9 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs = 60000, stageName = "ope
 
 export function Admin() {
   const { t } = useLanguage();
-  const [user, setUser] = useState<User | null>(null);
+  const { user, profile } = useAuth();
+  const isAdmin = profile?.role === "admin" || (user?.email || "").toLowerCase().trim() === ADMIN_EMAIL;
+  
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"publish" | "manage" | "comments" | "superadmin">("publish");
   
@@ -138,13 +141,8 @@ export function Admin() {
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
   const [totalFavorites, setTotalFavorites] = useState<number | null>(null);
   const [loadingSuperadmin, setLoadingSuperadmin] = useState(false);
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsub();
-  }, []);
+  const [authorRequests, setAuthorRequests] = useState<any[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
 
   const loadStoriesList = async () => {
     setLoadingStories(true);
@@ -155,6 +153,7 @@ export function Admin() {
       const loaded: StoryItem[] = [];
       snap.forEach((d) => {
         const data = d.data();
+        if (!isAdmin && data.authorUid !== user?.uid) return;
         loaded.push({
           id: d.id,
           title: data.title || "",
@@ -164,7 +163,8 @@ export function Admin() {
           totalPages: data.totalPages || 0,
           wordCount: data.wordCount,
           createdAt: data.createdAt,
-          publicationDate: data.publicationDate || ""
+          publicationDate: data.publicationDate || "",
+          authorUid: data.authorUid
         });
       });
       setStoriesList(loaded);
@@ -177,23 +177,41 @@ export function Admin() {
 
   const loadSuperadminMetrics = async () => {
     setLoadingSuperadmin(true);
+    setLoadingRequests(true);
     try {
       const snap = await getDocs(collection(db, "users"));
       let userCount = 0;
       let favCount = 0;
+      const requests: any[] = [];
       snap.forEach((d) => {
         userCount++;
         const data = d.data();
         if (data.favorites && Array.isArray(data.favorites)) {
           favCount += data.favorites.length;
         }
+        if (data.requestedRole === "author" && data.role !== "author") {
+          requests.push({ id: d.id, ...data });
+        }
       });
       setTotalUsers(userCount);
       setTotalFavorites(favCount);
+      setAuthorRequests(requests);
     } catch (err) {
       console.error("Error loading superadmin metrics:", err);
     } finally {
       setLoadingSuperadmin(false);
+      setLoadingRequests(false);
+    }
+  };
+
+  const approveAuthor = async (userId: string) => {
+    try {
+      await updateDoc(doc(db, "users", userId), { role: "author" });
+      setAuthorRequests(prev => prev.filter(r => r.id !== userId));
+      alert(t("authorApprovedSuccess", "Autorizado com sucesso!"));
+    } catch (err) {
+      console.error("Erro ao autorizar autor", err);
+      alert(t("errorApprovingAuthor", "Erro ao autorizar autor."));
     }
   };
 
@@ -364,7 +382,9 @@ export function Admin() {
       const storiesSnap = await getDocs(collection(db, "stories"));
       const storiesMap: Record<string, string> = {};
       storiesSnap.forEach(docSnap => {
-        storiesMap[docSnap.id] = docSnap.data().title;
+        const data = docSnap.data();
+        if (!isAdmin && data.authorUid !== user?.uid) return;
+        storiesMap[docSnap.id] = data.title;
       });
 
       const loadedComments: CommentData[] = [];
@@ -408,6 +428,18 @@ export function Admin() {
     } catch (err) {
       console.error("Failed to update comment status:", err);
       alert(t("errorUpdatingCommentStatus"));
+    }
+  };
+
+  const deleteCommentText = async (storyId: string, commentId: string) => {
+    if (!window.confirm(t("confirmDeleteCommentText") || "Tem certeza que deseja excluir o texto deste comentário? A nota será mantida.")) return;
+    try {
+      const commentRef = doc(db, `stories/${storyId}/comments`, commentId);
+      await updateDoc(commentRef, { text: "" });
+      setComments(prev => prev.map(c => c.id === commentId ? { ...c, text: "" } : c));
+    } catch (err) {
+      console.error("Failed to delete comment text:", err);
+      alert(t("errorUpdatingCommentStatus") || "Erro ao atualizar comentário.");
     }
   };
 
@@ -533,7 +565,8 @@ export function Admin() {
         totalPages: pages.length,
         wordCount: wordCount,
         createdAt: new Date().toISOString(),
-        publicationDate: publicationDate
+        publicationDate: publicationDate,
+        authorUid: user?.uid
       };
 
       await withTimeout(setDoc(storyRef, {
@@ -546,7 +579,8 @@ export function Admin() {
         totalPages: pages.length,
         wordCount: wordCount,
         createdAt: Timestamp.now(),
-        publicationDate: publicationDate
+        publicationDate: publicationDate,
+        authorUid: user?.uid
       }), 60000, stageName);
 
       try {
@@ -693,6 +727,51 @@ export function Admin() {
                 <div className="text-4xl font-serif font-bold">{totalFavorites ?? 0}</div>
               )}
             </div>
+          </div>
+
+          <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10 space-y-6">
+            <div>
+              <h2 className="text-xl font-serif font-bold mb-2">Solicitações de Autores</h2>
+              <p className="text-xs opacity-60 leading-relaxed mb-4">
+                Abaixo estão os usuários que solicitaram conta de Autor no momento do cadastro. 
+                Você pode autorizá-los diretamente clicando em "Autorizar". Isso atualizará o banco de dados.
+                <br /><br />
+                <strong>Importante para Autores usando Google Login (App em Teste):</strong><br />
+                Se o aplicativo no Google Cloud ainda estiver em modo "Testing", além de autorizar aqui, você precisará adicionar o e-mail do autor à lista de <strong>Usuários de Teste</strong> para que ele consiga fazer login com o Google. 
+                Acesse o <a href="https://console.cloud.google.com/auth/audience?project=robotic-century-498520-e2" target="_blank" rel="noreferrer" className="underline font-bold text-blue-500 dark:text-blue-400 hover:opacity-80">Google Cloud Console (Tela de Consentimento OAuth)</a>, role até a seção "Test users" (Usuários de teste) e adicione o e-mail do autor lá.
+                <br /><br />
+                <strong>Configuração Manual no Firebase (Opcional):</strong><br />
+                Caso a autorização por aqui falhe, acesse o <a href="https://console.firebase.google.com/" target="_blank" rel="noreferrer" className="underline font-bold text-blue-500 dark:text-blue-400 hover:opacity-80">Firebase Console</a>, 
+                vá em <strong>Firestore Database</strong> &gt; coleção <strong>users</strong>, encontre o documento pelo e-mail e edite o campo <code>role</code> para <code>"author"</code>.
+              </p>
+            </div>
+
+            {loadingRequests ? (
+              <div className="flex justify-center p-4">
+                <Loader2 className="w-6 h-6 animate-spin opacity-40" />
+              </div>
+            ) : authorRequests.length === 0 ? (
+              <div className="text-center py-10 opacity-50 font-serif border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl">
+                Nenhuma solicitação pendente.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {authorRequests.map(req => (
+                  <div key={req.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 gap-4 transition-colors hover:bg-black/5 dark:hover:bg-white/5">
+                    <div>
+                      <div className="font-bold text-sm">{req.displayName || "Sem nome"}</div>
+                      <div className="text-xs opacity-60 font-mono mt-1">{req.email}</div>
+                    </div>
+                    <button 
+                      onClick={() => approveAuthor(req.id)}
+                      className="px-5 py-2.5 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] text-[10px] font-bold uppercase tracking-widest rounded-full hover:opacity-90 transition-opacity whitespace-nowrap"
+                    >
+                      Autorizar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1187,6 +1266,16 @@ export function Admin() {
                         className="flex items-center gap-1 px-3 py-1.5 bg-black/10 dark:bg-white/10 opacity-70 border border-black/20 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:opacity-100 transition-colors"
                       >
                         <EyeOff className="w-3.5 h-3.5" /> {t("hide")}
+                      </button>
+                    )}
+
+                    {c.text && (
+                      <button
+                        onClick={() => deleteCommentText(c.storyId, c.id)}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-red-500/10 text-red-700 dark:text-red-300 border border-red-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-red-500 hover:text-white transition-colors ml-2"
+                        title={t("deleteCommentText") || "Excluir apenas o texto"}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> {t("delete")}
                       </button>
                     )}
                   </div>

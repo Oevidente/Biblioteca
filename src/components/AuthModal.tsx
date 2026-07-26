@@ -26,6 +26,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
+  const [requestedRole, setRequestedRole] = useState<"user" | "author">("user");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -43,6 +44,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
     setConfirmPassword("");
     setName("");
     setUsername("");
+    setRequestedRole("user");
     setCurrentPassword("");
     setNewPassword("");
     setErrorMessage("");
@@ -83,7 +85,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
     }
 
     setIsSubmitting(true);
-    const res = await register(email, password, name, username);
+    const res = await register(email, password, name, username, requestedRole);
     setIsSubmitting(false);
 
     if (res.success) {
@@ -413,6 +415,34 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                       placeholder="seu@email.com"
                       required
                     />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">Tipo de Conta</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setRequestedRole("user")}
+                      className={`py-2 px-3 text-[11px] font-bold rounded-xl border transition-all ${
+                        requestedRole === "user" 
+                          ? "border-[#1A1A1A] bg-[#1A1A1A] text-white dark:border-white dark:bg-white dark:text-[#1A1A1A]" 
+                          : "border-[#1A1A1A]/20 dark:border-white/20 text-[#1A1A1A] dark:text-white opacity-60 hover:opacity-100"
+                      }`}
+                    >
+                      Leitor
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRequestedRole("author")}
+                      className={`py-2 px-3 text-[11px] font-bold rounded-xl border transition-all ${
+                        requestedRole === "author" 
+                          ? "border-[#1A1A1A] bg-[#1A1A1A] text-white dark:border-white dark:bg-white dark:text-[#1A1A1A]" 
+                          : "border-[#1A1A1A]/20 dark:border-white/20 text-[#1A1A1A] dark:text-white opacity-60 hover:opacity-100"
+                      }`}
+                    >
+                      Autor
+                    </button>
                   </div>
                 </div>
 

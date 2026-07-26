@@ -31,6 +31,7 @@ export interface UserProfile {
   role?: string;
   favorites?: string[];
   password?: string;
+  requestedRole?: string;
 }
 
 interface AuthContextType {
@@ -38,7 +39,7 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   login: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
-  register: (email: string, pass: string, name?: string, username?: string) => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, pass: string, name?: string, username?: string, requestedRole?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   changePassword: (currentPass: string, newPass: string) => Promise<{ success: boolean; error?: string }>;
   checkEmailExists: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -176,7 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (email: string, pass: string, name?: string, username?: string) => {
+  const register = async (email: string, pass: string, name?: string, username?: string, requestedRole?: string) => {
     try {
       const cleanEmail = email.trim();
       let cleanUsername = (username || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
@@ -227,7 +228,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const isAdminEmail = cleanEmail.toLowerCase().trim() === ADMIN_EMAIL;
-      const userProf: UserProfile = {
+      const userProf: UserProfile & { requestedRole?: string } = {
         uid,
         email: cleanEmail,
         displayName: name || cleanEmail.split("@")[0],
@@ -235,7 +236,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString(),
         role: isAdminEmail ? "admin" : "user",
         favorites: [],
-        password: pass
+        password: pass,
+        ...(requestedRole === "author" && !isAdminEmail ? { requestedRole: "author" } : {})
       };
 
       await setDoc(doc(db, "users", uid), userProf);

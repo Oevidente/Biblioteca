@@ -104,14 +104,16 @@ export function Layout() {
             {t("library")}
           </Link>
 
-          <Link 
-            to="/admin" 
-            className={`text-[11px] font-bold tracking-widest uppercase transition-opacity ${
-              location.pathname === "/admin" ? "border-b-2 border-[#1A1A1A] dark:border-[#F5F5F0] pb-1 opacity-100" : "opacity-60 hover:opacity-100"
-            }`}
-          >
-            {t("admin")}
-          </Link>
+          {(profile?.role === 'admin' || profile?.role === 'author') && (
+            <Link 
+              to="/admin" 
+              className={`text-[11px] font-bold tracking-widest uppercase transition-opacity ${
+                location.pathname === "/admin" ? "border-b-2 border-[#1A1A1A] dark:border-[#F5F5F0] pb-1 opacity-100" : "opacity-60 hover:opacity-100"
+              }`}
+            >
+              {t("admin")}
+            </Link>
+          )}
 
           {/* Language Selector */}
           <div className="flex items-center gap-2">
@@ -242,12 +244,14 @@ export function Layout() {
           >
             {t("library")}
           </Link>
-          <Link 
-            to="/admin" 
-            className="block text-xs font-bold tracking-widest uppercase py-2 border-b border-[#1A1A1A]/5 dark:border-white/5"
-          >
-            {t("adminPanel")}
-          </Link>
+          {(profile?.role === 'admin' || profile?.role === 'author') && (
+            <Link 
+              to="/admin" 
+              className="block text-xs font-bold tracking-widest uppercase py-2 border-b border-[#1A1A1A]/5 dark:border-white/5"
+            >
+              {t("adminPanel")}
+            </Link>
+          )}
 
           {user ? (
             <button
