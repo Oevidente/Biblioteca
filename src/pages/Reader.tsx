@@ -15,7 +15,7 @@ import {
   setDoc,
   where 
 } from "../lib/firebase";
-import { ChevronLeft, ChevronRight, ArrowLeft, Star, MessageSquare, CheckCircle, ShieldAlert, User as UserIcon, ArrowUp } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Star, MessageSquare, CheckCircle, ShieldAlert, User as UserIcon, ArrowUp, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -30,6 +30,7 @@ interface StoryData {
   title: string;
   author?: string;
   totalPages: number;
+  wordCount?: number;
   coverImage?: string;
 }
 
@@ -63,8 +64,9 @@ export function Reader() {
   
   const [approvedComments, setApprovedComments] = useState<CommentData[]>([]);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
 
-  // Monitor scroll height to show/hide "return to top" button
+  // Monitor scroll height to show/hide "return to top" button and update progress
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 400) {
@@ -72,10 +74,19 @@ export function Reader() {
       } else {
         setShowScrollTop(false);
       }
+
+      // Read progress logic
+      if (story && story.totalPages > 0) {
+        const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+        const currentScrollPercent = docHeight > 0 ? (window.scrollY / docHeight) : 1;
+        const overallProgress = ((currentPage + currentScrollPercent) / story.totalPages) * 100;
+        setScrollProgress(Math.min(overallProgress, 100));
+      }
     };
     window.addEventListener("scroll", handleScroll);
+    handleScroll(); // Initial check
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [currentPage, story]);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -323,7 +334,15 @@ export function Reader() {
   const hasPrev = currentPage > 0;
 
   return (
-    <div className="max-w-[800px] mx-auto pb-20">
+    <div className="max-w-[800px] mx-auto pb-20 pt-4">
+      {/* Sticky Progress Bar */}
+      <div className="fixed top-0 left-0 right-0 h-1.5 bg-[#1A1A1A]/10 dark:bg-white/10 z-50">
+        <div 
+          className="h-full bg-[#1A1A1A] dark:bg-[#F5F5F0] transition-all duration-150 ease-out" 
+          style={{ width: `${scrollProgress}%` }}
+        />
+      </div>
+
       <Link 
         to="/" 
         className="inline-flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest opacity-60 hover:opacity-100 mb-8 transition-opacity"
@@ -357,7 +376,15 @@ export function Reader() {
 
       <header className="mb-10 text-center">
         <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold mb-3 tracking-tight leading-tight">{story.title}</h1>
-        {story.author && <p className="text-xs sm:text-sm font-bold uppercase tracking-widest opacity-60 mb-6">{t("by")} {story.author}</p>}
+        {story.author && (
+          <div className="flex flex-col items-center gap-2 mb-6 opacity-60">
+            <p className="text-xs sm:text-sm font-bold uppercase tracking-widest">{t("by")} {story.author}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" />
+              {Math.ceil((story.wordCount || (story.totalPages * 250)) / 250)} {t("readTime")}
+            </p>
+          </div>
+        )}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
           <div className="flex items-center justify-center gap-4 text-[10px] font-bold uppercase tracking-widest opacity-40">
             <span className="w-12 h-[1px] bg-current"></span>

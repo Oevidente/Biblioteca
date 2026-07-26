@@ -20,6 +20,8 @@ interface Story {
   tags: string[];
   rating?: number;
   ratingsCount?: number;
+  wordCount?: number;
+  totalPages?: number;
   createdAt?: any;
   publicationDate?: string;
 }
@@ -78,6 +80,8 @@ export function Home() {
           tags: data.tags || [],
           rating: data.rating || 0,
           ratingsCount: data.ratingsCount || 0,
+          wordCount: data.wordCount,
+          totalPages: data.totalPages,
           createdAt: data.createdAt,
           publicationDate: data.publicationDate || ""
         });
@@ -251,8 +255,13 @@ export function Home() {
               {story.title}
             </h3>
             {story.author && (
-              <p className="text-[10px] uppercase font-bold tracking-widest opacity-60 mt-1 truncate">
-                {t("by")} {story.author}
+              <p className="text-[10px] uppercase font-bold tracking-widest opacity-60 mt-1 truncate flex items-center gap-1.5 flex-wrap">
+                <span>{t("by")} {story.author}</span>
+                <span className="w-1 h-1 rounded-full bg-current opacity-40"></span>
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> 
+                  {Math.ceil((story.wordCount || ((story.totalPages || 1) * 250)) / 250)} {t("readTime")}
+                </span>
               </p>
             )}
             {(() => {

@@ -35,6 +35,7 @@ export const translations = {
     by: "Por",
     publishedOn: "Publicado em",
     pageOf: "Pág. {page} de {total}",
+    readTime: "min de leitura",
     
     // Reader Page
     backToLibrary: "Voltar à Biblioteca",
@@ -223,6 +224,7 @@ export const translations = {
     by: "Por",
     publishedOn: "Publicado el",
     pageOf: "Pág. {page} de {total}",
+    readTime: "min de lectura",
     
     // Reader Page
     backToLibrary: "Volver a la Biblioteca",
@@ -411,6 +413,7 @@ export const translations = {
     by: "By",
     publishedOn: "Published on",
     pageOf: "Page {page} of {total}",
+    readTime: "min read",
     
     // Reader Page
     backToLibrary: "Back to Library",
@@ -599,6 +602,7 @@ export const translations = {
     by: "Oleh",
     publishedOn: "Diterbitkan pada",
     pageOf: "Hal. {page} dari {total}",
+    readTime: "menit bacaan",
     
     // Reader Page
     backToLibrary: "Kembali ke Perpustakaan",

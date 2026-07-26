@@ -72,6 +72,7 @@ interface StoryItem {
   coverImage?: string;
   tags?: string[];
   totalPages?: number;
+  wordCount?: number;
   createdAt?: any;
   publicationDate?: string;
 }
@@ -155,6 +156,7 @@ export function Admin() {
           coverImage: data.coverImage || "",
           tags: data.tags || [],
           totalPages: data.totalPages || 0,
+          wordCount: data.wordCount,
           createdAt: data.createdAt,
           publicationDate: data.publicationDate || ""
         });
@@ -481,6 +483,9 @@ export function Admin() {
       const textSample = pages[0].replace(/<[^>]*>?/gm, ''); 
       const tags = generateTagsLocal(textSample);
 
+      const fullText = pages.map(p => p.replace(/<[^>]*>?/gm, ' ')).join(' ');
+      const wordCount = fullText.split(/\s+/).filter(word => word.length > 0).length;
+
       stageName = t("dbCreation");
       setCurrentStage(stageName);
       setProgressPercent(55);
@@ -496,6 +501,7 @@ export function Admin() {
         rating: 0,
         ratingsCount: 0,
         totalPages: pages.length,
+        wordCount: wordCount,
         createdAt: new Date().toISOString(),
         publicationDate: publicationDate
       };
@@ -508,6 +514,7 @@ export function Admin() {
         rating: 0,
         ratingsCount: 0,
         totalPages: pages.length,
+        wordCount: wordCount,
         createdAt: Timestamp.now(),
         publicationDate: publicationDate
       }), 60000, stageName);
