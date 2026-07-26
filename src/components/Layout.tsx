@@ -85,10 +85,10 @@ export function Layout() {
       <header className="flex justify-between items-center px-4 sm:px-6 md:px-16 pt-6 sm:pt-8 md:pt-10 pb-6 w-full max-w-[1400px] mx-auto border-b border-[#1A1A1A]/5 dark:border-white/5">
         <div className="flex items-center space-x-3">
           <Link to="/" className="w-10 h-10 bg-[#1A1A1A] dark:bg-[#F5F5F0] flex items-center justify-center rounded-full shadow-sm hover:scale-105 transition-transform">
-            <span className="text-white dark:text-[#1A1A1A] text-xs font-bold tracking-tighter">INK</span>
+            <span className="text-white dark:text-[#1A1A1A] text-xs font-bold tracking-tighter">INKORA</span>
           </Link>
           <Link to="/" className="flex flex-col">
-            <h1 className="font-sans text-xs font-bold tracking-[0.2em] uppercase opacity-90">{t("library")}</h1>
+            <h1 className="font-sans text-xs font-bold tracking-[0.2em] uppercase opacity-90">{t("appBrand")}</h1>
             <span className="text-[9px] font-mono opacity-40 uppercase tracking-widest hidden sm:inline">{t("bthDigital")}</span>
           </Link>
         </div>
@@ -286,13 +286,13 @@ export function Layout() {
       
       <footer className="w-full bg-[#1A1A1A] dark:bg-[#0A0A0A] text-[#F5F5F0] flex items-center px-6 md:px-16 justify-between h-16 mt-auto">
         <div className="flex items-center space-x-3 md:space-x-6">
-          <span className="text-[9px] uppercase font-bold tracking-widest opacity-80">{t("bthLibrary")}</span>
+          <span className="text-[9px] uppercase font-bold tracking-widest opacity-80">{t("appBrand")}</span>
           <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
           <div className="h-3 w-[1px] bg-white/20"></div>
           <span className="text-[9px] uppercase font-bold tracking-widest opacity-60 hidden sm:inline">Firebase {t("online")}</span>
         </div>
         <div className="flex items-center space-x-4">
-          <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">{t("version")} 2.8.3-beta</span>
+          <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">{t("version")} 2.8.4-beta</span>
         </div>
       </footer>
 

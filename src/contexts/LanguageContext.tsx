@@ -16,6 +16,7 @@ export const translations = {
     online: "Online",
     bthDigital: "INK Digital",
     bthLibrary: "Acervo",
+    appBrand: "INKORA",
     language: "Idioma",
     
     // Home Page
@@ -420,6 +421,7 @@ export const translations = {
     online: "En línea",
     bthDigital: "INK Digital",
     bthLibrary: "Acervo",
+    appBrand: "INKORA",
     language: "Idioma",
     
     // Home Page
@@ -824,6 +826,7 @@ export const translations = {
     online: "Online",
     bthDigital: "INK Digital",
     bthLibrary: "Collection",
+    appBrand: "INKORA",
     language: "Language",
     
     // Home Page
@@ -1228,6 +1231,7 @@ export const translations = {
     online: "Online",
     bthDigital: "INK Digital",
     bthLibrary: "Koleksi",
+    appBrand: "INKORA",
     language: "Bahasa",
     
     // Home Page

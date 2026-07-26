@@ -1,5 +1,5 @@
 {
-  "name": "Inkora",
+  "name": "INKORA",
   "description": "A sophisticated reading platform for DOCX stories, featuring automated pagination and AI genre tagging.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
