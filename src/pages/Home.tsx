@@ -818,9 +818,9 @@ export function Home() {
               </div>
               <button 
                 onClick={() => setSelectedPlaylistForDetail(null)}
-                className="p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-xl font-bold"
+                className="p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -933,9 +933,9 @@ export function Home() {
               </div>
               <button 
                 onClick={() => setShowAddStoriesToPlaylistModal(false)}
-                className="p-1 rounded-full opacity-60 hover:opacity-100"
+                className="p-1.5 rounded-full opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -1026,9 +1026,9 @@ export function Home() {
               </div>
               <button 
                 onClick={() => setStoryForPlaylistModal(null)}
-                className="p-1 rounded-full opacity-60 hover:opacity-100"
+                className="p-1.5 rounded-full opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 

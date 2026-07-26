@@ -15,7 +15,7 @@ import {
   setDoc,
   where 
 } from "../lib/firebase";
-import { ChevronLeft, ChevronRight, ArrowLeft, Star, MessageSquare, CheckCircle, ShieldAlert, User as UserIcon, ArrowUp, Clock, Eye, Sun, Type, Download, Bookmark, FileText, Check, ListPlus, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Star, MessageSquare, CheckCircle, ShieldAlert, User as UserIcon, ArrowUp, Clock, Eye, Sun, Type, Download, Bookmark, FileText, Check, ListPlus, Plus, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth, ADMIN_EMAIL } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -1033,9 +1033,9 @@ export function Reader() {
               </div>
               <button 
                 onClick={() => setShowPlaylistModal(false)}
-                className="p-1 rounded-full opacity-60 hover:opacity-100"
+                className="p-1.5 rounded-full opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 

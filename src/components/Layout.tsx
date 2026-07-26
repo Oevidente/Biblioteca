@@ -292,7 +292,7 @@ export function Layout() {
           <span className="text-[9px] uppercase font-bold tracking-widest opacity-60 hidden sm:inline">Firebase {t("online")}</span>
         </div>
         <div className="flex items-center space-x-4">
-          <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">{t("version")} 2.4.0-beta</span>
+          <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">{t("version")} 2.4.1-beta</span>
         </div>
       </footer>
 

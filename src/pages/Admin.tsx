@@ -34,7 +34,9 @@ import {
   BarChart2,
   TrendingUp,
   Clock,
-  Users
+  Users,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { 
   db, 
@@ -190,6 +192,7 @@ export function Admin() {
   const [progressRecords, setProgressRecords] = useState<any[]>([]);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [selectedStoryId, setSelectedStoryId] = useState<string>("all");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const loadStoriesList = async () => {
     setLoadingStories(true);
@@ -1026,17 +1029,72 @@ export function Admin() {
                 </h2>
                 <p className="text-xs opacity-60 mt-1">Métricas consolidadas do desempenho de leitura, retenção e capítulos das histórias em tempo real.</p>
               </div>
-              <div className="w-full sm:w-64">
-                <select
-                  value={selectedStoryId}
-                  onChange={(e) => setSelectedStoryId(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] dark:focus:ring-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+              <div className="w-full sm:w-64 relative">
+                <button
+                  type="button"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="w-full px-4 py-2.5 bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] dark:focus:ring-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-between gap-2"
                 >
-                  <option value="all">📊 {t("all", "Todas as Histórias")}</option>
-                  {analyticsStories.map(s => (
-                    <option key={s.id} value={s.id}>📖 {s.title}</option>
-                  ))}
-                </select>
+                  <div className="flex items-center gap-2 truncate">
+                    {selectedStoryId === "all" ? (
+                      <BarChart2 className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                    ) : (
+                      <BookOpen className="w-4 h-4 text-[#1A1A1A] dark:text-[#F5F5F0] flex-shrink-0" />
+                    )}
+                    <span className="truncate">
+                      {selectedStoryId === "all"
+                        ? t("all", "Todas as Histórias")
+                        : (analyticsStories.find(s => s.id === selectedStoryId)?.title || "")}
+                    </span>
+                  </div>
+                  {isDropdownOpen ? (
+                    <ChevronUp className="w-4 h-4 opacity-60 flex-shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 opacity-60 flex-shrink-0" />
+                  )}
+                </button>
+
+                {isDropdownOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setIsDropdownOpen(false)}
+                    />
+                    <div className="absolute right-0 left-0 mt-2 bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl shadow-lg z-20 max-h-60 overflow-y-auto py-1 animate-in fade-in slide-in-from-top-1 duration-100">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedStoryId("all");
+                          setIsDropdownOpen(false);
+                        }}
+                        className={cn(
+                          "w-full px-4 py-2 text-left text-xs font-bold uppercase tracking-wider transition-colors flex items-center gap-2 cursor-pointer hover:bg-[#F5F5F0] dark:hover:bg-white/5",
+                          selectedStoryId === "all" ? "bg-[#F5F5F0] dark:bg-white/5 text-amber-500" : "text-[#1A1A1A] dark:text-[#F5F5F0]"
+                        )}
+                      >
+                        <BarChart2 className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                        <span className="truncate">{t("all", "Todas as Histórias")}</span>
+                      </button>
+                      {analyticsStories.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedStoryId(s.id);
+                            setIsDropdownOpen(false);
+                          }}
+                          className={cn(
+                            "w-full px-4 py-2 text-left text-xs font-bold uppercase tracking-wider transition-colors flex items-center gap-2 cursor-pointer hover:bg-[#F5F5F0] dark:hover:bg-white/5",
+                            selectedStoryId === s.id ? "bg-[#F5F5F0] dark:bg-white/5 text-amber-500" : "text-[#1A1A1A]/80 dark:text-[#F5F5F0]/80"
+                          )}
+                        >
+                          <BookOpen className="w-4 h-4 text-[#1A1A1A] dark:text-[#F5F5F0] opacity-75 flex-shrink-0" />
+                          <span className="truncate">{s.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
