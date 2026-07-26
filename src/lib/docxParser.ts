@@ -37,9 +37,21 @@ export async function parseDocx(file: File): Promise<string[]> {
       try {
         const arrayBuffer = event.target?.result as ArrayBuffer;
 
+        const imageConverter = async (image: any) => {
+          try {
+            const base64Data = await image.read("base64");
+            const mimeType = image.contentType || "image/png";
+            return { src: `data:${mimeType};base64,${base64Data}` };
+          } catch (err) {
+            console.error("Error converting image in parseDocx:", err);
+            return { src: "" };
+          }
+        };
+
         const result = await mammoth.convertToHtml(
           { arrayBuffer },
           {
+            convertImage: mammoth.images.imgElement(imageConverter),
             styleMap: [
               "p[style-name='Page Break'] => hr.page-break:empty"
             ],

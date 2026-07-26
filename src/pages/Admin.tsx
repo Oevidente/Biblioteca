@@ -400,7 +400,7 @@ export function Admin() {
       );
 
       try {
-        const cached = localStorage.getItem("inkora_cached_stories");
+        const cached = localStorage.getItem("luminary_cached_stories");
         if (cached) {
           const list = JSON.parse(cached);
           const updatedList = list.map((item: any) =>
@@ -408,7 +408,7 @@ export function Admin() {
               ? { ...item, title: editTitle.trim(), author: editAuthor.trim(), tags: tagsArray, publicationDate: editPublicationDate, coverImage: finalCoverUrl }
               : item
           );
-          localStorage.setItem("inkora_cached_stories", JSON.stringify(updatedList));
+          localStorage.setItem("luminary_cached_stories", JSON.stringify(updatedList));
         }
       } catch (e) {
         console.error(e);
@@ -444,11 +444,11 @@ export function Admin() {
       setStoriesList((prev) => prev.filter((s) => s.id !== story.id));
 
       try {
-        const cached = localStorage.getItem("inkora_cached_stories");
+        const cached = localStorage.getItem("luminary_cached_stories");
         if (cached) {
           const list = JSON.parse(cached);
           const filtered = list.filter((item: any) => item.id !== story.id);
-          localStorage.setItem("inkora_cached_stories", JSON.stringify(filtered));
+          localStorage.setItem("luminary_cached_stories", JSON.stringify(filtered));
         }
       } catch (e) {
         console.error(e);
@@ -734,42 +734,48 @@ export function Admin() {
         setProgressPercent(35);
 
         const imageConverter = async (image: any) => {
-          const imageBuffer = await image.read();
-          const imageBlob = new Blob([imageBuffer], { type: image.contentType });
-          const fileName = `story_image_${Date.now()}.${image.contentType.split('/')[1] || 'png'}`;
+          try {
+            const base64Data = await image.read("base64");
+            const mimeType = image.contentType || "image/png";
+            const dataUrl = `data:${mimeType};base64,${base64Data}`;
+            const fileName = `story_image_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${mimeType.split('/')[1] || 'png'}`;
 
-          let imageUrl = "";
-          if (accessToken) {
-            try {
-              imageUrl = await uploadToDrive(imageBlob, accessToken, "storyImages", fileName);
-            } catch (driveErr) {
-              console.warn("Upload de imagem da história para o Drive falhou, usando data URI como fallback...", driveErr);
-              const dataUrl = await new Promise<string>((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.readAsDataURL(imageBlob);
-              });
+            let imageUrl = "";
+            if (accessToken) {
+              try {
+                const res = await fetch(dataUrl);
+                const imageBlob = await res.blob();
+                imageUrl = await uploadToDrive(imageBlob, accessToken, "storyImages", fileName);
+              } catch (driveErr) {
+                console.warn("Upload de imagem da história para o Drive falhou, usando data URI como fallback...", driveErr);
+                imageUrl = dataUrl;
+              }
+            } else {
               imageUrl = dataUrl;
             }
-          } else {
-            const dataUrl = await new Promise<string>((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.readAsDataURL(imageBlob);
-            });
-            imageUrl = dataUrl;
-          }
 
-          return { src: formatCoverUrl(imageUrl) };
+            return { src: formatCoverUrl(imageUrl) };
+          } catch (err) {
+            console.error("Erro ao processar imagem do DOCX:", err);
+            return { src: "" };
+          }
         };
 
         const arrayBuffer = await docxFile.arrayBuffer();
-        const result = await mammoth.convertToHtml({ arrayBuffer }, { convertImage: mammoth.images.imgElement(imageConverter) });
+        const result = await mammoth.convertToHtml(
+          { arrayBuffer },
+          {
+            convertImage: mammoth.images.imgElement(imageConverter),
+            styleMap: ["p[style-name='Page Break'] => hr.page-break:empty"]
+          }
+        );
         const fullHtml = result.value;
 
         // Simple pagination logic by splitting content.
-        // This replaces the external parseDocx and can be refined.
-        pages = fullHtml.split(/<hr \/>|<hr>|<!-- pagebreak -->/i).map(p => p.trim()).filter(p => p.length > 0);
+        pages = fullHtml.split(/<hr \/>|<hr>|<hr class="page-break" \/>|<!-- pagebreak -->/i).map(p => p.trim()).filter(p => p.length > 0);
+        if (pages.length === 0) {
+          pages = [fullHtml || "<p></p>"];
+        }
       }
 
       stageName = t("tagGeneration");
@@ -799,30 +805,30 @@ export function Admin() {
         wordCount: wordCount,
         createdAt: new Date().toISOString(),
         publicationDate: publicationDate,
-        authorUid: user?.uid,
+        authorUid: user?.uid || "admin",
         isDraft: asDraft
       };
 
       await withTimeout(setDoc(storyRef, {
-        title,
-        author,
-        coverImage: finalCoverUrl,
-        tags,
+        title: title || "",
+        author: author || "",
+        coverImage: finalCoverUrl || "",
+        tags: tags || [],
         rating: 0,
         ratingsCount: 0,
-        totalPages: pages.length,
-        wordCount: wordCount,
+        totalPages: pages.length || 1,
+        wordCount: wordCount || 0,
         createdAt: Timestamp.now(),
-        publicationDate: publicationDate,
-        authorUid: user?.uid,
-        isDraft: asDraft
+        publicationDate: publicationDate || new Date().toISOString().split('T')[0],
+        authorUid: user?.uid || "admin",
+        isDraft: !!asDraft
       }), 60000, stageName);
 
       try {
-        const cached = localStorage.getItem("inkora_cached_stories");
+        const cached = localStorage.getItem("luminary_cached_stories");
         const list = cached ? JSON.parse(cached) : [];
         list.unshift(newStoryObj);
-        localStorage.setItem("inkora_cached_stories", JSON.stringify(list));
+        localStorage.setItem("luminary_cached_stories", JSON.stringify(list));
       } catch (e) {
         console.error("Cache update error:", e);
       }

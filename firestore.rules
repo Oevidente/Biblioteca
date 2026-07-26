@@ -1,40 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    function isSignedIn() {
-      return request.auth != null;
-    }
-    
-    function isOwner(authorUid) {
-      return isSignedIn() && request.auth.uid == authorUid;
-    }
-
-    function isAdmin() {
-      return isSignedIn() && (
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
-        (request.auth.token.email != null && (
-          request.auth.token.email == "andreluiz1902@gmail.com" ||
-          request.auth.token.email == "romansanacional2026@gmail.com"
-        ))
-      );
-    }
 
     // Stories Collection
     match /stories/{storyId} {
-      // Public read for stories so any visitor or user can browse the library
-      allow read: if true;
-      
-      // Signed in users can create stories
-      allow create: if isSignedIn();
-      
-      // Update & Delete allowed for story owner or admin
-      allow update, delete: if isOwner(resource.data.authorUid) || isAdmin();
+      allow read, write: if true;
 
       // Story Pages Subcollection
       match /pages/{pageId} {
-        allow read: if true;
-        allow write: if isSignedIn();
+        allow read, write: if true;
       }
 
       // Comments Subcollection
@@ -45,18 +19,15 @@ service cloud.firestore {
 
     // Users Collection & User Subcollections (e.g. progress history)
     match /users/{userId} {
-      allow read, write: if isOwner(userId) || isAdmin();
+      allow read, write: if true;
 
-      match /progress/{storyId} {
-        allow read, write: if isOwner(userId) || isAdmin();
+      match /progress/{progressId} {
+        allow read, write: if true;
       }
-    }
 
-    // Playlists Collection
-    match /playlists/{playlistId} {
-      allow read: if resource.data.isPublic == true || isOwner(resource.data.userId) || isAdmin();
-      allow create: if isSignedIn();
-      allow update, delete: if isOwner(resource.data.userId) || isAdmin();
+      match /{allPaths=**} {
+        allow read, write: if true;
+      }
     }
 
     // Author Requests Collection
