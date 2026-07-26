@@ -4,6 +4,7 @@ import { Moon, Sun, User as UserIcon, Menu, X, LogIn } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { AuthModal } from "./AuthModal";
+import favicon from "../img/favicon.png";
 
 function FlagIcon({ lang, className = "w-5 h-3.5 shadow-sm rounded-sm overflow-hidden shrink-0" }: { lang: string; className?: string }) {
   if (lang === "pt") {
@@ -84,8 +85,8 @@ export function Layout() {
     <div className="min-h-screen bg-[#F5F5F0] dark:bg-[#1A1A1A] text-[#1A1A1A] dark:text-[#F5F5F0] font-sans transition-colors duration-300 flex flex-col">
       <header className="flex justify-between items-center px-4 sm:px-6 md:px-16 pt-6 sm:pt-8 md:pt-10 pb-6 w-full max-w-[1400px] mx-auto border-b border-[#1A1A1A]/5 dark:border-white/5">
         <div className="flex items-center space-x-3">
-          <Link to="/" className="w-10 h-10 bg-[#1A1A1A] dark:bg-[#F5F5F0] flex items-center justify-center rounded-full shadow-sm hover:scale-105 transition-transform">
-            <span className="text-white dark:text-[#1A1A1A] text-xs font-bold tracking-tighter">INK</span>
+          <Link to="/" className="w-10 h-10 flex items-center justify-center rounded-full overflow-hidden shadow-sm hover:scale-105 transition-transform shrink-0">
+            <img src={favicon} alt="INKORA Logo" className="w-full h-full object-cover" />
           </Link>
           <Link to="/" className="flex flex-col">
             <h1 className="font-sans text-xs font-bold tracking-[0.2em] uppercase opacity-90">{t("appBrand")}</h1>
