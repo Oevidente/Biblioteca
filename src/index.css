@@ -89,5 +89,193 @@ html.dark {
   .dark .custom-scrollbar::-webkit-scrollbar-thumb {
     background-color: rgba(255, 255, 255, 0.2);
   }
+
+  /* Paper translucency and volumetric depth effects */
+  .paper-card {
+    background-color: rgba(253, 252, 249, 0.94) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(244, 241, 234, 0.9) 100%) !important;
+    border: none !important;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.01), 
+                0 4px 16px 0 rgba(0, 0, 0, 0.025), 
+                0 2px 4px -1px rgba(0, 0, 0, 0.01) !important;
+  }
+
+  .dark .paper-card {
+    background-color: rgba(24, 24, 24, 0.93) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background-image: linear-gradient(135deg, rgba(38, 38, 38, 0.4) 0%, rgba(18, 18, 18, 0.95) 100%) !important;
+    border: none !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 
+                0 6px 20px 0 rgba(0, 0, 0, 0.2), 
+                0 3px 6px -1px rgba(0, 0, 0, 0.12) !important;
+  }
+
+  /* Volumetric buttons with no borders/strokes that swap external shadow for soft inset on hover */
+  .paper-btn-dark {
+    border: none !important;
+    outline: none !important;
+    background-color: #383632 !important; /* Soft warm charcoal */
+    color: #FBFBFA !important;
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.04) 100%) !important;
+    box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.08), 0 1px 3px 0 rgba(0, 0, 0, 0.04) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  
+  .paper-btn-dark:hover {
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3) !important;
+    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.1) 100%) !important;
+    background-color: #302E2A !important;
+  }
+
+  .dark .paper-btn-dark {
+    background-color: #ECEAE5 !important; /* Soft bone/warm white */
+    color: #1A1A1A !important;
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.22) 0%, rgba(0, 0, 0, 0.03) 100%) !important;
+    box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.2), 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  .dark .paper-btn-dark:hover {
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.15) !important;
+    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 0%, rgba(0, 0, 0, 0.06) 100%) !important;
+    background-color: #DFDDD8 !important;
+  }
+
+  .paper-btn-light {
+    border: none !important;
+    outline: none !important;
+    background-color: rgba(255, 255, 255, 0.85) !important;
+    color: #35332E !important;
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.45) 0%, rgba(0, 0, 0, 0.02) 100%) !important;
+    box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.02) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  .paper-btn-light:hover {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.04) 100%) !important;
+    background-color: rgba(245, 243, 238, 0.85) !important;
+  }
+
+  .dark .paper-btn-light {
+    background-color: rgba(36, 36, 36, 0.85) !important;
+    color: #ECEAE5 !important;
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.1) 100%) !important;
+    box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.15), 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .dark .paper-btn-light:hover {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.15) 100%) !important;
+    background-color: rgba(30, 30, 30, 0.85) !important;
+  }
+
+  /* Secondary color buttons softened for paper style */
+  .paper-btn-blue {
+    border: none !important;
+    outline: none !important;
+    background-color: #E2ECFC !important; /* Soft pastel blue */
+    color: #1E40AF !important;
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.35) 0%, rgba(0, 0, 0, 0.01) 100%) !important;
+    box-shadow: 0 2px 6px -1px rgba(30, 64, 175, 0.08), 0 1px 2px 0 rgba(30, 64, 175, 0.04) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  .paper-btn-blue:hover {
+    box-shadow: inset 0 2px 4px rgba(30, 64, 175, 0.1) !important;
+    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.01) 0%, rgba(0, 0, 0, 0.03) 100%) !important;
+    background-color: #D3E4FC !important;
+  }
+  .dark .paper-btn-blue {
+    background-color: #1D2A44 !important; /* Slate blue */
+    color: #93C5FD !important;
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.15) 100%) !important;
+    box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.2) !important;
+  }
+  .dark .paper-btn-blue:hover {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.2) 100%) !important;
+    background-color: #18233A !important;
+  }
+
+  .paper-btn-red {
+    border: none !important;
+    outline: none !important;
+    background-color: #FEE2E2 !important; /* Soft pastel red */
+    color: #991B1B !important;
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.35) 0%, rgba(0, 0, 0, 0.01) 100%) !important;
+    box-shadow: 0 2px 6px -1px rgba(153, 27, 27, 0.08), 0 1px 2px 0 rgba(153, 27, 27, 0.04) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  .paper-btn-red:hover {
+    box-shadow: inset 0 2px 4px rgba(153, 27, 27, 0.1) !important;
+    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.01) 0%, rgba(0, 0, 0, 0.03) 100%) !important;
+    background-color: #FCA5A5 !important;
+  }
+  .dark .paper-btn-red {
+    background-color: #451A1A !important;
+    color: #FCA5A5 !important;
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.15) 100%) !important;
+    box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.2) !important;
+  }
+  .dark .paper-btn-red:hover {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.2) 100%) !important;
+    background-color: #381414 !important;
+  }
+
+  .paper-btn-amber {
+    border: none !important;
+    outline: none !important;
+    background-color: #FEF3C7 !important; /* Soft pastel amber */
+    color: #92400E !important;
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.35) 0%, rgba(0, 0, 0, 0.01) 100%) !important;
+    box-shadow: 0 2px 6px -1px rgba(146, 64, 14, 0.08), 0 1px 2px 0 rgba(146, 64, 14, 0.04) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  .paper-btn-amber:hover {
+    box-shadow: inset 0 2px 4px rgba(146, 64, 14, 0.1) !important;
+    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.01) 0%, rgba(0, 0, 0, 0.03) 100%) !important;
+    background-color: #FDE68A !important;
+  }
+  .dark .paper-btn-amber {
+    background-color: #452A10 !important;
+    color: #FDE68A !important;
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.15) 100%) !important;
+    box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.2) !important;
+  }
+  .dark .paper-btn-amber:hover {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.2) 100%) !important;
+    background-color: #38210C !important;
+  }
+
+  .paper-btn-emerald {
+    border: none !important;
+    outline: none !important;
+    background-color: #D1FAE5 !important; /* Soft pastel emerald */
+    color: #065F46 !important;
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.35) 0%, rgba(0, 0, 0, 0.01) 100%) !important;
+    box-shadow: 0 2px 6px -1px rgba(6, 95, 70, 0.08), 0 1px 2px 0 rgba(6, 95, 70, 0.04) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  .paper-btn-emerald:hover {
+    box-shadow: inset 0 2px 4px rgba(6, 95, 70, 0.1) !important;
+    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.01) 0%, rgba(0, 0, 0, 0.03) 100%) !important;
+    background-color: #A7F3D0 !important;
+  }
+  .dark .paper-btn-emerald {
+    background-color: #0F4A36 !important;
+    color: #A7F3D0 !important;
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.15) 100%) !important;
+    box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.2) !important;
+  }
+  .dark .paper-btn-emerald:hover {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.2) 100%) !important;
+    background-color: #0B3B2B !important;
+  }
 }
+
 

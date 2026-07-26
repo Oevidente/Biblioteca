@@ -853,7 +853,7 @@ export function Admin() {
 
   if (!user) {
     return (
-      <div className="max-w-md mx-auto mt-16 p-8 bg-white dark:bg-[#1A1A1A] rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10">
+      <div className="max-w-md mx-auto mt-16 p-8 rounded-2xl paper-card">
         <div className="flex justify-center mb-6">
           <div className="w-16 h-16 bg-[#1A1A1A] dark:bg-white rounded-full flex items-center justify-center">
             <Lock className="w-8 h-8 text-white dark:text-[#1A1A1A]" />
@@ -863,7 +863,7 @@ export function Admin() {
         <div className="space-y-6">
           <button 
             onClick={handleLogin}
-            className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] font-bold text-[10px] uppercase tracking-widest py-4 rounded-full hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors"
+            className="w-full font-bold text-[10px] uppercase tracking-widest py-4 rounded-full transition-all paper-btn-dark"
           >
             {t("loginWithGoogle")}
           </button>
@@ -939,20 +939,20 @@ export function Admin() {
   });
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto pb-12">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl sm:text-4xl font-serif font-bold tracking-tight">{t("adminPanel")}</h1>
           <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mt-1">{user.email}</div>
         </div>
-        <div className="grid grid-cols-2 sm:flex bg-white dark:bg-[#0A0A0A] p-1.5 sm:p-1 rounded-2xl sm:rounded-full border border-[#1A1A1A]/10 dark:border-white/10 shadow-sm w-full sm:w-auto gap-1 sm:gap-0">
+        <div className="grid grid-cols-2 sm:flex p-1.5 sm:p-1 rounded-2xl sm:rounded-full w-full sm:w-auto gap-1 sm:gap-0 paper-card">
           <button 
             onClick={() => setActiveTab("publish")}
             className={cn(
               "px-3 py-2.5 rounded-xl sm:rounded-full text-[10px] uppercase font-bold tracking-widest transition-all text-center flex items-center justify-center gap-1.5",
               activeTab === "publish" 
-                ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" 
-                : "opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
+                ? "paper-btn-dark shadow-sm" 
+                : "opacity-60 hover:opacity-100 paper-btn-light"
             )}
           >
             <PenTool className="w-3.5 h-3.5" />
@@ -964,8 +964,8 @@ export function Admin() {
             className={cn(
               "px-3 py-2.5 rounded-xl sm:rounded-full text-[10px] uppercase font-bold tracking-widest transition-all text-center flex items-center justify-center gap-1.5",
               activeTab === "manage" 
-                ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" 
-                : "opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
+                ? "paper-btn-dark shadow-sm" 
+                : "opacity-60 hover:opacity-100 paper-btn-light"
             )}
           >
             <Layers className="w-3.5 h-3.5" />
@@ -977,8 +977,8 @@ export function Admin() {
             className={cn(
               "px-3 py-2.5 rounded-xl sm:rounded-full text-[10px] uppercase font-bold tracking-widest transition-all text-center flex items-center justify-center gap-1.5",
               activeTab === "analytics" 
-                ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" 
-                : "opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
+                ? "paper-btn-dark shadow-sm" 
+                : "opacity-60 hover:opacity-100 paper-btn-light"
             )}
           >
             <BarChart2 className="w-3.5 h-3.5" />
@@ -990,8 +990,8 @@ export function Admin() {
             className={cn(
               "px-3 py-2.5 rounded-xl sm:rounded-full text-[10px] uppercase font-bold tracking-widest transition-all text-center flex items-center justify-center gap-1.5",
               activeTab === "comments" 
-                ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" 
-                : "opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
+                ? "paper-btn-dark shadow-sm" 
+                : "opacity-60 hover:opacity-100 paper-btn-light"
             )}
           >
             <MessageSquare className="w-3.5 h-3.5" />
@@ -1007,8 +1007,8 @@ export function Admin() {
               className={cn(
                 "col-span-2 sm:col-span-1 px-3 py-2.5 rounded-xl sm:rounded-full text-[10px] uppercase font-bold tracking-widest transition-all text-center flex items-center justify-center gap-1.5",
                 activeTab === "superadmin" 
-                  ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" 
-                  : "opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
+                  ? "paper-btn-dark shadow-sm" 
+                  : "opacity-60 hover:opacity-100 paper-btn-light"
               )}
             >
               <Lock className="w-3.5 h-3.5" />
@@ -1020,7 +1020,7 @@ export function Admin() {
 
       {activeTab === "analytics" && (
         <div className="space-y-6">
-          <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10 space-y-6">
+          <div className="p-6 rounded-2xl space-y-6 paper-card">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#1A1A1A]/10 dark:border-white/10 pb-5">
               <div>
                 <h2 className="font-serif font-bold text-2xl flex items-center gap-2">
@@ -1033,7 +1033,7 @@ export function Admin() {
                 <button
                   type="button"
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="w-full px-4 py-2.5 bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] dark:focus:ring-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-between gap-2"
+                  className="w-full px-4 py-2.5 focus:outline-none text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-between gap-2 paper-btn-light"
                 >
                   <div className="flex items-center gap-2 truncate">
                     {selectedStoryId === "all" ? (
@@ -1060,7 +1060,7 @@ export function Admin() {
                       className="fixed inset-0 z-10" 
                       onClick={() => setIsDropdownOpen(false)}
                     />
-                    <div className="absolute right-0 left-0 mt-2 bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl shadow-lg z-20 max-h-60 overflow-y-auto py-1 animate-in fade-in slide-in-from-top-1 duration-100">
+                    <div className="absolute right-0 left-0 mt-2 border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl shadow-lg z-20 max-h-60 overflow-y-auto py-1 animate-in fade-in slide-in-from-top-1 duration-100 paper-card">
                       <button
                         type="button"
                         onClick={() => {
@@ -1104,7 +1104,7 @@ export function Admin() {
                 <span className="text-xs opacity-60">Processando e compilando dados de leitura reais...</span>
               </div>
             ) : progressRecords.length === 0 ? (
-              <div className="text-center py-12 border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl p-6 bg-[#F5F5F0]/30 dark:bg-[#0A0A0A]/30 space-y-3">
+              <div className="text-center py-12 border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl p-6 space-y-3 paper-card opacity-80">
                 <Sparkles className="w-8 h-8 mx-auto opacity-40 text-amber-500" />
                 <h4 className="font-serif font-bold text-sm">Sem dados de leitura ainda</h4>
                 <p className="text-xs opacity-60 max-w-sm mx-auto">
@@ -1114,7 +1114,7 @@ export function Admin() {
             ) : (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="p-4 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-2xl border border-black/5 dark:border-white/5 space-y-1">
+                  <div className="p-4 rounded-2xl space-y-1 paper-card">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider opacity-60">
                       <Clock className="w-4 h-4 text-amber-500" />
                       <span>{t("avgReadingTime")}</span>
@@ -1125,7 +1125,7 @@ export function Admin() {
                     <p className="text-[10px] opacity-50">Tempo estimado gasto por sessão de leitura</p>
                   </div>
 
-                  <div className="p-4 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-2xl border border-black/5 dark:border-white/5 space-y-1">
+                  <div className="p-4 rounded-2xl space-y-1 paper-card">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider opacity-60">
                       <Users className="w-4 h-4 text-blue-500" />
                       <span>{t("readingMetrics", "Leitores Ativos")}</span>
@@ -1134,7 +1134,7 @@ export function Admin() {
                     <p className="text-[10px] opacity-50">{totalStartsCount} {totalStartsCount === 1 ? 'leitura iniciada' : 'leituras iniciadas'}</p>
                   </div>
 
-                  <div className="p-4 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-2xl border border-black/5 dark:border-white/5 space-y-1">
+                  <div className="p-4 rounded-2xl space-y-1 paper-card">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider opacity-60">
                       <TrendingUp className="w-4 h-4 text-emerald-500" />
                       <span>{t("retentionRate")}</span>
@@ -1231,7 +1231,7 @@ export function Admin() {
                         const ratingAvg = s.ratingsCount > 0 ? (s.rating / s.ratingsCount).toFixed(1) : "N/A";
 
                         return (
-                          <div key={s.id} className="p-4 bg-[#F5F5F0]/50 dark:bg-[#0A0A0A]/50 rounded-2xl border border-black/5 dark:border-white/5 space-y-3">
+                          <div key={s.id} className="p-4 rounded-2xl space-y-3 paper-card">
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-10 rounded overflow-hidden flex-shrink-0 bg-black/10 shadow-sm">
@@ -1248,7 +1248,7 @@ export function Admin() {
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-2 text-center bg-white dark:bg-[#1A1A1A]/40 p-2.5 rounded-xl border border-black/5 dark:border-white/5">
+                            <div className="grid grid-cols-3 gap-2 text-center p-2.5 rounded-xl paper-card">
                               <div>
                                 <div className="text-[9px] font-bold uppercase tracking-wider opacity-50">{t("startsTableHead")}</div>
                                 <div className="text-sm font-mono font-bold mt-0.5">{starts}</div>
@@ -1279,7 +1279,7 @@ export function Admin() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-[#1A1A1A]/10 dark:border-white/10">
-                    <div className="p-5 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-2xl border border-black/5 dark:border-white/5 space-y-3">
+                    <div className="p-5 rounded-2xl space-y-3 paper-card">
                       <h3 className="font-serif font-bold text-sm uppercase tracking-wider opacity-80 flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-amber-500" />
                         <span>{t("retentionByPage")}</span>
@@ -1301,7 +1301,7 @@ export function Admin() {
                       </div>
                     </div>
 
-                    <div className="p-5 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-2xl border border-black/5 dark:border-white/5 flex flex-col justify-between space-y-4">
+                    <div className="p-5 rounded-2xl flex flex-col justify-between space-y-4 paper-card">
                       <div>
                         <h3 className="font-serif font-bold text-sm uppercase tracking-wider opacity-80 flex items-center gap-2">
                           <Star className="w-4 h-4 text-amber-500" />
@@ -1311,14 +1311,14 @@ export function Admin() {
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 py-2">
-                        <div className="p-4 bg-white dark:bg-[#1A1A1A] rounded-xl border border-black/5 dark:border-white/5 text-center">
+                        <div className="p-4 rounded-xl text-center paper-card">
                           <div className="text-2xl font-serif font-bold text-amber-500">
                             {selectedStory?.ratingsCount > 0 ? (selectedStory.rating / selectedStory.ratingsCount).toFixed(1) : "N/A"}
                           </div>
                           <div className="text-[10px] font-bold uppercase tracking-wider opacity-50 mt-1">{t("avgOverallRating")}</div>
                         </div>
 
-                        <div className="p-4 bg-white dark:bg-[#1A1A1A] rounded-xl border border-black/5 dark:border-white/5 text-center">
+                        <div className="p-4 rounded-xl text-center paper-card">
                           <div className="text-2xl font-serif font-bold">
                             {selectedStory?.ratingsCount || 0}
                           </div>
@@ -1354,7 +1354,7 @@ export function Admin() {
       {activeTab === "superadmin" && user && (user.email || "").toLowerCase().trim() === ADMIN_EMAIL && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10 flex flex-col items-center justify-center text-center">
+            <div className="p-6 rounded-2xl flex flex-col items-center justify-center text-center paper-card">
               <UserIcon className="w-8 h-8 opacity-40 mb-4" />
               <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2">{t("totalRegisteredUsers")}</div>
               {loadingSuperadmin ? (
@@ -1364,7 +1364,7 @@ export function Admin() {
               )}
             </div>
             
-            <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10 flex flex-col items-center justify-center text-center">
+            <div className="p-6 rounded-2xl flex flex-col items-center justify-center text-center paper-card">
               <Heart className="w-8 h-8 opacity-40 mb-4 text-red-500" />
               <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2">{t("totalFavoritesInSite")}</div>
               {loadingSuperadmin ? (
@@ -1375,7 +1375,7 @@ export function Admin() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10 space-y-6">
+          <div className="p-6 rounded-2xl space-y-6 paper-card">
             <div>
               <h2 className="text-xl font-serif font-bold mb-2">{t("authorRequests")}</h2>
               <p className="text-xs opacity-60 leading-relaxed mb-4">
@@ -1403,14 +1403,14 @@ export function Admin() {
             ) : (
               <div className="space-y-4">
                 {authorRequests.map(req => (
-                  <div key={req.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 gap-4 transition-colors hover:bg-black/5 dark:hover:bg-white/5">
+                  <div key={req.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 gap-4 transition-all hover:translate-x-1 paper-card">
                     <div>
                       <div className="font-bold text-sm">{req.displayName || t("noName")}</div>
                       <div className="text-xs opacity-60 font-mono mt-1">{req.email}</div>
                     </div>
                     <button 
                       onClick={() => approveAuthor(req.id)}
-                      className="px-5 py-2.5 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] text-[10px] font-bold uppercase tracking-widest rounded-full hover:opacity-90 transition-opacity whitespace-nowrap"
+                      className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all whitespace-nowrap paper-btn-dark"
                     >
                       {t("authorize")}
                     </button>
@@ -1423,17 +1423,17 @@ export function Admin() {
       )}
 
       {activeTab === "publish" && (
-        <div className="space-y-6 bg-white dark:bg-[#1A1A1A] p-6 sm:p-8 rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10">
+        <div className="space-y-6 p-6 sm:p-8 rounded-2xl paper-card">
           {/* Creation Mode Toggle */}
-          <div className="flex p-1 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 max-w-md">
+          <div className="flex p-1 rounded-xl max-w-md paper-card">
             <button
               type="button"
               onClick={() => setCreationMode("writer")}
               className={cn(
                 "flex-1 py-2.5 px-4 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all",
                 creationMode === "writer" 
-                  ? "bg-white dark:bg-[#1A1A1A] shadow-sm text-[#1A1A1A] dark:text-white" 
-                  : "opacity-60 hover:opacity-100"
+                  ? "paper-btn-dark shadow-sm" 
+                  : "opacity-60 hover:opacity-100 paper-btn-light"
               )}
             >
               <PenTool className="w-4 h-4 text-amber-600 dark:text-amber-400" />
@@ -1445,8 +1445,8 @@ export function Admin() {
               className={cn(
                 "flex-1 py-2.5 px-4 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all",
                 creationMode === "docx" 
-                  ? "bg-white dark:bg-[#1A1A1A] shadow-sm text-[#1A1A1A] dark:text-white" 
-                  : "opacity-60 hover:opacity-100"
+                  ? "paper-btn-dark shadow-sm" 
+                  : "opacity-60 hover:opacity-100 paper-btn-light"
               )}
             >
               <FileText className="w-4 h-4" />
@@ -1461,7 +1461,7 @@ export function Admin() {
                 type="text" 
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-3 bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white text-sm"
+                className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm paper-card"
                 placeholder={t("storyTitlePlaceholder")}
                 required
               />
@@ -1472,7 +1472,7 @@ export function Admin() {
                 type="text" 
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
-                className="w-full px-4 py-3 bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white text-sm"
+                className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm paper-card"
                 placeholder={t("authorPlaceholder")}
                 required
               />
@@ -1482,7 +1482,7 @@ export function Admin() {
                     <button
                       type="button"
                       onClick={() => setAuthor(profile.displayName!)}
-                      className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
+                      className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all active:scale-95 paper-btn-amber"
                     >
                       Usar meu Nome: {profile.displayName}
                     </button>
@@ -1492,14 +1492,14 @@ export function Admin() {
                       <button
                         type="button"
                         onClick={() => setAuthor(`@${profile.username}`)}
-                        className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
+                        className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all active:scale-95 paper-btn-amber"
                       >
                         Usar meu @Usuário: @{profile.username}
                       </button>
                       <button
                         type="button"
                         onClick={() => setAuthor(profile.username!)}
-                        className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
+                        className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all active:scale-95 paper-btn-amber"
                       >
                         Usar meu Usuário: {profile.username}
                       </button>
@@ -1514,7 +1514,7 @@ export function Admin() {
                 type="date" 
                 value={publicationDate}
                 onChange={(e) => setPublicationDate(e.target.value)}
-                className="w-full px-4 py-3 bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white text-sm"
+                className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm paper-card"
                 required
               />
             </div>
@@ -1607,7 +1607,7 @@ export function Admin() {
           )}
 
           {message && !errorDetails && (
-            <div className="p-4 rounded-xl bg-[#F5F5F0] dark:bg-[#0A0A0A] text-sm font-bold text-center border border-[#1A1A1A]/20 dark:border-white/20">
+            <div className="p-4 rounded-xl text-sm font-bold text-center paper-card">
               {message}
             </div>
           )}
@@ -1619,7 +1619,7 @@ export function Admin() {
                 type="button"
                 disabled={isUploading}
                 onClick={() => handleSaveStory(true)}
-                className="flex-1 flex items-center justify-center gap-2 bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold text-xs uppercase tracking-widest py-4 rounded-xl hover:bg-amber-500/20 transition-colors disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest py-4 rounded-xl transition-all disabled:opacity-50 paper-btn-amber"
               >
                 {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {t("saveDraft")}
@@ -1629,7 +1629,7 @@ export function Admin() {
                 type="button"
                 disabled={isUploading}
                 onClick={() => handleSaveStory(false)}
-                className="flex-1 flex items-center justify-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] font-bold text-xs uppercase tracking-widest py-4 rounded-xl hover:bg-[#333] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest py-4 rounded-xl transition-all disabled:opacity-50 paper-btn-dark"
               >
                 {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                 {t("publishNow")}
@@ -1641,7 +1641,7 @@ export function Admin() {
                 type="button"
                 disabled={isUploading}
                 onClick={handleStartWritingOnSite}
-                className="w-full flex items-center justify-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] font-bold text-xs uppercase tracking-widest py-4 rounded-xl hover:bg-[#333] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest py-4 rounded-xl transition-all disabled:opacity-50 paper-btn-dark"
               >
                 {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <PenTool className="w-4 h-4" />}
                 {t("writeOnSite")}
@@ -1653,7 +1653,7 @@ export function Admin() {
 
       {activeTab === "manage" && (
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-[#1A1A1A] p-4 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 rounded-2xl paper-card">
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <div className="relative w-full sm:w-64">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
@@ -1662,27 +1662,27 @@ export function Admin() {
                   placeholder={t("searchPlaceholder")}
                   value={searchStoryQuery}
                   onChange={(e) => setSearchStoryQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none"
+                  className="w-full pl-9 pr-4 py-2 text-xs rounded-xl focus:outline-none paper-card"
                 />
               </div>
 
               {/* Status Filter Tabs */}
-              <div className="flex p-1 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 text-[10px] font-bold uppercase tracking-wider shrink-0">
+              <div className="flex p-1 rounded-xl text-[10px] font-bold uppercase tracking-wider shrink-0 paper-card">
                 <button
                   onClick={() => setStatusFilter("all")}
-                  className={cn("px-2.5 py-1 rounded-lg transition-colors", statusFilter === "all" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
+                  className={cn("px-2.5 py-1 rounded-lg transition-colors", statusFilter === "all" ? "paper-btn-dark" : "opacity-60 paper-btn-light")}
                 >
                   {t("all")}
                 </button>
                 <button
                   onClick={() => setStatusFilter("published")}
-                  className={cn("px-2.5 py-1 rounded-lg transition-colors", statusFilter === "published" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
+                  className={cn("px-2.5 py-1 rounded-lg transition-colors", statusFilter === "published" ? "paper-btn-dark" : "opacity-60 paper-btn-light")}
                 >
                   {t("isPublishedBadge")}
                 </button>
                 <button
                   onClick={() => setStatusFilter("drafts")}
-                  className={cn("px-2.5 py-1 rounded-lg transition-colors", statusFilter === "drafts" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
+                  className={cn("px-2.5 py-1 rounded-lg transition-colors", statusFilter === "drafts" ? "paper-btn-dark" : "opacity-60 paper-btn-light")}
                 >
                   {t("isDraftBadge")} ({storiesList.filter(s => s.isDraft).length})
                 </button>
@@ -1692,7 +1692,7 @@ export function Admin() {
             <button 
               onClick={loadStoriesList} 
               disabled={loadingStories}
-              className="text-xs font-bold uppercase tracking-wider opacity-60 hover:opacity-100 transition-opacity"
+              className="text-xs font-bold uppercase tracking-wider opacity-60 hover:opacity-100 transition-opacity paper-btn-light px-3 py-1.5 rounded-xl"
             >
               {loadingStories ? t("loading") : t("updateList")}
             </button>
@@ -1731,7 +1731,7 @@ export function Admin() {
                   return (
                     <div 
                       key={story.id} 
-                      className="bg-white dark:bg-[#1A1A1A] p-6 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10 space-y-4 transition-all"
+                      className="p-6 rounded-2xl space-y-4 transition-all paper-card"
                     >
                       {isEditing ? (
                         <div className="space-y-4">
@@ -1942,7 +1942,7 @@ export function Admin() {
                             <button
                               onClick={() => navigate(`/writer/${story.id}`)}
                               disabled={isDeletingThis}
-                              className="px-2.5 py-2 bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-1.5 min-h-[38px]"
+                              className="px-2.5 py-2 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 min-h-[38px] paper-btn-amber"
                             >
                               <PenTool className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                               <span className="truncate">{t("editInSite")}</span>
@@ -1953,7 +1953,7 @@ export function Admin() {
                               <button
                                 onClick={() => handleQuickPublishDraft(story.id)}
                                 disabled={isDeletingThis}
-                                className="px-2.5 py-2 bg-emerald-600 text-white rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 shadow-sm min-h-[38px]"
+                                className="px-2.5 py-2 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-sm min-h-[38px] paper-btn-dark"
                               >
                                 <Send className="w-3.5 h-3.5 shrink-0" />
                                 <span className="truncate">{t("publishNow")}</span>
@@ -1963,14 +1963,14 @@ export function Admin() {
                             <button
                               onClick={() => handleStartEdit(story)}
                               disabled={isDeletingThis}
-                              className="px-2.5 py-2 bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:bg-[#1A1A1A] hover:text-white dark:hover:bg-white dark:hover:text-[#1A1A1A] transition-colors flex items-center justify-center gap-1.5 min-h-[38px]"
+                              className="px-2.5 py-2 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 min-h-[38px] paper-btn-light"
                             >
                               <Pencil className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{t("editLabel")}</span>
                             </button>
                             <button
                               onClick={() => setStoryToDelete(story)}
                               disabled={isDeletingThis}
-                              className="px-2.5 py-2 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 min-h-[38px]"
+                              className="px-2.5 py-2 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 min-h-[38px] paper-btn-red"
                             >
                               {isDeletingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" /> : <Trash2 className="w-3.5 h-3.5 shrink-0" />}
                               <span className="truncate">{t("deleteLabel")}</span>
@@ -2005,32 +2005,32 @@ export function Admin() {
           )}
 
           {/* Filter Bar */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-[#1A1A1A] p-4 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl paper-card">
             <div className="text-xs font-bold uppercase tracking-widest opacity-80">
               {t("commentsApprovalTitle")}
             </div>
-            <div className="flex gap-2 bg-[#F5F5F0] dark:bg-[#0A0A0A] p-1 rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 text-[10px] font-bold uppercase tracking-widest overflow-x-auto w-full sm:w-auto scrollbar-none whitespace-nowrap">
+            <div className="flex gap-2 p-1 rounded-xl text-[10px] font-bold uppercase tracking-widest overflow-x-auto w-full sm:w-auto scrollbar-none whitespace-nowrap paper-card">
               <button 
                 onClick={() => setCommentFilter("pending")}
-                className={cn("px-3 py-1.5 rounded-lg transition-colors flex-shrink-0", commentFilter === "pending" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" : "opacity-60")}
+                className={cn("px-3 py-1.5 rounded-lg transition-colors flex-shrink-0", commentFilter === "pending" ? "paper-btn-dark shadow-sm" : "opacity-60 paper-btn-light")}
               >
                 {t("commentsPending")} ({comments.filter(c => c.status === "pending").length})
               </button>
               <button 
                 onClick={() => setCommentFilter("approved")}
-                className={cn("px-3 py-1.5 rounded-lg transition-colors flex-shrink-0", commentFilter === "approved" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" : "opacity-60")}
+                className={cn("px-3 py-1.5 rounded-lg transition-colors flex-shrink-0", commentFilter === "approved" ? "paper-btn-dark shadow-sm" : "opacity-60 paper-btn-light")}
               >
                 {t("commentsApproved")} ({comments.filter(c => c.status === "approved").length})
               </button>
               <button 
                 onClick={() => setCommentFilter("rejected")}
-                className={cn("px-3 py-1.5 rounded-lg transition-colors flex-shrink-0", commentFilter === "rejected" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
+                className={cn("px-3 py-1.5 rounded-lg transition-colors flex-shrink-0", commentFilter === "rejected" ? "paper-btn-dark" : "opacity-60 paper-btn-light")}
               >
                 {t("commentsRejected")}
               </button>
               <button 
                 onClick={() => setCommentFilter("all")}
-                className={cn("px-3 py-1.5 rounded-lg transition-colors flex-shrink-0", commentFilter === "all" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
+                className={cn("px-3 py-1.5 rounded-lg transition-colors flex-shrink-0", commentFilter === "all" ? "paper-btn-dark" : "opacity-60 paper-btn-light")}
               >
                 {t("all")} ({comments.length})
               </button>
@@ -2045,7 +2045,7 @@ export function Admin() {
             </div>
           ) : (
             filteredComments.map(c => (
-              <div key={c.id} className="bg-white dark:bg-[#1A1A1A] p-4 sm:p-6 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10 space-y-4">
+              <div key={c.id} className="p-4 sm:p-6 rounded-2xl space-y-4 paper-card">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <div className="space-y-1 w-full">
                     <span className="text-[9px] uppercase font-bold tracking-widest opacity-60 block">
@@ -2077,7 +2077,7 @@ export function Admin() {
                 </div>
 
                 {c.text && (
-                  <p className="font-serif text-sm leading-relaxed bg-[#F5F5F0] dark:bg-[#0A0A0A] p-4 rounded-xl border border-[#1A1A1A]/5 dark:border-white/5 italic">
+                  <p className="font-serif text-sm leading-relaxed p-4 rounded-xl italic paper-card">
                     "{c.text}"
                   </p>
                 )}
@@ -2092,7 +2092,7 @@ export function Admin() {
                     {c.status !== "approved" && (
                       <button
                         onClick={() => updateCommentStatus(c.storyId, c.id, "approved")}
-                        className="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-emerald-500 hover:text-white transition-all active:scale-95 shadow-sm min-h-[44px]"
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 shadow-sm min-h-[44px] paper-btn-dark"
                       >
                         <CheckCircle className="w-4 h-4 shrink-0" />
                         <span>{t("approve")}</span>
@@ -2102,7 +2102,7 @@ export function Admin() {
                     {c.status !== "rejected" && (
                       <button
                         onClick={() => updateCommentStatus(c.storyId, c.id, "rejected")}
-                        className="flex items-center justify-center gap-1.5 px-3 py-2 bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/25 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-red-500 hover:text-white transition-all active:scale-95 shadow-sm min-h-[44px]"
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 shadow-sm min-h-[44px] paper-btn-red"
                       >
                         <XCircle className="w-4 h-4 shrink-0" />
                         <span>{t("reject")}</span>
@@ -2112,7 +2112,7 @@ export function Admin() {
                     {c.status !== "hidden" && c.status === "approved" && (
                       <button
                         onClick={() => updateCommentStatus(c.storyId, c.id, "hidden")}
-                        className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[#1A1A1A]/5 dark:bg-white/5 opacity-80 border border-[#1A1A1A]/15 dark:border-white/15 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-[#1A1A1A] hover:text-white hover:opacity-100 transition-all active:scale-95 min-h-[44px]"
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 opacity-80 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 min-h-[44px] paper-btn-light"
                       >
                         <EyeOff className="w-4 h-4 shrink-0" />
                         <span>{t("hide")}</span>
@@ -2122,7 +2122,7 @@ export function Admin() {
                     {c.text && (
                       <button
                         onClick={() => setCommentToDeleteText(c)}
-                        className="col-span-2 sm:col-span-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-amber-500 hover:text-white transition-all active:scale-95 min-h-[44px]"
+                        className="col-span-2 sm:col-span-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 min-h-[44px] paper-btn-amber"
                         title="Excluir apenas o texto do comentário, mantendo a avaliação e estrelas"
                       >
                         <XCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
@@ -2132,7 +2132,7 @@ export function Admin() {
 
                     <button
                       onClick={() => setCommentToDeleteAll(c)}
-                      className="col-span-2 sm:col-span-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/25 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-red-500 hover:text-white transition-all active:scale-95 min-h-[44px]"
+                      className="col-span-2 sm:col-span-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 min-h-[44px] paper-btn-red"
                       title="Excluir a avaliação inteira (comentário e nota)"
                     >
                       <Trash2 className="w-4 h-4 shrink-0" />
@@ -2149,7 +2149,7 @@ export function Admin() {
       {/* Confirmation Modal for Story Deletion */}
       {storyToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#1A1A1A] max-w-md w-full rounded-2xl p-6 shadow-2xl border border-[#1A1A1A]/10 dark:border-white/10 space-y-4">
+          <div className="max-w-md w-full rounded-2xl p-6 shadow-2xl space-y-4 paper-card">
             <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
               <div className="p-3 bg-red-500/10 rounded-full">
                 <Trash2 className="w-6 h-6" />
@@ -2173,7 +2173,7 @@ export function Admin() {
                 type="button"
                 onClick={() => setStoryToDelete(null)}
                 disabled={deletingStoryId === storyToDelete.id}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border border-[#1A1A1A]/20 dark:border-white/20 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 transition-colors"
+                className="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all paper-btn-light"
               >
                 {t("cancel")}
               </button>
@@ -2181,7 +2181,7 @@ export function Admin() {
                 type="button"
                 onClick={() => confirmDeleteStory(storyToDelete)}
                 disabled={deletingStoryId === storyToDelete.id}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 disabled:opacity-50 paper-btn-red"
               >
                 {deletingStoryId === storyToDelete.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                 {t("yesDelete")}
@@ -2194,7 +2194,7 @@ export function Admin() {
       {/* Confirmation Modal for Comment Text Deletion */}
       {commentToDeleteText && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#1A1A1A] max-w-md w-full rounded-2xl p-6 shadow-2xl border border-[#1A1A1A]/10 dark:border-white/10 space-y-4">
+          <div className="max-w-md w-full rounded-2xl p-6 shadow-2xl space-y-4 paper-card">
             <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
               <div className="p-3 bg-amber-500/10 rounded-full">
                 <XCircle className="w-6 h-6" />
@@ -2209,7 +2209,7 @@ export function Admin() {
               Tem certeza que deseja excluir o texto do comentário de <strong>{commentToDeleteText.userName}</strong> na obra <strong>{commentToDeleteText.storyTitle}</strong>?
             </p>
 
-            <div className="p-3 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl border border-black/5 dark:border-white/5 text-xs text-[#1A1A1A]/70 dark:text-white/70 italic max-h-24 overflow-y-auto">
+            <div className="p-3 rounded-xl text-xs text-[#1A1A1A]/70 dark:text-white/70 italic max-h-24 overflow-y-auto paper-card">
               "{commentToDeleteText.text}"
             </div>
 
@@ -2222,7 +2222,7 @@ export function Admin() {
                 type="button"
                 onClick={() => setCommentToDeleteText(null)}
                 disabled={commentActionLoading}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border border-[#1A1A1A]/20 dark:border-white/20 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 transition-colors"
+                className="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all paper-btn-light"
               >
                 {t("cancel")}
               </button>
@@ -2230,7 +2230,7 @@ export function Admin() {
                 type="button"
                 onClick={() => confirmDeleteCommentText(commentToDeleteText.storyId, commentToDeleteText.id)}
                 disabled={commentActionLoading}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-amber-600 text-white hover:bg-amber-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 disabled:opacity-50 paper-btn-amber"
               >
                 {commentActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
                 Apagar Texto
@@ -2243,7 +2243,7 @@ export function Admin() {
       {/* Confirmation Modal for Entire Comment Deletion */}
       {commentToDeleteAll && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#1A1A1A] max-w-md w-full rounded-2xl p-6 shadow-2xl border border-[#1A1A1A]/10 dark:border-white/10 space-y-4">
+          <div className="max-w-md w-full rounded-2xl p-6 shadow-2xl space-y-4 paper-card">
             <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
               <div className="p-3 bg-red-500/10 rounded-full">
                 <Trash2 className="w-6 h-6" />
@@ -2259,7 +2259,7 @@ export function Admin() {
             </p>
 
             {commentToDeleteAll.text && (
-              <div className="p-3 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl border border-black/5 dark:border-white/5 text-xs text-[#1A1A1A]/70 dark:text-white/70 italic max-h-20 overflow-y-auto">
+              <div className="p-3 rounded-xl text-xs text-[#1A1A1A]/70 dark:text-white/70 italic max-h-20 overflow-y-auto paper-card">
                 "{commentToDeleteAll.text}"
               </div>
             )}
@@ -2273,7 +2273,7 @@ export function Admin() {
                 type="button"
                 onClick={() => setCommentToDeleteAll(null)}
                 disabled={commentActionLoading}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border border-[#1A1A1A]/20 dark:border-white/20 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 transition-colors"
+                className="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all paper-btn-light"
               >
                 {t("cancel")}
               </button>
@@ -2281,7 +2281,7 @@ export function Admin() {
                 type="button"
                 onClick={() => deleteCommentAll(commentToDeleteAll.storyId, commentToDeleteAll.id)}
                 disabled={commentActionLoading}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 disabled:opacity-50 paper-btn-red"
               >
                 {commentActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                 {t("yesDelete")}

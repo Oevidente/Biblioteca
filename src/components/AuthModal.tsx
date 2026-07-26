@@ -239,12 +239,12 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
-      <div className="bg-white dark:bg-[#1A1A1A] w-full max-w-md rounded-2xl shadow-2xl border border-[#1A1A1A]/10 dark:border-white/10 p-6 md:p-8 relative my-8">
+      <div className="w-full max-w-md rounded-2xl p-6 md:p-8 relative my-8 paper-card">
         
         {/* Close Button */}
         <button 
           onClick={onClose} 
-          className="absolute top-4 right-4 p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors opacity-60 hover:opacity-100"
+          className="absolute top-4 right-4 p-2 rounded-full transition-colors opacity-60 hover:opacity-100 paper-btn-light"
           aria-label="Fechar"
         >
           <X className="w-5 h-5" />
@@ -254,7 +254,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
         {user ? (
           <div className="space-y-6">
             <div className="text-center">
-              <div className="w-16 h-16 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] rounded-full mx-auto flex items-center justify-center font-serif font-bold text-2xl mb-3">
+              <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center font-serif font-bold text-2xl mb-3 paper-btn-dark">
                 {(profile?.username || profile?.displayName || user.email || "U")[0].toUpperCase()}
               </div>
               <h2 className="font-serif font-bold text-2xl tracking-tight">{profile?.username ? `@${profile.username}` : (profile?.displayName || t("myProfile"))}</h2>
@@ -306,14 +306,14 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                     return (
                       <div 
                         key={a.id}
-                        className={`p-3 rounded-xl border flex items-center gap-3 transition-all ${
+                        className={`p-3 rounded-xl flex items-center gap-3 transition-all paper-card ${
                           isUnlocked 
                             ? "bg-amber-500/10 border-amber-500/30 text-[#1A1A1A] dark:text-[#F5F5F0]" 
-                            : "bg-[#F5F5F0]/50 dark:bg-[#0A0A0A]/50 border-black/5 dark:border-white/5 opacity-40 grayscale"
+                            : "opacity-40 grayscale"
                         }`}
                       >
                         <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                          isUnlocked ? "bg-amber-500 text-white" : "bg-black/10 dark:bg-white/10"
+                          isUnlocked ? "paper-btn-amber" : "paper-btn-light"
                         }`}>
                           {renderIcon()}
                         </div>
@@ -357,7 +357,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                     type={showPassword ? "text" : "password"} 
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full pl-9 pr-10 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
+                    className="w-full pl-9 pr-10 py-3 text-xs rounded-xl focus:outline-none paper-card"
                     placeholder={t("currentPasswordPlaceholder")}
                     required
                   />
@@ -379,7 +379,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                     type={showPassword ? "text" : "password"} 
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full pl-9 pr-10 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
+                    className="w-full pl-9 pr-10 py-3 text-xs rounded-xl focus:outline-none paper-card"
                     placeholder={t("newPasswordPlaceholder")}
                     required
                   />
@@ -390,7 +390,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
               <button 
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50"
+                className="w-full py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest disabled:opacity-50 paper-btn-dark"
               >
                 {isSubmitting ? t("updating") : t("saveNewPassword")}
               </button>
@@ -448,7 +448,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                       type="email" 
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-9 pr-4 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
+                      className="w-full pl-9 pr-4 py-3 text-xs rounded-xl focus:outline-none paper-card"
                       placeholder="seu@email.com"
                       required
                     />
@@ -472,7 +472,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                       type={showPassword ? "text" : "password"} 
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-9 pr-10 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
+                      className="w-full pl-9 pr-10 py-3 text-xs rounded-xl focus:outline-none paper-card"
                       placeholder="Sua senha"
                       required
                     />
@@ -489,7 +489,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                 <button 
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50"
+                  className="w-full py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest disabled:opacity-50 paper-btn-dark"
                 >
                   {isSubmitting ? t("entering") : t("login")}
                 </button>
@@ -520,7 +520,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                       type="text" 
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full pl-9 pr-4 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
+                      className="w-full pl-9 pr-4 py-3 text-xs rounded-xl focus:outline-none paper-card"
                       placeholder={t("namePlaceholder")}
                     />
                   </div>
@@ -534,7 +534,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                       type="text" 
                       value={username}
                       onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-                      className="w-full pl-9 pr-4 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
+                      className="w-full pl-9 pr-4 py-3 text-xs rounded-xl focus:outline-none paper-card"
                       placeholder={t("usernamePlaceholder", "seu_usuario")}
                       required
                     />
@@ -549,7 +549,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                       type="email" 
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-9 pr-4 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
+                      className="w-full pl-9 pr-4 py-3 text-xs rounded-xl focus:outline-none paper-card"
                       placeholder="seu@email.com"
                       required
                     />
@@ -562,10 +562,10 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                     <button
                       type="button"
                       onClick={() => setRequestedRole("user")}
-                      className={`py-2 px-3 text-[11px] font-bold rounded-xl border transition-all ${
+                      className={`py-2 px-3 text-[11px] font-bold rounded-xl transition-all ${
                         requestedRole === "user" 
-                          ? "border-[#1A1A1A] bg-[#1A1A1A] text-white dark:border-white dark:bg-white dark:text-[#1A1A1A]" 
-                          : "border-[#1A1A1A]/20 dark:border-white/20 text-[#1A1A1A] dark:text-white opacity-60 hover:opacity-100"
+                          ? "paper-btn-dark" 
+                          : "opacity-60 hover:opacity-100 paper-btn-light"
                       }`}
                     >
                       {t("readerRole")}
@@ -573,10 +573,10 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                     <button
                       type="button"
                       onClick={() => setRequestedRole("author")}
-                      className={`py-2 px-3 text-[11px] font-bold rounded-xl border transition-all ${
+                      className={`py-2 px-3 text-[11px] font-bold rounded-xl transition-all ${
                         requestedRole === "author" 
-                          ? "border-[#1A1A1A] bg-[#1A1A1A] text-white dark:border-white dark:bg-white dark:text-[#1A1A1A]" 
-                          : "border-[#1A1A1A]/20 dark:border-white/20 text-[#1A1A1A] dark:text-white opacity-60 hover:opacity-100"
+                          ? "paper-btn-dark" 
+                          : "opacity-60 hover:opacity-100 paper-btn-light"
                       }`}
                     >
                       {t("authorRole")}
@@ -592,7 +592,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                       type={showPassword ? "text" : "password"} 
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-9 pr-10 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
+                      className="w-full pl-9 pr-10 py-3 text-xs rounded-xl focus:outline-none paper-card"
                       placeholder={t("newPasswordPlaceholder")}
                       required
                     />
@@ -614,7 +614,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                       type={showPassword ? "text" : "password"} 
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full pl-9 pr-4 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
+                      className="w-full pl-9 pr-4 py-3 text-xs rounded-xl focus:outline-none paper-card"
                       placeholder={t("confirmPasswordPlaceholder")}
                       required
                     />
@@ -625,7 +625,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                 <button 
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50"
+                  className="w-full py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest disabled:opacity-50 paper-btn-dark"
                 >
                   {isSubmitting ? t("creatingAccount") : t("createAccount")}
                 </button>
@@ -658,7 +658,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                           type="email" 
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className="w-full pl-9 pr-4 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
+                          className="w-full pl-9 pr-4 py-3 text-xs rounded-xl focus:outline-none paper-card"
                           placeholder="seu@email.com"
                           required
                         />
@@ -671,7 +671,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                     <button 
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50"
+                      className="w-full py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest disabled:opacity-50 paper-btn-dark"
                     >
                       {isSubmitting ? t("checking") : t("continueReading")}
                     </button>
@@ -690,7 +690,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
 
                 {forgotStep === 2 && (
                   <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
-                    <div className="p-3.5 bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl text-xs space-y-1">
+                    <div className="p-3.5 rounded-xl text-xs space-y-1 paper-card">
                       <p className="font-bold flex items-center gap-1.5 text-[#1A1A1A] dark:text-[#F5F5F0]">
                         <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> {t("passwordGuidelineStrengthTitle")}
                       </p>
@@ -707,7 +707,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                           type={showPassword ? "text" : "password"} 
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          className="w-full pl-9 pr-10 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
+                          className="w-full pl-9 pr-10 py-3 text-xs rounded-xl focus:outline-none paper-card"
                           placeholder={t("newPasswordPlaceholder")}
                           required
                         />
@@ -729,7 +729,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                           type={showPassword ? "text" : "password"} 
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="w-full pl-9 pr-4 py-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white"
+                          className="w-full pl-9 pr-4 py-3 text-xs rounded-xl focus:outline-none paper-card"
                           placeholder={t("confirmPasswordPlaceholder")}
                           required
                         />
@@ -739,7 +739,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                     <button 
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50"
+                      className="w-full py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest disabled:opacity-50 paper-btn-dark"
                     >
                       {isSubmitting ? t("saving") : t("saveNewPassword")}
                     </button>
@@ -774,7 +774,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                         setMode("login");
                         setPassword("");
                       }}
-                      className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors"
+                      className="w-full py-3.5 rounded-full text-[10px] uppercase font-bold tracking-widest paper-btn-dark"
                     >
                       {t("forgotStep3Button")}
                     </button>

@@ -484,7 +484,7 @@ export function Reader() {
       
       {/* Resume Progress Prompt */}
       {promptProgress && (
-        <div className="bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-2xl p-4 sm:p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in duration-300">
+        <div className="rounded-2xl p-4 sm:p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in duration-300 paper-card">
           <div className="space-y-1 text-center sm:text-left">
             <p className="text-sm font-bold font-serif">{t("readingResumed")}</p>
             <p className="text-xs opacity-60">{t("readingRestored", { page: promptProgress.page + 1 })}</p>
@@ -492,13 +492,13 @@ export function Reader() {
           <div className="flex gap-2 w-full sm:w-auto justify-end">
             <button 
               onClick={() => { setCurrentPage(0); setPromptProgress(null); }} 
-              className="text-xs uppercase tracking-wider px-4 py-2 opacity-60 hover:opacity-100 font-bold border border-[#1A1A1A]/10 dark:border-white/10 rounded-full"
+              className="text-xs uppercase tracking-wider px-4 py-2 opacity-60 hover:opacity-100 font-bold rounded-full paper-btn-light"
             >
               {t("restartPage1")}
             </button>
             <button 
               onClick={() => setPromptProgress(null)} 
-              className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-5 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors shadow-sm"
+              className="px-5 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest paper-btn-dark"
             >
               {t("continueReading")}
             </button>
@@ -528,7 +528,7 @@ export function Reader() {
             <select
               value={currentPage}
               onChange={(e) => setCurrentPage(parseInt(e.target.value, 10))}
-              className="bg-[#F5F5F0] dark:bg-[#1A1A1A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl px-3 py-1 text-xs font-bold text-[#1A1A1A] dark:text-[#F5F5F0] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] dark:focus:ring-white"
+              className="rounded-xl px-3 py-1 text-xs font-bold focus:outline-none cursor-pointer paper-card"
             >
               {Array.from({ length: story.totalPages }, (_, i) => (
                 <option key={i} value={i}>
@@ -541,19 +541,19 @@ export function Reader() {
       </header>
 
       {/* Customization Toolbar (Typography, Theme, Offline & Bookmarks) */}
-      <div className="mb-6 bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-2xl p-3.5 sm:p-5 shadow-sm space-y-3 sm:space-y-4">
+      <div className="mb-6 rounded-2xl p-3.5 sm:p-5 space-y-3 sm:space-y-4 paper-card">
         {/* Row 1: Font Family & Tools Grid */}
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pb-3 border-b border-black/5 dark:border-white/5">
           {/* Font Family Selector */}
           <div className="flex items-center gap-2 w-full lg:w-auto">
             <Type className="w-4 h-4 opacity-60 shrink-0 hidden sm:inline" />
             <span className="text-xs font-bold uppercase tracking-wider opacity-70 hidden sm:inline">{t("fontFamily")}:</span>
-            <div className="flex items-center gap-1 bg-[#F5F5F0] dark:bg-[#1A1A1A] p-1 rounded-xl border border-black/5 dark:border-white/5 w-full lg:w-auto">
+            <div className="flex items-center gap-1 p-1 rounded-xl w-full lg:w-auto paper-card">
               <button
                 onClick={() => setFontFamily("serif")}
                 className={cn(
                   "flex-1 lg:flex-none px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-serif font-bold transition-all text-center",
-                  fontFamily === "serif" ? "bg-white dark:bg-[#0A0A0A] text-black dark:text-white shadow-sm" : "opacity-60 hover:opacity-100"
+                  fontFamily === "serif" ? "paper-btn-dark shadow-sm" : "opacity-60 hover:opacity-100"
                 )}
               >
                 Serif
@@ -562,7 +562,7 @@ export function Reader() {
                 onClick={() => setFontFamily("sans")}
                 className={cn(
                   "flex-1 lg:flex-none px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-sans font-bold transition-all text-center",
-                  fontFamily === "sans" ? "bg-white dark:bg-[#0A0A0A] text-black dark:text-white shadow-sm" : "opacity-60 hover:opacity-100"
+                  fontFamily === "sans" ? "paper-btn-dark shadow-sm" : "opacity-60 hover:opacity-100"
                 )}
               >
                 Sans
@@ -571,7 +571,7 @@ export function Reader() {
                 onClick={() => setFontFamily("opendyslexic")}
                 className={cn(
                   "flex-1 lg:flex-none px-2 py-1.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-bold transition-all font-opendyslexic text-center truncate",
-                  fontFamily === "opendyslexic" ? "bg-amber-400 text-black shadow-sm font-extrabold" : "opacity-70 hover:opacity-100"
+                  fontFamily === "opendyslexic" ? "paper-btn-amber font-extrabold shadow-sm" : "opacity-70 hover:opacity-100"
                 )}
                 title={t("openDyslexic")}
               >
@@ -594,35 +594,35 @@ export function Reader() {
                   // Load all pages into story object
                   const pagesMap: { [pageIndex: number]: string } = {};
                   try {
-                    const pSnap = await getDocs(query(collection(db, `stories/${id}/pages`), orderBy("index", "asc")));
-                    pSnap.docs.forEach((d) => {
-                      const data = d.data();
-                      pagesMap[data.index || 0] = data.content || "";
-                    });
-                    await saveStoryOffline({
-                      id,
-                      title: story.title,
-                      author: story.author,
-                      coverImage: story.coverImage,
-                      totalPages: story.totalPages,
-                      wordCount: story.wordCount,
-                      pages: pagesMap,
-                      downloadedAt: new Date().toISOString()
-                    });
-                    setIsDownloaded(true);
+                     const pSnap = await getDocs(query(collection(db, `stories/${id}/pages`), orderBy("index", "asc")));
+                     pSnap.docs.forEach((d) => {
+                       const data = d.data();
+                       pagesMap[data.index || 0] = data.content || "";
+                     });
+                     await saveStoryOffline({
+                       id,
+                       title: story.title,
+                       author: story.author,
+                       coverImage: story.coverImage,
+                       totalPages: story.totalPages,
+                       wordCount: story.wordCount,
+                       pages: pagesMap,
+                       downloadedAt: new Date().toISOString()
+                     });
+                     setIsDownloaded(true);
                   } catch (e) {
-                    console.error("Error saving offline:", e);
+                     console.error("Error saving offline:", e);
                   } finally {
-                    setIsDownloading(false);
+                     setIsDownloading(false);
                   }
                 }
               }}
               disabled={isDownloading}
               className={cn(
-                "px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider border transition-all flex items-center justify-center gap-1.5",
+                "px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5",
                 isDownloaded 
-                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30" 
-                  : "border-black/10 dark:border-white/10 opacity-70 hover:opacity-100"
+                  ? "paper-btn-emerald" 
+                  : "paper-btn-light opacity-70 hover:opacity-100"
               )}
             >
               <Download className="w-3.5 h-3.5 shrink-0" />
@@ -632,7 +632,7 @@ export function Reader() {
             {/* Private Notes & Bookmarks Drawer Button */}
             <button
               onClick={() => setShowNotesDrawer(true)}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider border border-black/10 dark:border-white/10 opacity-80 hover:opacity-100 flex items-center justify-center gap-1.5 bg-[#F5F5F0] dark:bg-[#1A1A1A]"
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider opacity-80 hover:opacity-100 flex items-center justify-center gap-1.5 paper-btn-light"
             >
               <Bookmark className="w-3.5 h-3.5 text-amber-500 shrink-0" />
               <span>{t("bookmarks")} ({notesList.length})</span>
@@ -644,7 +644,7 @@ export function Reader() {
                 loadPlaylists();
                 setShowPlaylistModal(true);
               }}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider border border-black/10 dark:border-white/10 opacity-80 hover:opacity-100 flex items-center justify-center gap-1.5 bg-[#F5F5F0] dark:bg-[#1A1A1A] col-span-2 sm:col-span-1"
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider opacity-80 hover:opacity-100 flex items-center justify-center gap-1.5 col-span-2 sm:col-span-1 paper-btn-light"
             >
               <ListPlus className="w-3.5 h-3.5 text-blue-500 shrink-0" />
               <span>{t("addToPlaylist")}</span>
@@ -684,7 +684,7 @@ export function Reader() {
           {/* Controls */}
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
             {/* Slider */}
-            <div className="flex items-center gap-2.5 w-full sm:w-56 bg-[#F5F5F0] dark:bg-[#1A1A1A] px-3.5 py-2 rounded-xl border border-[#1A1A1A]/10 dark:border-white/10">
+            <div className="flex items-center gap-2.5 w-full sm:w-56 px-3.5 py-2 rounded-xl paper-card">
               <Sun className="w-3.5 h-3.5 opacity-50 shrink-0 text-amber-500" />
               <input 
                 type="range" 
@@ -714,10 +714,10 @@ export function Reader() {
                   key={preset.val}
                   onClick={() => setEyeComfortIntensity(preset.val)}
                   className={cn(
-                    "text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg border transition-all",
+                    "text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all",
                     eyeComfortIntensity === preset.val
-                      ? "bg-amber-400 dark:bg-amber-500 text-black border-amber-400 dark:border-amber-500 font-extrabold shadow-sm"
-                      : "border-[#1A1A1A]/10 dark:border-white/10 opacity-70 hover:opacity-100 bg-[#F5F5F0] dark:bg-[#1A1A1A]"
+                      ? "paper-btn-amber font-extrabold shadow-sm"
+                      : "opacity-70 hover:opacity-100 paper-btn-light"
                   )}
                 >
                   {preset.label}
@@ -729,7 +729,7 @@ export function Reader() {
       </div>
 
       {/* Reader Page Frame */}
-      <div className="relative min-h-[50vh] p-6 sm:p-10 rounded-2xl border transition-all shadow-sm overflow-hidden bg-white dark:bg-[#0A0A0A] border-[#1A1A1A]/10 dark:border-white/10">
+      <div className="relative min-h-[50vh] p-6 sm:p-10 rounded-2xl transition-all overflow-hidden paper-card">
         {/* Eye Comfort Warm Yellow Filter Overlay */}
         {eyeComfortIntensity > 0 && (
           <div 
@@ -777,7 +777,7 @@ export function Reader() {
         <button
           onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
           disabled={!hasPrev}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-5 sm:px-6 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-30 disabled:cursor-not-allowed shadow-sm"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed paper-btn-light"
         >
           <ChevronLeft className="w-4 h-4" /> {t("previous")}
         </button>
@@ -794,7 +794,7 @@ export function Reader() {
               <select
                 value={currentPage}
                 onChange={(e) => setCurrentPage(parseInt(e.target.value, 10))}
-                className="bg-[#F5F5F0] dark:bg-[#1A1A1A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl px-3 py-1.5 text-xs font-bold font-mono text-[#1A1A1A] dark:text-[#F5F5F0] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] dark:focus:ring-white"
+                className="rounded-xl px-3 py-1.5 text-xs font-bold font-mono focus:outline-none paper-card cursor-pointer"
               >
                 {Array.from({ length: story.totalPages }, (_, i) => (
                   <option key={i} value={i}>
@@ -812,7 +812,7 @@ export function Reader() {
         <button
           onClick={() => setCurrentPage(p => Math.min(story.totalPages - 1, p + 1))}
           disabled={!hasNext}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-5 sm:px-6 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-30 disabled:cursor-not-allowed shadow-sm"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed paper-btn-dark"
         >
           {t("next")} <ChevronRight className="w-4 h-4" />
         </button>
@@ -828,7 +828,7 @@ export function Reader() {
 
           <div className="space-y-4">
             {approvedComments.map((c) => (
-              <div key={c.id} className="p-5 bg-white dark:bg-[#0A0A0A] rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10 space-y-2">
+              <div key={c.id} className="p-5 rounded-2xl space-y-2 paper-card">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 bg-[#1A1A1A]/10 dark:bg-white/10 rounded-full flex items-center justify-center font-bold text-xs">
@@ -862,7 +862,7 @@ export function Reader() {
           </div>
           
           {submitted ? (
-            <div className="bg-white dark:bg-[#0A0A0A] rounded-2xl p-8 text-center border border-[#1A1A1A]/10 dark:border-white/10 space-y-3">
+            <div className="rounded-2xl p-8 text-center space-y-3 paper-card">
               <CheckCircle className="w-10 h-10 mx-auto text-emerald-500 mb-2" />
               <p className="font-bold uppercase tracking-widest text-xs">{t("reviewSent")}</p>
               <p className="opacity-60 text-xs max-w-sm mx-auto">
@@ -870,7 +870,7 @@ export function Reader() {
               </p>
             </div>
           ) : (
-            <form onSubmit={handleReviewSubmit} className="bg-white dark:bg-[#0A0A0A] rounded-2xl p-6 sm:p-8 border border-[#1A1A1A]/10 dark:border-white/10 max-w-lg mx-auto space-y-6 shadow-sm">
+            <form onSubmit={handleReviewSubmit} className="rounded-2xl p-6 sm:p-8 max-w-lg mx-auto space-y-6 paper-card">
               <div className="text-center">
                 <label className="block text-[10px] font-bold uppercase tracking-widest opacity-60 mb-4">{t("yourRating")}</label>
                 <div className="flex justify-center gap-2">
@@ -895,7 +895,7 @@ export function Reader() {
                 <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  className="w-full bg-[#F5F5F0] dark:bg-[#1A1A1A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white resize-none text-xs sm:text-sm"
+                  className="w-full rounded-xl p-4 focus:outline-none resize-none text-xs sm:text-sm paper-card"
                   rows={4}
                   placeholder={t("commentPlaceholder")}
                 />
@@ -905,7 +905,7 @@ export function Reader() {
               <button 
                 type="submit"
                 disabled={rating === 0 || isSubmitting}
-                className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-4 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50 shadow-sm"
+                className="w-full py-4 rounded-full font-bold text-[10px] uppercase tracking-widest disabled:opacity-50 paper-btn-dark"
               >
                 {isSubmitting ? t("sending") : t("submitReview")}
               </button>
@@ -922,7 +922,7 @@ export function Reader() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             onClick={scrollToTop}
-            className="fixed bottom-6 right-6 p-3.5 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] rounded-full shadow-xl hover:opacity-95 transition-all z-50 flex items-center justify-center border border-white/10 dark:border-black/10"
+            className="fixed bottom-6 right-6 p-3.5 rounded-full z-50 flex items-center justify-center paper-btn-dark shadow-2xl transition-all"
             title="Voltar ao topo"
           >
             <ArrowUp className="w-5 h-5" />

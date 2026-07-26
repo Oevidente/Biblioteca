@@ -121,7 +121,7 @@ export function Layout() {
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value as any)}
-              className="bg-transparent dark:bg-[#1A1A1A] border border-[#1A1A1A]/15 dark:border-white/15 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] text-[#1A1A1A] dark:text-[#F5F5F0]"
+              className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest focus:outline-none cursor-pointer paper-card"
               aria-label={t("language")}
               title={t("language")}
             >
@@ -160,7 +160,7 @@ export function Layout() {
           {user ? (
             <button
               onClick={() => openAuth("profile")}
-              className="flex items-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-4 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest transition-colors paper-btn-dark shadow-sm"
             >
               <UserIcon className="w-3.5 h-3.5" />
               <span className="max-w-[120px] truncate">{profile?.username ? `@${profile.username}` : (profile?.displayName || user.email?.split("@")[0])}</span>
@@ -176,7 +176,7 @@ export function Layout() {
               </button>
               <button
                 onClick={() => openAuth("register")}
-                className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-4 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors shadow-sm"
+                className="px-4 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest transition-colors paper-btn-dark shadow-sm"
               >
                 {t("register")}
               </button>
@@ -227,7 +227,7 @@ export function Layout() {
 
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 bg-white dark:bg-[#0A0A0A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10"
+            className="p-2 rounded-xl paper-btn-light"
             aria-label="Menu de navegação"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -237,7 +237,7 @@ export function Layout() {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white dark:bg-[#0A0A0A] border-b border-[#1A1A1A]/10 dark:border-white/10 px-6 py-6 space-y-4 animate-in slide-in-from-top-2 duration-200">
+        <div className="md:hidden px-6 py-6 space-y-4 animate-in slide-in-from-top-2 duration-200 paper-card rounded-b-2xl border-t-0 shadow-xl">
           <Link 
             to="/" 
             className="block text-xs font-bold tracking-widest uppercase py-2 border-b border-[#1A1A1A]/5 dark:border-white/5"
@@ -256,7 +256,7 @@ export function Layout() {
           {user ? (
             <button
               onClick={() => { setMobileMenuOpen(false); openAuth("profile"); }}
-              className="w-full flex items-center justify-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-3 rounded-full font-bold text-xs uppercase tracking-widest mt-2"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-full font-bold text-xs uppercase tracking-widest mt-2 paper-btn-dark"
             >
               <UserIcon className="w-4 h-4" />
               <span>{t("profile")} ({profile?.username ? `@${profile.username}` : (profile?.displayName || user.email?.split("@")[0])})</span>
@@ -265,13 +265,13 @@ export function Layout() {
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
                 onClick={() => { setMobileMenuOpen(false); openAuth("login"); }}
-                className="w-full border border-[#1A1A1A]/20 dark:border-white/20 py-3 rounded-full font-bold text-xs uppercase tracking-widest text-center"
+                className="w-full py-3 rounded-full font-bold text-xs uppercase tracking-widest text-center paper-btn-light"
               >
                 {t("login")}
               </button>
               <button
                 onClick={() => { setMobileMenuOpen(false); openAuth("register"); }}
-                className="w-full bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-3 rounded-full font-bold text-xs uppercase tracking-widest text-center"
+                className="w-full py-3 rounded-full font-bold text-xs uppercase tracking-widest text-center paper-btn-dark"
               >
                 {t("register")}
               </button>
@@ -292,7 +292,7 @@ export function Layout() {
           <span className="text-[9px] uppercase font-bold tracking-widest opacity-60 hidden sm:inline">Firebase {t("online")}</span>
         </div>
         <div className="flex items-center space-x-4">
-          <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">{t("version")} 2.7.0-beta</span>
+          <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">{t("version")} 2.8.2-beta</span>
         </div>
       </footer>
 

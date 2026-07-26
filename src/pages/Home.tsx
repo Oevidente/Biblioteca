@@ -302,7 +302,7 @@ export function Home() {
     return (
       <Link key={story.id} to={`/story/${story.id}`} className="group flex flex-col h-full">
         {/* Cover Image Container */}
-        <div className="relative aspect-[2/3] w-full bg-[#EAE8E2] dark:bg-[#2A2A2A] rounded-[22px] overflow-hidden shadow-sm border border-black/5 dark:border-white/5 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-md">
+        <div className="relative aspect-[2/3] w-full rounded-[22px] overflow-hidden transition-all duration-300 group-hover:-translate-y-1 paper-card">
           <BookCoverImage 
             src={story.coverImage} 
             alt={story.title} 
@@ -317,26 +317,26 @@ export function Home() {
                 e.stopPropagation();
                 setStoryForPlaylistModal(story);
               }}
-              className="p-2 bg-black/40 backdrop-blur-md rounded-full hover:bg-black/60 transition-colors text-white"
+              className="p-2 backdrop-blur-md rounded-full transition-all text-white paper-btn-dark"
               title={t("addToPlaylist")}
             >
               <ListPlus className="w-3.5 h-3.5" />
             </button>
             <button 
               onClick={(e) => toggleFavorite(e, story.id)}
-              className="p-2 bg-black/40 backdrop-blur-md rounded-full hover:bg-black/60 transition-colors"
+              className="p-2 backdrop-blur-md rounded-full transition-all paper-btn-dark"
               title={isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
             >
               <Heart className={cn("w-3.5 h-3.5 transition-transform hover:scale-110", isFav ? "fill-red-500 text-red-500" : "text-white")} />
             </button>
           </div>
 
-          <div className="absolute top-2.5 left-2.5 flex items-center gap-1 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full text-white text-[10px] font-bold">
+          <div className="absolute top-2.5 left-2.5 flex items-center gap-1 backdrop-blur-md px-2 py-0.5 rounded-full text-white text-[10px] font-bold paper-btn-dark">
             <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {avgRating}
           </div>
 
           {isScheduledFuture && (
-            <div className="absolute bottom-2.5 left-2.5 right-2.5 bg-amber-500/90 backdrop-blur-md text-black px-2.5 py-1 rounded-xl text-[9px] font-bold uppercase tracking-widest flex items-center justify-center gap-1 shadow-md">
+            <div className="absolute bottom-2.5 left-2.5 right-2.5 backdrop-blur-md text-black px-2.5 py-1 rounded-xl text-[9px] font-bold uppercase tracking-widest flex items-center justify-center gap-1 paper-btn-amber">
               <Calendar className="w-3 h-3" />
               <span>{t("isScheduledBadge")} ({new Date(story.scheduledReleaseAt!).toLocaleDateString()})</span>
             </div>
@@ -407,12 +407,12 @@ export function Home() {
         </div>
         
         {/* Navigation Tabs - Desktop Inline / Mobile iOS Floating Bottom Bar */}
-        <div className="fixed bottom-3 left-3 right-3 z-40 md:static md:bottom-auto md:left-auto md:right-auto bg-white/95 dark:bg-[#0A0A0A]/95 backdrop-blur-xl border border-[#1A1A1A]/15 dark:border-white/15 p-1 sm:p-1.5 rounded-2xl md:rounded-full shadow-2xl md:shadow-sm grid grid-cols-5 md:flex md:justify-start items-center gap-1">
+        <div className="fixed bottom-3 left-3 right-3 z-40 md:static md:bottom-auto md:left-auto md:right-auto paper-card p-1 sm:p-1.5 rounded-2xl md:rounded-full shadow-2xl md:shadow-sm grid grid-cols-5 md:flex md:justify-start items-center gap-1">
           <button 
             onClick={() => setActiveTab("library")}
             className={cn(
               "flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-full text-[9px] md:text-[10px] uppercase font-bold tracking-wider md:tracking-widest transition-all", 
-              activeTab === "library" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" : "opacity-60 hover:opacity-100"
+              activeTab === "library" ? "paper-btn-dark" : "paper-btn-light opacity-60 hover:opacity-100"
             )}
             title={t("library")}
             aria-label={t("library")}
@@ -424,7 +424,7 @@ export function Home() {
             onClick={() => setActiveTab("history")}
             className={cn(
               "flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-full text-[9px] md:text-[10px] uppercase font-bold tracking-wider md:tracking-widest transition-all", 
-              activeTab === "history" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" : "opacity-60 hover:opacity-100"
+              activeTab === "history" ? "paper-btn-dark" : "paper-btn-light opacity-60 hover:opacity-100"
             )}
             title={t("history")}
             aria-label={t("history")}
@@ -436,7 +436,7 @@ export function Home() {
             onClick={() => setActiveTab("favorites")}
             className={cn(
               "flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-full text-[9px] md:text-[10px] uppercase font-bold tracking-wider md:tracking-widest transition-all", 
-              activeTab === "favorites" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" : "opacity-60 hover:opacity-100"
+              activeTab === "favorites" ? "paper-btn-dark" : "paper-btn-light opacity-60 hover:opacity-100"
             )}
             title={t("favorites")}
             aria-label={t("favorites")}
@@ -448,7 +448,7 @@ export function Home() {
             onClick={() => setActiveTab("playlists")}
             className={cn(
               "flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-full text-[9px] md:text-[10px] uppercase font-bold tracking-wider md:tracking-widest transition-all", 
-              activeTab === "playlists" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" : "opacity-60 hover:opacity-100"
+              activeTab === "playlists" ? "paper-btn-dark" : "paper-btn-light opacity-60 hover:opacity-100"
             )}
             title={t("playlists")}
             aria-label={t("playlists")}
@@ -460,7 +460,7 @@ export function Home() {
             onClick={() => setActiveTab("offline")}
             className={cn(
               "flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-full text-[9px] md:text-[10px] uppercase font-bold tracking-wider md:tracking-widest transition-all", 
-              activeTab === "offline" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] shadow-sm" : "opacity-60 hover:opacity-100"
+              activeTab === "offline" ? "paper-btn-dark" : "paper-btn-light opacity-60 hover:opacity-100"
             )}
             title={t("offlineMode")}
             aria-label={t("offlineMode")}
@@ -481,7 +481,7 @@ export function Home() {
                 placeholder={t("searchPlaceholder")} 
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white text-xs sm:text-sm shadow-sm"
+                className="w-full pl-10 pr-4 py-3 rounded-full focus:outline-none text-xs sm:text-sm paper-card"
               />
             </div>
             
@@ -489,7 +489,7 @@ export function Home() {
               <select 
                 value={selectedGenre}
                 onChange={e => setSelectedGenre(e.target.value)}
-                className="bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-full px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] shadow-sm"
+                className="rounded-full px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none cursor-pointer paper-card"
               >
                 {allGenres.map(g => <option key={g} value={g}>{g === "All" ? t("any") : getLocalizedTag(g, language)}</option>)}
               </select>
@@ -497,7 +497,7 @@ export function Home() {
               <select 
                 value={sortBy}
                 onChange={e => setSortBy(e.target.value as any)}
-                className="bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-full px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] shadow-sm"
+                className="rounded-full px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none cursor-pointer paper-card"
               >
                 <option value="recent">{t("mostRecent")}</option>
                 <option value="popular">{t("mostPopular")}</option>
@@ -548,7 +548,7 @@ export function Home() {
                 <Link 
                   key={`${item.id}-${idx}`} 
                   to={`/story/${item.id}`} 
-                  className="flex items-center gap-4 sm:gap-6 p-4 bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-2xl hover:border-[#1A1A1A]/30 transition-all group shadow-sm"
+                  className="flex items-center gap-4 sm:gap-6 p-4 rounded-2xl hover:-translate-y-0.5 transition-all group paper-card"
                 >
                   <div className="w-14 sm:w-16 aspect-[2/3] h-auto bg-[#EAE8E2] dark:bg-[#2A2A2A] rounded-lg overflow-hidden shrink-0">
                     <BookCoverImage 
@@ -570,7 +570,7 @@ export function Home() {
                     </div>
                   </div>
                   <div className="shrink-0">
-                    <span className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-3.5 py-2 rounded-full font-bold text-[9px] sm:text-[10px] uppercase tracking-widest">
+                    <span className="px-3.5 py-2 rounded-full font-bold text-[9px] sm:text-[10px] uppercase tracking-widest paper-btn-dark">
                       {t("continueReading")}
                     </span>
                   </div>
@@ -591,7 +591,7 @@ export function Home() {
             </div>
             <button
               onClick={() => setShowCreatePlaylistModal(true)}
-              className="flex items-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm hover:opacity-90"
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest paper-btn-dark"
             >
               <Plus className="w-4 h-4" />
               <span>{t("createPlaylist")}</span>
@@ -607,14 +607,14 @@ export function Home() {
               playlists.map((pl) => {
                 const plStories = stories.filter(s => pl.storyIds.includes(s.id));
                 return (
-                  <div key={pl.id} className="p-5 bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-2xl shadow-sm space-y-4 flex flex-col justify-between hover:border-black/20 dark:hover:border-white/20 transition-all">
+                  <div key={pl.id} className="p-5 rounded-2xl space-y-4 flex flex-col justify-between hover:-translate-y-0.5 transition-all paper-card">
                     <div className="space-y-3">
                       <div className="flex justify-between items-start gap-2">
                         <div>
                           <h3 className="font-serif font-bold text-lg leading-tight">{pl.title}</h3>
                           <p className="text-xs opacity-60 line-clamp-2 mt-1">{pl.description || "Coleção de histórias selecionadas."}</p>
                         </div>
-                        <span className="text-[9px] bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0">
+                        <span className="text-[9px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 paper-btn-light">
                           {t("storiesCount").replace("{count}", String(pl.storyIds.length))}
                         </span>
                       </div>
@@ -623,18 +623,18 @@ export function Home() {
                       {plStories.length > 0 ? (
                         <div className="flex items-center gap-2 pt-1 overflow-x-auto py-1">
                           {plStories.slice(0, 4).map((s) => (
-                            <div key={s.id} className="w-12 aspect-[2/3] rounded-lg overflow-hidden shrink-0 border border-black/10 dark:border-white/10 shadow-sm">
+                            <div key={s.id} className="w-12 aspect-[2/3] rounded-lg overflow-hidden shrink-0 shadow-sm paper-card">
                               <BookCoverImage src={s.coverImage} alt={s.title} title={s.title} className="w-full h-full object-cover" />
                             </div>
                           ))}
                           {plStories.length > 4 && (
-                            <div className="w-12 aspect-[2/3] rounded-lg bg-[#F5F5F0] dark:bg-[#1A1A1A] flex items-center justify-center text-[10px] font-bold opacity-60 shrink-0 border border-black/10 dark:border-white/10">
-                              +{plStories.length - 4}
-                            </div>
+                          <div className="w-12 aspect-[2/3] rounded-lg flex items-center justify-center text-[10px] font-bold opacity-60 shrink-0 paper-card">
+                            +{plStories.length - 4}
+                          </div>
                           )}
                         </div>
                       ) : (
-                        <div className="py-3 px-4 bg-[#F5F5F0] dark:bg-[#1A1A1A] rounded-xl text-[11px] opacity-50 italic">
+                        <div className="py-3 px-4 rounded-xl text-[11px] opacity-50 italic paper-card">
                           {t("emptyPlaylist")}
                         </div>
                       )}
@@ -649,7 +649,7 @@ export function Home() {
                       <div className="flex gap-2 pt-1">
                         <button
                           onClick={() => setSelectedPlaylistForDetail(pl)}
-                          className="flex-1 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] py-2 px-3 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5"
+                          className="flex-1 py-2 px-3 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 paper-btn-dark"
                         >
                           <FolderPlus className="w-3.5 h-3.5" />
                           <span>{t("managePlaylist")}</span>
@@ -661,7 +661,7 @@ export function Home() {
                               await loadPlaylistsData();
                             }
                           }}
-                          className="p-2 text-red-500 hover:bg-red-500/10 border border-red-500/20 rounded-xl transition-colors"
+                          className="p-2 rounded-xl transition-colors paper-btn-red"
                           title={t("deletePlaylist")}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -691,7 +691,7 @@ export function Home() {
               </div>
             ) : (
               offlineStories.map((item) => (
-                <div key={item.id} className="p-4 bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-2xl shadow-sm flex items-center gap-4">
+                <div key={item.id} className="p-4 rounded-2xl flex items-center gap-4 paper-card">
                   <div className="w-16 aspect-[2/3] bg-[#EAE8E2] dark:bg-[#2A2A2A] rounded-xl overflow-hidden shrink-0">
                     <BookCoverImage src={item.coverImage} alt={item.title} title={item.title} className="w-full h-full object-cover" />
                   </div>
@@ -701,7 +701,7 @@ export function Home() {
                     <div className="flex items-center gap-2 mt-3">
                       <Link 
                         to={`/story/${item.id}`} 
-                        className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest"
+                        className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest paper-btn-dark"
                       >
                         Ler Offline
                       </Link>
@@ -710,7 +710,7 @@ export function Home() {
                           await removeOfflineStory(item.id);
                           await loadOfflineData();
                         }}
-                        className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
+                        className="p-1.5 rounded-full transition-all paper-btn-red"
                         title={t("removeOffline")}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -727,7 +727,7 @@ export function Home() {
       {/* CREATE PLAYLIST MODAL */}
       {showCreatePlaylistModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-[#1A1A1A] w-full max-w-md rounded-2xl p-6 shadow-2xl border border-black/10 dark:border-white/10 space-y-4">
+          <div className="w-full max-w-md rounded-2xl p-6 space-y-4 paper-card">
             <h3 className="font-serif font-bold text-xl">{t("createPlaylist")}</h3>
             
             <div>
@@ -736,7 +736,7 @@ export function Home() {
                 type="text" 
                 value={newPlaylistTitle} 
                 onChange={(e) => setNewPlaylistTitle(e.target.value)}
-                className="w-full p-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-black/10 dark:border-white/10 rounded-xl focus:outline-none"
+                className="w-full p-3 text-xs rounded-xl focus:outline-none paper-card"
                 placeholder="Ex: Melhores Romances de Fantasia"
               />
             </div>
@@ -746,7 +746,7 @@ export function Home() {
               <textarea 
                 value={newPlaylistDesc} 
                 onChange={(e) => setNewPlaylistDesc(e.target.value)}
-                className="w-full p-3 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-black/10 dark:border-white/10 rounded-xl focus:outline-none h-20"
+                className="w-full p-3 text-xs rounded-xl focus:outline-none h-20 paper-card"
                 placeholder="Descrição opcional..."
               />
             </div>
@@ -767,7 +767,7 @@ export function Home() {
             <div className="flex justify-end gap-3 pt-2">
               <button 
                 onClick={() => setShowCreatePlaylistModal(false)}
-                className="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest opacity-60 hover:opacity-100"
+                className="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest paper-btn-light"
               >
                 {t("cancel")}
               </button>
@@ -791,7 +791,7 @@ export function Home() {
                   setShowCreatePlaylistModal(false);
                   await loadPlaylistsData();
                 }}
-                className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest"
+                className="px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest paper-btn-dark"
               >
                 {t("saveChanges")}
               </button>

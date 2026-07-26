@@ -235,18 +235,18 @@ export function Writer() {
   return (
     <div className="max-w-5xl mx-auto py-4 sm:py-8 px-3 sm:px-8 animate-in fade-in duration-500 overflow-x-hidden">
       {/* Top Header & Actions Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6 bg-white dark:bg-[#1A1A1A] p-4 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6 p-4 rounded-2xl paper-card">
         <div className="flex items-center justify-between w-full sm:w-auto">
           <button 
             onClick={() => navigate("/admin")}
-            className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity"
+            className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity paper-btn-light px-3 py-1.5 rounded-xl"
           >
             <ArrowLeft className="w-4 h-4" />
             {t("backToAdmin")}
           </button>
 
           {/* Mobile Auto-Save Status Badge */}
-          <div className="sm:hidden flex items-center gap-1.5 text-[10px] font-mono px-2.5 py-1 rounded-full bg-[#1A1A1A]/5 dark:bg-white/5 border border-[#1A1A1A]/10 dark:border-white/10 shrink-0">
+          <div className="sm:hidden flex items-center gap-1.5 text-[10px] font-mono px-2.5 py-1 rounded-full paper-card shrink-0">
             {isAutoSaving ? (
               <>
                 <Loader2 className="w-3 h-3 animate-spin text-amber-500" />
@@ -273,7 +273,7 @@ export function Writer() {
 
         {/* Desktop Auto-Save Badge & Action Buttons */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end w-full sm:w-auto gap-3">
-          <div className="hidden sm:flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-full bg-[#1A1A1A]/5 dark:bg-white/5 border border-[#1A1A1A]/10 dark:border-white/10 shrink-0">
+          <div className="hidden sm:flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-full shrink-0 paper-card">
             {isAutoSaving ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
@@ -301,7 +301,7 @@ export function Writer() {
             <button
               onClick={() => handleSave(true)}
               disabled={isSaving || isAutoSaving}
-              className="flex-1 sm:flex-initial px-4 py-2.5 bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-2 min-h-[40px]"
+              className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 min-h-[40px] paper-btn-amber"
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Save className="w-4 h-4 shrink-0" />}
               <span>{t("saveDraft")}</span>
@@ -310,7 +310,7 @@ export function Writer() {
             <button
               onClick={() => handleSave(false)}
               disabled={isSaving || isAutoSaving}
-              className="flex-1 sm:flex-initial px-4 py-2.5 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-[#333] dark:hover:bg-[#EAE8E2] transition-colors flex items-center justify-center gap-2 min-h-[40px] shadow-sm"
+              className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 min-h-[40px] paper-btn-dark"
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Send className="w-4 h-4 shrink-0" />}
               <span>{story.isDraft ? t("publishNow") : t("saveChanges")}</span>
@@ -326,7 +326,7 @@ export function Writer() {
       )}
 
       {/* Editor Main Card */}
-      <div className="bg-white dark:bg-[#1A1A1A] rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10 p-4 sm:p-8 max-w-full overflow-hidden">
+      <div className="rounded-2xl p-4 sm:p-8 max-w-full overflow-hidden paper-card">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
           <div>
             <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1.5">{t("editTitle")}</label>
@@ -334,7 +334,7 @@ export function Writer() {
               type="text" 
               value={editTitle} 
               onChange={(e) => setEditTitle(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-base sm:text-lg font-serif font-bold bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none focus:border-[#1A1A1A] dark:focus:border-white transition-colors"
+              className="w-full px-3.5 py-2.5 text-base sm:text-lg font-serif font-bold rounded-xl focus:outline-none transition-colors paper-card"
             />
           </div>
           <div>
@@ -343,7 +343,7 @@ export function Writer() {
               type="text" 
               value={editAuthor} 
               onChange={(e) => setEditAuthor(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-base sm:text-lg font-serif bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none focus:border-[#1A1A1A] dark:focus:border-white transition-colors"
+              className="w-full px-3.5 py-2.5 text-base sm:text-lg font-serif rounded-xl focus:outline-none transition-colors paper-card"
             />
             {profile && (
               <div className="flex flex-wrap gap-1.5 mt-2">
@@ -351,7 +351,7 @@ export function Writer() {
                   <button
                     type="button"
                     onClick={() => setEditAuthor(profile.displayName!)}
-                    className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
+                    className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all active:scale-95 paper-btn-amber"
                   >
                     {t("useMyName", { name: profile.displayName })}
                   </button>
@@ -361,14 +361,14 @@ export function Writer() {
                     <button
                       type="button"
                       onClick={() => setEditAuthor(`@${profile.username}`)}
-                      className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
+                      className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all active:scale-95 paper-btn-amber"
                     >
                       {t("useMyUsername", { username: profile.username })}
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditAuthor(profile.username!)}
-                      className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
+                      className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all active:scale-95 paper-btn-amber"
                     >
                       {t("useUsernameOnly", { username: profile.username })}
                     </button>
@@ -394,12 +394,12 @@ export function Writer() {
               type="datetime-local" 
               value={scheduledReleaseAt} 
               onChange={(e) => setScheduledReleaseAt(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-xs font-mono bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none focus:border-[#1A1A1A] dark:focus:border-white transition-colors"
+              className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl focus:outline-none transition-colors paper-card"
             />
           </div>
         </div>
 
-        <div className="border-t border-[#1A1A1A]/10 dark:border-white/10 pt-6">
+        <div className="border-t border-black/5 dark:border-white/5 pt-6">
           <StoryEditor
             initialPages={pages}
             onChange={(newPages, text, wc) => {
