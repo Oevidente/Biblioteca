@@ -317,26 +317,26 @@ export function Home() {
                 e.stopPropagation();
                 setStoryForPlaylistModal(story);
               }}
-              className="p-2 backdrop-blur-md rounded-full transition-all text-white paper-btn-dark"
+              className="p-2 rounded-full text-white paper-glass"
               title={t("addToPlaylist")}
             >
               <ListPlus className="w-3.5 h-3.5" />
             </button>
             <button 
               onClick={(e) => toggleFavorite(e, story.id)}
-              className="p-2 backdrop-blur-md rounded-full transition-all paper-btn-dark"
+              className="p-2 rounded-full paper-glass"
               title={isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
             >
               <Heart className={cn("w-3.5 h-3.5 transition-transform hover:scale-110", isFav ? "fill-red-500 text-red-500" : "text-white")} />
             </button>
           </div>
 
-          <div className="absolute top-2.5 left-2.5 flex items-center gap-1 backdrop-blur-md px-2 py-0.5 rounded-full text-white text-[10px] font-bold paper-btn-dark">
+          <div className="absolute top-2.5 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full text-white text-[10px] font-bold paper-glass">
             <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {avgRating}
           </div>
 
           {isScheduledFuture && (
-            <div className="absolute bottom-2.5 left-2.5 right-2.5 backdrop-blur-md text-black px-2.5 py-1 rounded-xl text-[9px] font-bold uppercase tracking-widest flex items-center justify-center gap-1 paper-btn-amber">
+            <div className="absolute bottom-2.5 left-2.5 right-2.5 text-black px-2.5 py-1 rounded-xl text-[9px] font-bold uppercase tracking-widest flex items-center justify-center gap-1 paper-btn-amber opacity-90 backdrop-blur-md">
               <Calendar className="w-3 h-3" />
               <span>{t("isScheduledBadge")} ({new Date(story.scheduledReleaseAt!).toLocaleDateString()})</span>
             </div>
