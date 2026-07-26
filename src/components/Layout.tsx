@@ -5,6 +5,47 @@ import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { AuthModal } from "./AuthModal";
 
+function FlagIcon({ lang, className = "w-5 h-3.5 shadow-sm rounded-sm overflow-hidden shrink-0" }: { lang: string; className?: string }) {
+  if (lang === "pt") {
+    return (
+      <svg className={className} viewBox="0 0 30 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="30" height="20" fill="#009739" />
+        <path d="M 15 2 L 27 10 L 15 18 L 3 10 Z" fill="#FEDF00" />
+        <circle cx="15" cy="10" r="4.2" fill="#002776" />
+        <path d="M 10.8 11.2 Q 15 8.5 19.2 11.2" fill="none" stroke="#FFFFFF" strokeWidth="0.8" />
+      </svg>
+    );
+  }
+  if (lang === "en") {
+    return (
+      <svg className={className} viewBox="0 0 30 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="30" height="20" fill="#FFFFFF" stroke="#CCCCCC" strokeWidth="0.2" />
+        <rect x="13" width="4" height="20" fill="#CE1124" />
+        <rect y="8" width="30" height="4" fill="#CE1124" />
+      </svg>
+    );
+  }
+  if (lang === "es") {
+    return (
+      <svg className={className} viewBox="0 0 30 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="30" height="5" fill="#AA151B" />
+        <rect y="5" width="30" height="10" fill="#F1BF00" />
+        <rect y="15" width="30" height="5" fill="#AA151B" />
+        <rect x="6" y="7" width="2" height="4" fill="#AA151B" opacity="0.8" rx="0.5" />
+      </svg>
+    );
+  }
+  if (lang === "id") {
+    return (
+      <svg className={className} viewBox="0 0 30 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="30" height="10" fill="#FF0000" />
+        <rect y="10" width="30" height="10" fill="#FFFFFF" stroke="#CCCCCC" strokeWidth="0.2" />
+      </svg>
+    );
+  }
+  return null;
+}
+
 export function Layout() {
   const { user, profile } = useAuth();
   const { language, setLanguage, t } = useLanguage();
@@ -73,7 +114,8 @@ export function Layout() {
           </Link>
 
           {/* Language Selector */}
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
+            <FlagIcon lang={language} />
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value as any)}
@@ -143,17 +185,20 @@ export function Layout() {
         {/* Mobile Header Controls */}
         <div className="flex md:hidden items-center gap-2">
           {/* Language Selector Mobile Dropdown */}
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as any)}
-            className="bg-transparent dark:bg-[#0A0A0A] border border-[#1A1A1A]/15 dark:border-white/15 rounded-xl px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] text-[#1A1A1A] dark:text-[#F5F5F0]"
-            aria-label={t("language")}
-          >
-            <option value="pt" className="bg-white dark:bg-[#1A1A1A]">PT</option>
-            <option value="es" className="bg-white dark:bg-[#1A1A1A]">ES</option>
-            <option value="en" className="bg-white dark:bg-[#1A1A1A]">EN</option>
-            <option value="id" className="bg-white dark:bg-[#1A1A1A]">ID</option>
-          </select>
+          <div className="flex items-center gap-1.5">
+            <FlagIcon lang={language} className="w-4 h-2.5 rounded-sm overflow-hidden shrink-0" />
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as any)}
+              className="bg-transparent dark:bg-[#0A0A0A] border border-[#1A1A1A]/15 dark:border-white/15 rounded-xl px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:ring-1 focus:ring-[#1A1A1A] text-[#1A1A1A] dark:text-[#F5F5F0]"
+              aria-label={t("language")}
+            >
+              <option value="pt" className="bg-white dark:bg-[#1A1A1A]">PT</option>
+              <option value="es" className="bg-white dark:bg-[#1A1A1A]">ES</option>
+              <option value="en" className="bg-white dark:bg-[#1A1A1A]">EN</option>
+              <option value="id" className="bg-white dark:bg-[#1A1A1A]">ID</option>
+            </select>
+          </div>
 
           <button 
             onClick={() => setDarkMode(!darkMode)}
