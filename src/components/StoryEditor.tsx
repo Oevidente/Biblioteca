@@ -44,7 +44,8 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
       return initialPages
         .map((p, idx) => {
           if (idx === 0) return p;
-          return `<div class="page-break-marker" contenteditable="false" style="margin: 2rem 0; padding: 0.75rem 1rem; background: rgba(0,0,0,0.03); border: 1px dashed rgba(0,0,0,0.2); border-radius: 0.75rem; text-align: center; font-size: 0.75rem; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #888; user-select: none;">--- Quebra de Página (Pág. ${idx + 1}) ---</div>` + p;
+          const markerText = t("pageBreakMarker", { page: idx + 1 });
+          return `<div class="page-break-marker" contenteditable="false" style="margin: 2rem 0; padding: 0.75rem 1rem; background: rgba(0,0,0,0.03); border: 1px dashed rgba(0,0,0,0.2); border-radius: 0.75rem; text-align: center; font-size: 0.75rem; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #888; user-select: none;">${markerText}</div>` + p;
         })
         .join("");
     }
@@ -76,7 +77,8 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
   const insertPageBreak = () => {
     if (!editorRef.current) return;
     editorRef.current.focus();
-    const marker = `<div class="page-break-marker" contenteditable="false" style="margin: 2rem 0; padding: 0.75rem 1rem; background: rgba(0,0,0,0.03); border: 1px dashed rgba(0,0,0,0.2); border-radius: 0.75rem; text-align: center; font-size: 0.75rem; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #888; user-select: none;">--- Quebra de Página ---</div><p><br/></p>`;
+    const markerText = t("pageBreakMarkerSimple");
+    const marker = `<div class="page-break-marker" contenteditable="false" style="margin: 2rem 0; padding: 0.75rem 1rem; background: rgba(0,0,0,0.03); border: 1px dashed rgba(0,0,0,0.2); border-radius: 0.75rem; text-align: center; font-size: 0.75rem; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #888; user-select: none;">${markerText}</div><p><br/></p>`;
     document.execCommand("insertHTML", false, marker);
     handleContentChange();
   };
@@ -84,7 +86,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
   // Helper function to split HTML into pages
   const processHtmlIntoPages = (html: string): { pages: string[]; wordCount: number; cleanText: string } => {
     // Check if manual page breaks exist
-    const hasManualBreaks = html.includes('class="page-break-marker"') || html.includes('Quebra de Página');
+    const hasManualBreaks = html.includes('class="page-break-marker"');
 
     let cleanHtml = html;
     // Extract plain text for word count
@@ -353,7 +355,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
               )}
             >
               <Pilcrow className="w-3.5 h-3.5" />
-              <span>{language === "pt" || language === "es" ? "Estilo" : language === "id" ? "Gaya" : "Style"}</span>
+              <span>{t("styleTab")}</span>
             </button>
             <button
               type="button"
@@ -366,7 +368,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
               )}
             >
               <Bold className="w-3.5 h-3.5" />
-              <span>{language === "pt" || language === "es" ? "Formato" : language === "id" ? "Format" : "Format"}</span>
+              <span>{t("formatTab")}</span>
             </button>
             <button
               type="button"
@@ -379,7 +381,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
               )}
             >
               <AlignCenter className="w-3.5 h-3.5" />
-              <span>{language === "pt" ? "Alinhar" : language === "es" ? "Alinear" : language === "id" ? "Rata" : "Align"}</span>
+              <span>{t("alignTab")}</span>
             </button>
             <button
               type="button"
@@ -392,7 +394,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
               )}
             >
               <Split className="w-3.5 h-3.5" />
-              <span>{language === "pt" ? "Extras" : language === "es" ? "Extras" : language === "id" ? "Ekstra" : "Insert"}</span>
+              <span>{t("extrasTab")}</span>
             </button>
           </div>
 
@@ -437,7 +439,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
                   className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
                 >
                   <Bold className="w-4 h-4" />
-                  <span>{language === "pt" ? "Negrito" : language === "es" ? "Negrita" : language === "id" ? "Tebal" : "Bold"}</span>
+                  <span>{t("styleBold")}</span>
                 </button>
                 <button
                   type="button"
@@ -445,7 +447,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
                   className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
                 >
                   <Italic className="w-4 h-4" />
-                  <span>{language === "pt" ? "Itálico" : language === "es" ? "Itálica" : language === "id" ? "Miring" : "Italic"}</span>
+                  <span>{t("styleItalic")}</span>
                 </button>
                 <button
                   type="button"
@@ -453,7 +455,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
                   className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
                 >
                   <Underline className="w-4 h-4" />
-                  <span>{language === "pt" ? "Sublinhado" : language === "es" ? "Subrayado" : language === "id" ? "Garisbwh" : "Underline"}</span>
+                  <span>{t("styleUnderline")}</span>
                 </button>
                 <button
                   type="button"
@@ -461,7 +463,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
                   className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
                 >
                   <Strikethrough className="w-4 h-4" />
-                  <span>{language === "pt" ? "Riscado" : language === "es" ? "Tachado" : language === "id" ? "Coret" : "Strike"}</span>
+                  <span>{t("styleStrike")}</span>
                 </button>
               </div>
             )}
@@ -475,7 +477,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
                   className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
                 >
                   <AlignLeft className="w-4 h-4" />
-                  <span>{language === "pt" ? "Esquerda" : language === "es" ? "Izquierda" : language === "id" ? "Kiri" : "Left"}</span>
+                  <span>{t("styleLeft")}</span>
                 </button>
                 <button
                   type="button"
@@ -483,7 +485,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
                   className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
                 >
                   <AlignCenter className="w-4 h-4" />
-                  <span>{language === "pt" ? "Centro" : language === "es" ? "Centro" : language === "id" ? "Tengah" : "Center"}</span>
+                  <span>{t("styleCenter")}</span>
                 </button>
                 <button
                   type="button"
@@ -491,7 +493,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
                   className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
                 >
                   <AlignRight className="w-4 h-4" />
-                  <span>{language === "pt" ? "Direita" : language === "es" ? "Derecha" : language === "id" ? "Kanan" : "Right"}</span>
+                  <span>{t("styleRight")}</span>
                 </button>
                 <button
                   type="button"
@@ -499,7 +501,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
                   className="h-12 bg-[#F5F5F0]/60 dark:bg-[#1E1E1E] rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 text-[#1A1A1A] dark:text-[#F5F5F0] transition-colors active:scale-95"
                 >
                   <AlignJustify className="w-4 h-4" />
-                  <span>{language === "pt" ? "Justificar" : language === "es" ? "Justificar" : language === "id" ? "Rata" : "Justify"}</span>
+                  <span>{t("styleJustify")}</span>
                 </button>
               </div>
             )}
@@ -514,7 +516,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
                   title={t("bulletList")}
                 >
                   <List className="w-4 h-4" />
-                  <span>{language === "pt" ? "Marcas" : language === "es" ? "Viñetas" : language === "id" ? "Poin" : "Bullets"}</span>
+                  <span>{t("styleBullets")}</span>
                 </button>
                 <button
                   type="button"
@@ -523,7 +525,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
                   title={t("numberList")}
                 >
                   <ListOrdered className="w-4 h-4" />
-                  <span>{language === "pt" ? "Números" : language === "es" ? "Números" : language === "id" ? "Nomor" : "Numbers"}</span>
+                  <span>{t("styleNumbers")}</span>
                 </button>
                 <button
                   type="button"
@@ -532,7 +534,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
                   title={t("quote")}
                 >
                   <Quote className="w-4 h-4" />
-                  <span>{language === "pt" ? "Citar" : language === "es" ? "Cita" : language === "id" ? "Kutipan" : "Quote"}</span>
+                  <span>{t("styleQuote")}</span>
                 </button>
                 <button
                   type="button"
@@ -541,7 +543,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
                   title={t("insertPageBreak")}
                 >
                   <Split className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                  <span>{language === "pt" ? "Pág" : language === "es" ? "Pág" : language === "id" ? "Hal" : "Page"}</span>
+                  <span>{t("stylePage")}</span>
                 </button>
               </div>
             )}
@@ -579,8 +581,8 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
           </div>
 
           <div className="flex items-center gap-4 font-mono text-[11px] opacity-70">
-            <span>{totalWords} palavras</span>
-            <span>~{Math.ceil(totalWords / 250)} min leitura</span>
+            <span>{t("wordsCount", { count: totalWords })}</span>
+            <span>{t("readTimeEstimate", { count: Math.ceil(totalWords / 250) })}</span>
             <span className="px-2 py-0.5 bg-[#1A1A1A]/10 dark:bg-white/10 rounded-full font-bold">
               {t("pagesCount", { count: computedPages.length || 1 })}
             </span>
@@ -599,7 +601,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
               activeTab === "edit" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60 hover:opacity-100"
             )}
           >
-            Escrever
+            {t("editInSite")}
           </button>
           <button
             type="button"
@@ -612,7 +614,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
               activeTab === "preview" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60 hover:opacity-100"
             )}
           >
-            <BookOpen className="w-3.5 h-3.5" /> Previsualizar Páginas
+            <BookOpen className="w-3.5 h-3.5" /> {t("previewPages")}
           </button>
         </div>
 
@@ -624,10 +626,10 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
               onClick={() => setPreviewPageIdx(prev => Math.max(0, prev - 1))}
               className="px-2 py-1 bg-[#1A1A1A]/10 dark:bg-white/10 rounded-lg text-xs font-bold disabled:opacity-30"
             >
-              Anterior
+              {t("previous")}
             </button>
             <span className="text-xs font-mono font-bold">
-              Pág. {previewPageIdx + 1} / {computedPages.length}
+              {t("stylePage")} {previewPageIdx + 1} / {computedPages.length}
             </span>
             <button
               type="button"
@@ -635,7 +637,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
               onClick={() => setPreviewPageIdx(prev => Math.min(computedPages.length - 1, prev + 1))}
               className="px-2 py-1 bg-[#1A1A1A]/10 dark:bg-white/10 rounded-lg text-xs font-bold disabled:opacity-30"
             >
-              Próxima
+              {t("next")}
             </button>
           </div>
         )}
@@ -662,13 +664,13 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
         /* Preview Mode Page View */
         <div className="bg-white dark:bg-[#1A1A1A] p-4 sm:p-12 rounded-2xl border border-[#1A1A1A]/15 dark:border-white/15 shadow-sm min-h-[350px]">
           <div className="flex justify-between items-center pb-4 border-b border-[#1A1A1A]/10 dark:border-white/10 mb-6 text-xs font-mono opacity-50 uppercase tracking-widest">
-            <span>Pré-visualização do Leitor</span>
-            <span>Página {previewPageIdx + 1} de {computedPages.length || 1}</span>
+            <span>{t("readerPreview")}</span>
+            <span>{t("stylePage")} {previewPageIdx + 1} / {computedPages.length || 1}</span>
           </div>
           
           <div 
             className="font-serif text-base sm:text-lg leading-relaxed space-y-4 prose dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: computedPages[previewPageIdx] || "<p className='opacity-40 italic'>Página vazia</p>" }}
+            dangerouslySetInnerHTML={{ __html: computedPages[previewPageIdx] || `<p class='opacity-40 italic'>${t("emptyPage")}</p>` }}
           />
         </div>
       )}

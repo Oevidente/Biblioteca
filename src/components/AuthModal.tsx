@@ -557,7 +557,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                 </div>
 
                 <div>
-                  <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">Tipo de Conta</label>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">{t("accountType")}</label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
@@ -568,7 +568,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                           : "border-[#1A1A1A]/20 dark:border-white/20 text-[#1A1A1A] dark:text-white opacity-60 hover:opacity-100"
                       }`}
                     >
-                      Leitor
+                      {t("readerRole")}
                     </button>
                     <button
                       type="button"
@@ -579,7 +579,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                           : "border-[#1A1A1A]/20 dark:border-white/20 text-[#1A1A1A] dark:text-white opacity-60 hover:opacity-100"
                       }`}
                     >
-                      Autor
+                      {t("authorRole")}
                     </button>
                   </div>
                 </div>

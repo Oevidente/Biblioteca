@@ -1185,7 +1185,7 @@ export function Admin() {
                                     </div>
                                     <div>
                                       <div className="font-serif text-sm">{s.title}</div>
-                                      <div className="text-[10px] opacity-60">Por {s.author} • {s.totalPages} {s.totalPages === 1 ? 'página' : 'páginas'}</div>
+                                      <div className="text-[10px] opacity-60">{t("by")} {s.author} • {s.totalPages} {s.totalPages === 1 ? t("pageSingular") : t("pagePlural")}</div>
                                     </div>
                                   </div>
                                 </td>
@@ -1239,7 +1239,7 @@ export function Admin() {
                                 </div>
                                 <div>
                                   <h4 className="font-serif font-bold text-sm leading-tight">{s.title}</h4>
-                                  <p className="text-[10px] opacity-60">Por {s.author} • {s.totalPages} {s.totalPages === 1 ? 'página' : 'páginas'}</p>
+                                  <p className="text-[10px] opacity-60">{t("by")} {s.author} • {s.totalPages} {s.totalPages === 1 ? t("pageSingular") : t("pagePlural")}</p>
                                 </div>
                               </div>
                               <div className="flex items-center gap-1 font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-lg">
@@ -1250,22 +1250,22 @@ export function Admin() {
 
                             <div className="grid grid-cols-3 gap-2 text-center bg-white dark:bg-[#1A1A1A]/40 p-2.5 rounded-xl border border-black/5 dark:border-white/5">
                               <div>
-                                <div className="text-[9px] font-bold uppercase tracking-wider opacity-50">Inícios</div>
+                                <div className="text-[9px] font-bold uppercase tracking-wider opacity-50">{t("startsTableHead")}</div>
                                 <div className="text-sm font-mono font-bold mt-0.5">{starts}</div>
                               </div>
                               <div>
-                                <div className="text-[9px] font-bold uppercase tracking-wider opacity-50">Prog. Médio</div>
+                                <div className="text-[9px] font-bold uppercase tracking-wider opacity-50">{t("avgProgressTableHead")}</div>
                                 <div className="text-sm font-mono font-bold mt-0.5">{avgProg}%</div>
                               </div>
                               <div>
-                                <div className="text-[9px] font-bold uppercase tracking-wider opacity-50">Conclusões</div>
+                                <div className="text-[9px] font-bold uppercase tracking-wider opacity-50">{t("completionsTableHead")}</div>
                                 <div className="text-sm font-mono font-bold mt-0.5">{finished}</div>
                               </div>
                             </div>
 
                             <div className="space-y-1">
                               <div className="flex justify-between text-[9px] opacity-50 font-bold uppercase tracking-wider">
-                                <span>Progresso Geral</span>
+                                <span>{t("avgProgressTableHead")}</span>
                                 <span>{avgProg}%</span>
                               </div>
                               <div className="w-full bg-black/10 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
@@ -1282,16 +1282,16 @@ export function Admin() {
                     <div className="p-5 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-2xl border border-black/5 dark:border-white/5 space-y-3">
                       <h3 className="font-serif font-bold text-sm uppercase tracking-wider opacity-80 flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-amber-500" />
-                        <span>Retenção por Página</span>
+                        <span>{t("retentionByPage")}</span>
                       </h3>
-                      <p className="text-xs opacity-60">Percentual de leitores que alcançaram ou superaram cada página do livro.</p>
+                      <p className="text-xs opacity-60">{t("retentionDescription")}</p>
                       
                       <div className="space-y-3 pt-2 max-h-96 overflow-y-auto pr-1">
                         {pageFunnelData.map((data) => (
                           <div key={data.pageIndex}>
                             <div className="flex justify-between text-[11px] font-bold mb-1">
-                              <span>Página {data.pageIndex + 1}</span>
-                              <span className="opacity-60 font-mono">{data.readersCount} {data.readersCount === 1 ? 'leitor' : 'leitores'} ({data.percentage}%)</span>
+                              <span>{t("pageSingular").charAt(0).toUpperCase() + t("pageSingular").slice(1)} {data.pageIndex + 1}</span>
+                              <span className="opacity-60 font-mono">{data.readersCount} {data.readersCount === 1 ? t("readersSingular") : t("readersPlural")} ({data.percentage}%)</span>
                             </div>
                             <div className="w-full bg-black/10 dark:bg-white/10 h-2 rounded-full overflow-hidden">
                               <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${data.percentage}%` }}></div>
@@ -1305,9 +1305,9 @@ export function Admin() {
                       <div>
                         <h3 className="font-serif font-bold text-sm uppercase tracking-wider opacity-80 flex items-center gap-2">
                           <Star className="w-4 h-4 text-amber-500" />
-                          <span>Engajamento e Avaliações</span>
+                          <span>{t("engagementAndReviews")}</span>
                         </h3>
-                        <p className="text-xs opacity-60 mt-1">Estatísticas qualitativas extraídas das avaliações públicas deixadas por leitores.</p>
+                        <p className="text-xs opacity-60 mt-1">{t("engagementDescription")}</p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 py-2">
@@ -1315,29 +1315,29 @@ export function Admin() {
                           <div className="text-2xl font-serif font-bold text-amber-500">
                             {selectedStory?.ratingsCount > 0 ? (selectedStory.rating / selectedStory.ratingsCount).toFixed(1) : "N/A"}
                           </div>
-                          <div className="text-[10px] font-bold uppercase tracking-wider opacity-50 mt-1">Nota Média Geral</div>
+                          <div className="text-[10px] font-bold uppercase tracking-wider opacity-50 mt-1">{t("avgOverallRating")}</div>
                         </div>
 
                         <div className="p-4 bg-white dark:bg-[#1A1A1A] rounded-xl border border-black/5 dark:border-white/5 text-center">
                           <div className="text-2xl font-serif font-bold">
                             {selectedStory?.ratingsCount || 0}
                           </div>
-                          <div className="text-[10px] font-bold uppercase tracking-wider opacity-50 mt-1">Total de Notas</div>
+                          <div className="text-[10px] font-bold uppercase tracking-wider opacity-50 mt-1">{t("totalReviews")}</div>
                         </div>
                       </div>
 
                       {selectedStory?.criteriaBreakdown && (
                         <div className="space-y-2 text-xs border-t border-black/5 dark:border-white/5 pt-3">
                           <div className="flex justify-between text-[11px] opacity-75">
-                            <span>Enredo & Trama</span>
+                            <span>{t("plotRating")}</span>
                             <span className="font-bold">{selectedStory.criteriaBreakdown.plot?.toFixed(1) || "5.0"}</span>
                           </div>
                           <div className="flex justify-between text-[11px] opacity-75">
-                            <span>Personagens</span>
+                            <span>{t("characterRating")}</span>
                             <span className="font-bold">{selectedStory.criteriaBreakdown.character?.toFixed(1) || "5.0"}</span>
                           </div>
                           <div className="flex justify-between text-[11px] opacity-75">
-                            <span>Qualidade de Escrita</span>
+                            <span>{t("writingRating")}</span>
                             <span className="font-bold">{selectedStory.criteriaBreakdown.writing?.toFixed(1) || "5.0"}</span>
                           </div>
                         </div>
@@ -1356,7 +1356,7 @@ export function Admin() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10 flex flex-col items-center justify-center text-center">
               <UserIcon className="w-8 h-8 opacity-40 mb-4" />
-              <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2">Total de Usuários Cadastrados</div>
+              <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2">{t("totalRegisteredUsers")}</div>
               {loadingSuperadmin ? (
                 <Loader2 className="w-6 h-6 animate-spin opacity-40" />
               ) : (
@@ -1366,7 +1366,7 @@ export function Admin() {
             
             <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10 flex flex-col items-center justify-center text-center">
               <Heart className="w-8 h-8 opacity-40 mb-4 text-red-500" />
-              <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2">Total de Favoritos no Site</div>
+              <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2">{t("totalFavoritesInSite")}</div>
               {loadingSuperadmin ? (
                 <Loader2 className="w-6 h-6 animate-spin opacity-40" />
               ) : (
@@ -1377,7 +1377,7 @@ export function Admin() {
 
           <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10 space-y-6">
             <div>
-              <h2 className="text-xl font-serif font-bold mb-2">Solicitações de Autores</h2>
+              <h2 className="text-xl font-serif font-bold mb-2">{t("authorRequests")}</h2>
               <p className="text-xs opacity-60 leading-relaxed mb-4">
                 Abaixo estão os usuários que solicitaram conta de Autor no momento do cadastro. 
                 Você pode autorizá-los diretamente clicando em "Autorizar". Isso atualizará o banco de dados.
@@ -1398,21 +1398,21 @@ export function Admin() {
               </div>
             ) : authorRequests.length === 0 ? (
               <div className="text-center py-10 opacity-50 font-serif border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl">
-                Nenhuma solicitação pendente.
+                {t("noRequestsPending")}
               </div>
             ) : (
               <div className="space-y-4">
                 {authorRequests.map(req => (
                   <div key={req.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 gap-4 transition-colors hover:bg-black/5 dark:hover:bg-white/5">
                     <div>
-                      <div className="font-bold text-sm">{req.displayName || "Sem nome"}</div>
+                      <div className="font-bold text-sm">{req.displayName || t("noName")}</div>
                       <div className="text-xs opacity-60 font-mono mt-1">{req.email}</div>
                     </div>
                     <button 
                       onClick={() => approveAuthor(req.id)}
                       className="px-5 py-2.5 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] text-[10px] font-bold uppercase tracking-widest rounded-full hover:opacity-90 transition-opacity whitespace-nowrap"
                     >
-                      Autorizar
+                      {t("authorize")}
                     </button>
                   </div>
                 ))}

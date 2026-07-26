@@ -15,6 +15,7 @@ interface StoryData {
   authorUid?: string;
   isDraft?: boolean;
   scheduledReleaseAt?: string;
+  tags?: string[];
 }
 
 export function Writer() {
@@ -134,8 +135,13 @@ export function Writer() {
       try {
         const storyRef = doc(db, "stories", state.id);
         const cleanPages = state.pages.length > 0 ? state.pages : ["<p></p>"];
-        const textSample = cleanPages[0].replace(/<[^>]*>?/gm, '');
-        const tags = generateTagsLocal(textSample || state.editTitle);
+        
+        // Preserve existing tags, only generate if they don't exist
+        let tags = state.story.tags || [];
+        if (tags.length === 0) {
+          const textSample = cleanPages[0].replace(/<[^>]*>?/gm, '');
+          tags = generateTagsLocal(textSample || state.editTitle);
+        }
 
         await updateDoc(storyRef, {
           title: state.editTitle || state.story.title,
@@ -152,6 +158,8 @@ export function Writer() {
           return setDoc(pageRef, { content: html, index: idx });
         });
         await Promise.all(promises);
+
+        setStory(prev => prev ? { ...prev, title: state.editTitle || state.story.title, author: state.editAuthor || state.story.author, tags } : prev);
 
         setLastAutoSaveTime(new Date());
         setHasUnsavedChanges(false);
@@ -172,8 +180,13 @@ export function Writer() {
     try {
       const storyRef = doc(db, "stories", id);
       const cleanPages = pages.length > 0 ? pages : ["<p></p>"];
-      const textSample = cleanPages[0].replace(/<[^>]*>?/gm, '');
-      const tags = generateTagsLocal(textSample || editTitle);
+      
+      // Preserve existing tags, only generate if they don't exist
+      let tags = story.tags || [];
+      if (tags.length === 0) {
+        const textSample = cleanPages[0].replace(/<[^>]*>?/gm, '');
+        tags = generateTagsLocal(textSample || editTitle);
+      }
 
       await updateDoc(storyRef, {
         title: editTitle || story.title,
@@ -192,7 +205,7 @@ export function Writer() {
       });
       await Promise.all(promises);
 
-      setStory(prev => prev ? { ...prev, isDraft: asDraft, title: editTitle, author: editAuthor } : prev);
+      setStory(prev => prev ? { ...prev, isDraft: asDraft, title: editTitle, author: editAuthor, tags } : prev);
       setHasUnsavedChanges(false);
       setLastAutoSaveTime(new Date());
       setMessage(asDraft ? t("draftSavedSuccess") : t("draftPublishedSuccess"));
@@ -228,7 +241,7 @@ export function Writer() {
             className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity"
           >
             <ArrowLeft className="w-4 h-4" />
-            Voltar ao Admin
+            {t("backToAdmin")}
           </button>
 
           {/* Mobile Auto-Save Status Badge */}
@@ -236,22 +249,22 @@ export function Writer() {
             {isAutoSaving ? (
               <>
                 <Loader2 className="w-3 h-3 animate-spin text-amber-500" />
-                <span className="text-amber-600 dark:text-amber-400 font-bold">Salvando...</span>
+                <span className="text-amber-600 dark:text-amber-400 font-bold">{t("autoSaving")}</span>
               </>
             ) : hasUnsavedChanges ? (
               <>
                 <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                <span className="opacity-70">Pendente (30s)</span>
+                <span className="opacity-70">{t("pendingAutoSave")}</span>
               </>
             ) : lastAutoSaveTime ? (
               <>
                 <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                <span className="text-emerald-700 dark:text-emerald-400 font-bold">Salvo {formatTime(lastAutoSaveTime)}</span>
+                <span className="text-emerald-700 dark:text-emerald-400 font-bold">{t("draftSavedAt", { time: formatTime(lastAutoSaveTime) })}</span>
               </>
             ) : (
               <>
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span className="opacity-70">Auto-save 30s</span>
+                <span className="opacity-70">{t("autoSaveIn")}</span>
               </>
             )}
           </div>
@@ -263,22 +276,22 @@ export function Writer() {
             {isAutoSaving ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
-                <span className="text-amber-600 dark:text-amber-400 font-bold">Salvando rascunho...</span>
+                <span className="text-amber-600 dark:text-amber-400 font-bold">{t("autoSaving")}</span>
               </>
             ) : hasUnsavedChanges ? (
               <>
                 <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                <span className="opacity-70">Auto-salvamento em 30s</span>
+                <span className="opacity-70">{t("autoSaveIn")}</span>
               </>
             ) : lastAutoSaveTime ? (
               <>
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-emerald-700 dark:text-emerald-400 font-bold">Rascunho salvo às {formatTime(lastAutoSaveTime)}</span>
+                <span className="text-emerald-700 dark:text-emerald-400 font-bold">{t("draftSavedAt", { time: formatTime(lastAutoSaveTime) })}</span>
               </>
             ) : (
               <>
                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span className="opacity-70">Auto-salvamento a cada 30s</span>
+                <span className="opacity-70">{t("autoSaveInterval")}</span>
               </>
             )}
           </div>
@@ -299,7 +312,7 @@ export function Writer() {
               className="flex-1 sm:flex-initial px-4 py-2.5 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-[#333] dark:hover:bg-[#EAE8E2] transition-colors flex items-center justify-center gap-2 min-h-[40px] shadow-sm"
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Send className="w-4 h-4 shrink-0" />}
-              <span>{story.isDraft ? t("publishNow") : "Atualizar"}</span>
+              <span>{story.isDraft ? t("publishNow") : t("saveChanges")}</span>
             </button>
           </div>
         </div>
@@ -339,7 +352,7 @@ export function Writer() {
                     onClick={() => setEditAuthor(profile.displayName!)}
                     className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
                   >
-                    Usar meu Nome: {profile.displayName}
+                    {t("useMyName", { name: profile.displayName })}
                   </button>
                 )}
                 {profile.username && (
@@ -349,14 +362,14 @@ export function Writer() {
                       onClick={() => setEditAuthor(`@${profile.username}`)}
                       className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
                     >
-                      Usar meu @Usuário: @{profile.username}
+                      {t("useMyUsername", { username: profile.username })}
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditAuthor(profile.username!)}
                       className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
                     >
-                      Usar meu Usuário: {profile.username}
+                      {t("useUsernameOnly", { username: profile.username })}
                     </button>
                   </>
                 )}
@@ -372,7 +385,7 @@ export function Writer() {
                   onClick={() => setScheduledReleaseAt("")}
                   className="text-[9px] text-red-500 hover:text-red-700 dark:hover:text-red-400 font-bold uppercase tracking-wider transition-all"
                 >
-                  Limpar Agendamento
+                  {t("clearSchedule")}
                 </button>
               )}
             </div>
