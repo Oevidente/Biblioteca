@@ -19,6 +19,7 @@
         { "name": "tags", "type": "string[]", "isRequired": true },
         { "name": "rating", "type": "number", "isRequired": false },
         { "name": "ratingsCount", "type": "number", "isRequired": false },
+        { "name": "isDraft", "type": "boolean", "isRequired": false },
         { "name": "createdAt", "type": "timestamp", "isRequired": true }
       ]
     },

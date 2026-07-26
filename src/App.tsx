@@ -11,6 +11,8 @@ import { Home } from "./pages/Home";
 import { Reader } from "./pages/Reader";
 import { Admin } from "./pages/Admin";
 
+import { Writer } from "./pages/Writer";
+
 export default function App() {
   return (
     <LanguageProvider>
@@ -21,6 +23,7 @@ export default function App() {
               <Route index element={<Home />} />
               <Route path="story/:id" element={<Reader />} />
               <Route path="admin" element={<Admin />} />
+              <Route path="writer/:id" element={<Writer />} />
             </Route>
           </Routes>
         </HashRouter>

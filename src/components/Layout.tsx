@@ -85,7 +85,7 @@ export function Layout() {
       <header className="flex justify-between items-center px-4 sm:px-6 md:px-16 pt-6 sm:pt-8 md:pt-10 pb-6 w-full max-w-[1400px] mx-auto border-b border-[#1A1A1A]/5 dark:border-white/5">
         <div className="flex items-center space-x-3">
           <Link to="/" className="w-10 h-10 bg-[#1A1A1A] dark:bg-[#F5F5F0] flex items-center justify-center rounded-full shadow-sm hover:scale-105 transition-transform">
-            <span className="text-white dark:text-[#1A1A1A] text-xs font-bold tracking-tighter">BTH</span>
+            <span className="text-white dark:text-[#1A1A1A] text-xs font-bold tracking-tighter">INK</span>
           </Link>
           <Link to="/" className="flex flex-col">
             <h1 className="font-sans text-xs font-bold tracking-[0.2em] uppercase opacity-90">{t("library")}</h1>
@@ -292,7 +292,7 @@ export function Layout() {
           <span className="text-[9px] uppercase font-bold tracking-widest opacity-60 hidden sm:inline">Firebase {t("online")}</span>
         </div>
         <div className="flex items-center space-x-4">
-          <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">{t("version")} 2.2.10-beta</span>
+          <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">{t("version")} 2.2.12-beta</span>
         </div>
       </footer>
 

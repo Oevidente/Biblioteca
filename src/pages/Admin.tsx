@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth, ADMIN_EMAIL } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { fileToDataUrl, formatCoverUrl } from "../utils/imageUtils";
@@ -24,7 +24,13 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  Heart
+  Heart,
+  PenTool,
+  Sparkles,
+  Layers,
+  Send,
+  Eye,
+  RotateCcw
 } from "lucide-react";
 import { 
   db, 
@@ -54,6 +60,24 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+function createDefaultCoverUrl(title: string, author: string): string {
+  const cleanTitle = (title || "Sem Título").replace(/</g, "&lt;");
+  const cleanAuthor = (author || "Autor").toUpperCase().replace(/</g, "&lt;");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
+    <defs>
+      <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#2a2a24;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#111110;stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <rect width="400" height="600" fill="url(#grad)" />
+    <rect x="20" y="20" width="360" height="560" fill="none" stroke="#d4af37" stroke-width="2" stroke-opacity="0.3" rx="12" />
+    <text x="200" y="260" font-family="serif" font-size="28" font-weight="bold" fill="#f5f5f0" text-anchor="middle" width="320">${cleanTitle}</text>
+    <text x="200" y="340" font-family="sans-serif" font-size="14" font-weight="bold" fill="#d4af37" text-anchor="middle" letter-spacing="2">${cleanAuthor}</text>
+  </svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
 interface CommentData {
   id: string;
   storyId: string;
@@ -77,6 +101,7 @@ interface StoryItem {
   createdAt?: any;
   publicationDate?: string;
   authorUid?: string;
+  isDraft?: boolean;
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs = 60000, stageName = "operação"): Promise<T> {
@@ -100,6 +125,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs = 60000, stageName = "ope
 export function Admin() {
   const { t } = useLanguage();
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = profile?.role === "admin" || (user?.email || "").toLowerCase().trim() === ADMIN_EMAIL;
   
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -115,6 +141,12 @@ export function Admin() {
   const [progressPercent, setProgressPercent] = useState(0);
   const [currentStage, setCurrentStage] = useState("");
   const [errorDetails, setErrorDetails] = useState<{ stage: string; message: string; details?: string } | null>(null);
+
+  // Publish Creation Mode
+  const [creationMode, setCreationMode] = useState<"writer" | "docx">("writer");
+
+  // Manage stories filter & modal states
+  const [statusFilter, setStatusFilter] = useState<"all" | "published" | "drafts">("all");
 
   // Comments Moderation State
   const [comments, setComments] = useState<CommentData[]>([]);
@@ -164,7 +196,8 @@ export function Admin() {
           wordCount: data.wordCount,
           createdAt: data.createdAt,
           publicationDate: data.publicationDate || "",
-          authorUid: data.authorUid
+          authorUid: data.authorUid,
+          isDraft: data.isDraft || false
         });
       });
       setStoriesList(loaded);
@@ -458,10 +491,45 @@ export function Admin() {
     }
   };
 
+  const getOrCreateCapasFolder = async (token: string): Promise<string> => {
+    try {
+      const searchRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent("mimeType='application/vnd.google-apps.folder' and name='capas' and trashed=false")}&fields=files(id,name)`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        if (searchData.files && searchData.files.length > 0) {
+          return searchData.files[0].id;
+        }
+      }
+
+      const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: 'capas',
+          mimeType: 'application/vnd.google-apps.folder'
+        })
+      });
+      if (createRes.ok) {
+        const folderData = await createRes.json();
+        return folderData.id;
+      }
+    } catch (e) {
+      console.warn("Drive capas folder check warning:", e);
+    }
+    return 'root';
+  };
+
   const uploadToDrive = async (file: File, token: string) => {
+    const parentFolderId = await getOrCreateCapasFolder(token);
     const metadata = {
       name: file.name,
-      parents: ['root']
+      parents: [parentFolderId]
     };
     const form = new FormData();
     form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
@@ -496,13 +564,57 @@ export function Admin() {
     return `https://drive.google.com/uc?id=${data.id}`;
   };
 
-  const handleUpload = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleStartWritingOnSite = async () => {
     setErrorDetails(null);
-
-    if (!title || !author || !coverFile || !docxFile) {
+    if (!title || !author) {
       setMessage(t("fillAllFields"));
       return;
+    }
+    setIsUploading(true);
+    setMessage("");
+    try {
+      const coverUrl = createDefaultCoverUrl(title, author);
+      const docRef = await addDoc(collection(db, "stories"), {
+        title,
+        author,
+        authorUid: user?.uid,
+        publicationDate,
+        createdAt: Timestamp.now(),
+        coverImage: coverUrl,
+        totalPages: 1,
+        wordCount: 0,
+        tags: [],
+        isDraft: true
+      });
+      await setDoc(doc(db, `stories/${docRef.id}/pages`, "0"), {
+        content: "<p></p>",
+        index: 0
+      });
+      navigate(`/writer/${docRef.id}`);
+    } catch (error: any) {
+      console.error("Error creating draft:", error);
+      setMessage("Erro ao criar rascunho.");
+      setIsUploading(false);
+    }
+  };
+
+  const handleSaveStory = async (asDraft: boolean = false) => {
+    setErrorDetails(null);
+
+    if (!title || !author) {
+      setMessage(t("fillAllFields"));
+      return;
+    }
+
+    if (creationMode === "docx") {
+      if (!docxFile) {
+        setMessage(t("fillAllFields"));
+        return;
+      }
+      if (!asDraft && !coverFile) {
+        setMessage("Adicione uma imagem de capa para publicar, ou salve como rascunho sem capa.");
+        return;
+      }
     }
     
     setIsUploading(true);
@@ -518,22 +630,30 @@ export function Admin() {
       setCurrentStage(stageName);
       setProgressPercent(15);
 
-      if (accessToken) {
-        try {
-          const driveLink = await uploadToDrive(coverFile, accessToken);
-          finalCoverUrl = formatCoverUrl(driveLink);
-        } catch (driveErr) {
-          console.warn("Upload para o Drive falhou, convertendo imagem localmente...", driveErr);
+      if (coverFile) {
+        if (accessToken) {
+          try {
+            const driveLink = await uploadToDrive(coverFile, accessToken);
+            finalCoverUrl = formatCoverUrl(driveLink);
+          } catch (driveErr) {
+            console.warn("Upload para o Drive falhou, convertendo imagem localmente...", driveErr);
+            finalCoverUrl = await fileToDataUrl(coverFile);
+          }
+        } else {
           finalCoverUrl = await fileToDataUrl(coverFile);
         }
       } else {
-        finalCoverUrl = await fileToDataUrl(coverFile);
+        finalCoverUrl = createDefaultCoverUrl(title, author);
       }
+
+      let pages: string[] = [];
+      let tags: string[] = [];
+      let wordCount = 0;
 
       stageName = t("docxProcessing");
       setCurrentStage(stageName);
       setProgressPercent(35);
-      const pages = await parseDocx(docxFile);
+      pages = await parseDocx(docxFile!);
 
       if (!pages || pages.length === 0) {
         throw new Error(t("docxInvalid"));
@@ -543,10 +663,10 @@ export function Admin() {
       setCurrentStage(stageName);
       setProgressPercent(45);
       const textSample = pages[0].replace(/<[^>]*>?/gm, ''); 
-      const tags = generateTagsLocal(textSample);
+      tags = generateTagsLocal(textSample);
 
       const fullText = pages.map(p => p.replace(/<[^>]*>?/gm, ' ')).join(' ');
-      const wordCount = fullText.split(/\s+/).filter(word => word.length > 0).length;
+      wordCount = fullText.split(/\s+/).filter(word => word.length > 0).length;
 
       stageName = t("dbCreation");
       setCurrentStage(stageName);
@@ -566,7 +686,8 @@ export function Admin() {
         wordCount: wordCount,
         createdAt: new Date().toISOString(),
         publicationDate: publicationDate,
-        authorUid: user?.uid
+        authorUid: user?.uid,
+        isDraft: asDraft
       };
 
       await withTimeout(setDoc(storyRef, {
@@ -580,7 +701,8 @@ export function Admin() {
         wordCount: wordCount,
         createdAt: Timestamp.now(),
         publicationDate: publicationDate,
-        authorUid: user?.uid
+        authorUid: user?.uid,
+        isDraft: asDraft
       }), 60000, stageName);
 
       try {
@@ -611,13 +733,18 @@ export function Admin() {
       }
 
       setProgressPercent(100);
-      setCurrentStage(t("publishSuccess"));
-      setMessage(t("storyPublishedSuccess"));
+      const succMsg = asDraft ? t("draftSavedSuccess") : t("storyPublishedSuccess");
+      setCurrentStage(succMsg);
+      setMessage(succMsg);
       setTitle("");
       setAuthor("");
       setCoverFile(null);
       setDocxFile(null);
       setPublicationDate(new Date().toISOString().split('T')[0]);
+
+      if (activeTab === "manage") {
+        loadStoriesList();
+      }
     } catch (error: any) {
       console.error("Erro na publicação:", error);
       const errMsg = error?.message || "Ocorreu um erro desconhecido";
@@ -632,6 +759,17 @@ export function Admin() {
       setMessage(`${t("errorProcess")}${errMsg}`);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleQuickPublishDraft = async (storyId: string) => {
+    try {
+      await updateDoc(doc(db, "stories", storyId), { isDraft: false });
+      setStoriesList(prev => prev.map(s => s.id === storyId ? { ...s, isDraft: false } : s));
+      setManageMsg(t("draftPublishedSuccess"));
+    } catch (err) {
+      console.error("Error publishing draft:", err);
+      setManageMsg(t("errorUpdatingStory"));
     }
   };
 
@@ -777,7 +915,37 @@ export function Admin() {
       )}
 
       {activeTab === "publish" && (
-        <form onSubmit={handleUpload} className="space-y-6 bg-white dark:bg-[#1A1A1A] p-6 sm:p-8 rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10">
+        <div className="space-y-6 bg-white dark:bg-[#1A1A1A] p-6 sm:p-8 rounded-2xl shadow-sm border border-[#1A1A1A]/10 dark:border-white/10">
+          {/* Creation Mode Toggle */}
+          <div className="flex p-1 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 max-w-md">
+            <button
+              type="button"
+              onClick={() => setCreationMode("writer")}
+              className={cn(
+                "flex-1 py-2.5 px-4 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all",
+                creationMode === "writer" 
+                  ? "bg-white dark:bg-[#1A1A1A] shadow-sm text-[#1A1A1A] dark:text-white" 
+                  : "opacity-60 hover:opacity-100"
+              )}
+            >
+              <PenTool className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              {t("writeOnSite")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreationMode("docx")}
+              className={cn(
+                "flex-1 py-2.5 px-4 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all",
+                creationMode === "docx" 
+                  ? "bg-white dark:bg-[#1A1A1A] shadow-sm text-[#1A1A1A] dark:text-white" 
+                  : "opacity-60 hover:opacity-100"
+              )}
+            >
+              <FileText className="w-4 h-4" />
+              {t("uploadDocxFile")}
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">{t("storyTitle")}</label>
@@ -815,37 +983,51 @@ export function Admin() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">{t("coverImageLabel")}</label>
+              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">
+                {t("coverImageLabel")} {creationMode === "writer" ? "(Opcional - gerada automaticamente)" : "(Opcional para rascunhos)"}
+              </label>
               <label className={cn(
-                "flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-colors",
+                "flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer transition-colors",
                 coverFile ? "border-[#1A1A1A] dark:border-white bg-[#1A1A1A]/5 dark:bg-white/5" : "border-[#1A1A1A]/20 dark:border-white/20 hover:bg-[#F5F5F0] dark:hover:bg-[#0A0A0A]"
               )}>
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <ImageIcon className={cn("w-8 h-8 mb-2", coverFile ? "text-[#1A1A1A] dark:text-white" : "text-[#1A1A1A]/40 dark:text-white/40")} />
+                <div className="flex flex-col items-center justify-center pt-3 pb-3">
+                  <ImageIcon className={cn("w-6 h-6 mb-1", coverFile ? "text-[#1A1A1A] dark:text-white" : "text-[#1A1A1A]/40 dark:text-white/40")} />
                   <p className="text-xs font-bold opacity-60 truncate max-w-[200px] px-2">
                     {coverFile ? coverFile.name : t("coverImagePlaceholder")}
                   </p>
                 </div>
-                <input type="file" accept="image/*" className="hidden" onChange={(e) => setCoverFile(e.target.files?.[0] || null)} required />
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => setCoverFile(e.target.files?.[0] || null)} />
               </label>
             </div>
 
-            <div>
-              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">{t("storyFileLabel")}</label>
-              <label className={cn(
-                "flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-colors",
-                docxFile ? "border-[#1A1A1A] dark:border-white bg-[#1A1A1A]/5 dark:bg-white/5" : "border-[#1A1A1A]/20 dark:border-white/20 hover:bg-[#F5F5F0] dark:hover:bg-[#0A0A0A]"
-              )}>
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <FileText className={cn("w-8 h-8 mb-2", docxFile ? "text-[#1A1A1A] dark:text-white" : "text-[#1A1A1A]/40 dark:text-white/40")} />
-                  <p className="text-xs font-bold opacity-60 truncate max-w-[200px] px-2">
-                    {docxFile ? docxFile.name : t("storyFilePlaceholder")}
-                  </p>
-                </div>
-                <input type="file" accept=".docx" className="hidden" onChange={(e) => setDocxFile(e.target.files?.[0] || null)} required />
+            {creationMode === "docx" && (
+              <div>
+                <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">{t("storyFileLabel")}</label>
+                <label className={cn(
+                  "flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer transition-colors",
+                  docxFile ? "border-[#1A1A1A] dark:border-white bg-[#1A1A1A]/5 dark:bg-white/5" : "border-[#1A1A1A]/20 dark:border-white/20 hover:bg-[#F5F5F0] dark:hover:bg-[#0A0A0A]"
+                )}>
+                  <div className="flex flex-col items-center justify-center pt-3 pb-3">
+                    <FileText className={cn("w-6 h-6 mb-1", docxFile ? "text-[#1A1A1A] dark:text-white" : "text-[#1A1A1A]/40 dark:text-white/40")} />
+                    <p className="text-xs font-bold opacity-60 truncate max-w-[200px] px-2">
+                      {docxFile ? docxFile.name : t("storyFilePlaceholder")}
+                    </p>
+                  </div>
+                  <input type="file" accept=".docx" className="hidden" onChange={(e) => setDocxFile(e.target.files?.[0] || null)} required />
+                </label>
+              </div>
+            )}
+          </div>
+
+          {/* Interactive Site Rich Text Writer Mode */}
+          {creationMode === "writer" && (
+            <div className="pt-2 border-t border-[#1A1A1A]/10 dark:border-white/10 space-y-3">
+              <label className="block text-xs uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
+                <PenTool className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <span>O editor abrirá em uma nova página em tela cheia para maior conforto.</span>
               </label>
             </div>
-          </div>
+          )}
 
           {(isUploading || progressPercent > 0) && (
             <div className={cn(
@@ -891,40 +1073,83 @@ export function Admin() {
             </div>
           )}
 
-          {!accessToken ? (
-            <button 
-              type="button"
-              onClick={handleLogin}
-              className="w-full flex items-center justify-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] font-bold text-[10px] uppercase tracking-widest py-4 rounded-full hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors"
-            >
-              {t("authorizeDrive")}
-            </button>
+          {/* Action Buttons */}
+          {creationMode === "docx" ? (
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-[#1A1A1A]/10 dark:border-white/10">
+              <button 
+                type="button"
+                disabled={isUploading}
+                onClick={() => handleSaveStory(true)}
+                className="flex-1 flex items-center justify-center gap-2 bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold text-xs uppercase tracking-widest py-4 rounded-xl hover:bg-amber-500/20 transition-colors disabled:opacity-50"
+              >
+                {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {t("saveDraft")}
+              </button>
+
+              <button 
+                type="button"
+                disabled={isUploading}
+                onClick={() => handleSaveStory(false)}
+                className="flex-1 flex items-center justify-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] font-bold text-xs uppercase tracking-widest py-4 rounded-xl hover:bg-[#333] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50"
+              >
+                {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                {t("publishNow")}
+              </button>
+            </div>
           ) : (
-            <button 
-              type="submit"
-              disabled={isUploading}
-              className="w-full flex items-center justify-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] font-bold text-[10px] uppercase tracking-widest py-4 rounded-full hover:bg-[#5A5A40] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50"
-            >
-              {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
-              {isUploading ? t("publishing") : t("publishStory")}
-            </button>
+            <div className="pt-4 border-t border-[#1A1A1A]/10 dark:border-white/10">
+              <button 
+                type="button"
+                disabled={isUploading}
+                onClick={handleStartWritingOnSite}
+                className="w-full flex items-center justify-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] font-bold text-xs uppercase tracking-widest py-4 rounded-xl hover:bg-[#333] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50"
+              >
+                {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <PenTool className="w-4 h-4" />}
+                Iniciar Escrita no Site
+              </button>
+            </div>
           )}
-        </form>
+        </div>
       )}
 
       {activeTab === "manage" && (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-[#1A1A1A] p-4 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10">
-            <div className="relative w-full sm:w-80">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
-              <input 
-                type="text"
-                placeholder={t("searchPlaceholder")}
-                value={searchStoryQuery}
-                onChange={(e) => setSearchStoryQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none"
-              />
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
+                <input 
+                  type="text"
+                  placeholder={t("searchPlaceholder")}
+                  value={searchStoryQuery}
+                  onChange={(e) => setSearchStoryQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none"
+                />
+              </div>
+
+              {/* Status Filter Tabs */}
+              <div className="flex p-1 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 text-[10px] font-bold uppercase tracking-wider shrink-0">
+                <button
+                  onClick={() => setStatusFilter("all")}
+                  className={cn("px-2.5 py-1 rounded-lg transition-colors", statusFilter === "all" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
+                >
+                  {t("all")}
+                </button>
+                <button
+                  onClick={() => setStatusFilter("published")}
+                  className={cn("px-2.5 py-1 rounded-lg transition-colors", statusFilter === "published" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
+                >
+                  {t("isPublishedBadge")}
+                </button>
+                <button
+                  onClick={() => setStatusFilter("drafts")}
+                  className={cn("px-2.5 py-1 rounded-lg transition-colors", statusFilter === "drafts" ? "bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A]" : "opacity-60")}
+                >
+                  {t("isDraftBadge")} ({storiesList.filter(s => s.isDraft).length})
+                </button>
+              </div>
             </div>
+
             <button 
               onClick={loadStoriesList} 
               disabled={loadingStories}
@@ -950,6 +1175,8 @@ export function Admin() {
             <div className="space-y-4">
               {storiesList
                 .filter(s => {
+                  if (statusFilter === "published" && s.isDraft) return false;
+                  if (statusFilter === "drafts" && !s.isDraft) return false;
                   if (!searchStoryQuery.trim()) return true;
                   const q = searchStoryQuery.toLowerCase();
                   return (
@@ -1091,7 +1318,18 @@ export function Admin() {
                             />
 
                             <div className="space-y-1.5">
-                              <h3 className="font-serif font-bold text-lg leading-tight">{story.title}</h3>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="font-serif font-bold text-lg leading-tight">{story.title}</h3>
+                                <span className={cn(
+                                  "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                                  story.isDraft 
+                                    ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30" 
+                                    : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
+                                )}>
+                                  {story.isDraft ? t("isDraftBadge") : t("isPublishedBadge")}
+                                </span>
+                              </div>
+
                               <div className="text-xs opacity-70 flex items-center gap-1">
                                 <UserIcon className="w-3 h-3 opacity-60" /> {story.author || t("unknownAuthor")}
                               </div>
@@ -1111,6 +1349,7 @@ export function Admin() {
 
                               <div className="text-[10px] font-mono opacity-40 pt-1 flex flex-wrap gap-x-3 gap-y-1">
                                 <span>{story.totalPages} {t("pages")}</span>
+                                {story.wordCount ? <span>• {story.wordCount} palavras</span> : null}
                                 {(() => {
                                   let pubDateStr = story.publicationDate;
                                   if (!pubDateStr && story.createdAt) {
@@ -1128,21 +1367,43 @@ export function Admin() {
                             </div>
                           </div>
 
-                          <div className="flex sm:flex-col gap-2 w-full sm:w-auto shrink-0 justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-[#1A1A1A]/10 dark:border-white/10">
+                          <div className="grid grid-cols-2 sm:flex sm:flex-col gap-2 w-full sm:w-auto shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-[#1A1A1A]/10 dark:border-white/10">
+                            {/* Write/Edit Content on Site */}
+                            <button
+                              onClick={() => navigate(`/writer/${story.id}`)}
+                              disabled={isDeletingThis}
+                              className="px-2.5 py-2 bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-1.5 min-h-[38px]"
+                            >
+                              <PenTool className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                              <span className="truncate">{t("editInSite")}</span>
+                            </button>
+
+                            {/* Quick Publish if Draft */}
+                            {story.isDraft && (
+                              <button
+                                onClick={() => handleQuickPublishDraft(story.id)}
+                                disabled={isDeletingThis}
+                                className="px-2.5 py-2 bg-emerald-600 text-white rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 shadow-sm min-h-[38px]"
+                              >
+                                <Send className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">{t("publishNow")}</span>
+                              </button>
+                            )}
+
                             <button
                               onClick={() => handleStartEdit(story)}
                               disabled={isDeletingThis}
-                              className="flex-1 sm:flex-initial px-4 py-2 bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-[#1A1A1A] hover:text-white dark:hover:bg-white dark:hover:text-[#1A1A1A] transition-colors flex items-center justify-center gap-1.5"
+                              className="px-2.5 py-2 bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:bg-[#1A1A1A] hover:text-white dark:hover:bg-white dark:hover:text-[#1A1A1A] transition-colors flex items-center justify-center gap-1.5 min-h-[38px]"
                             >
-                              <Pencil className="w-3.5 h-3.5" /> {t("editLabel")}
+                              <Pencil className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{t("editLabel")}</span>
                             </button>
                             <button
                               onClick={() => setStoryToDelete(story)}
                               disabled={isDeletingThis}
-                              className="flex-1 sm:flex-initial px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                              className="px-2.5 py-2 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 min-h-[38px]"
                             >
-                              {isDeletingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                              {t("deleteLabel")}
+                              {isDeletingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" /> : <Trash2 className="w-3.5 h-3.5 shrink-0" />}
+                              <span className="truncate">{t("deleteLabel")}</span>
                             </button>
                           </div>
                         </div>

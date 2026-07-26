@@ -25,6 +25,8 @@ interface Story {
   totalPages?: number;
   createdAt?: any;
   publicationDate?: string;
+  authorUid?: string;
+  isDraft?: boolean;
 }
 
 interface HistoryItem {
@@ -73,6 +75,10 @@ export function Home() {
       const loaded: Story[] = [];
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
+        if (data.isDraft) {
+          // Do not display draft stories on public home catalog
+          return;
+        }
         loaded.push({
           id: docSnap.id,
           title: data.title,
@@ -84,7 +90,9 @@ export function Home() {
           wordCount: data.wordCount,
           totalPages: data.totalPages,
           createdAt: data.createdAt,
-          publicationDate: data.publicationDate || ""
+          publicationDate: data.publicationDate || "",
+          authorUid: data.authorUid,
+          isDraft: data.isDraft || false
         });
       });
       setStories(loaded);
