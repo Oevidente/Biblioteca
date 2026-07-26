@@ -87,7 +87,8 @@ export function Writer() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data() as StoryData;
-          if (data.authorUid !== user.uid) {
+          const isAdmin = profile?.role === "admin" || (user.email || "").toLowerCase().trim() === "andreluiz1902@gmail.com" || (user.email || "").toLowerCase().trim() === "romansanacional2026@gmail.com";
+          if (!isAdmin && data.authorUid && data.authorUid !== user.uid) {
             navigate("/admin");
             return;
           }

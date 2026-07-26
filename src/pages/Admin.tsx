@@ -203,7 +203,7 @@ export function Admin() {
       const loaded: StoryItem[] = [];
       snap.forEach((d) => {
         const data = d.data();
-        if (!isAdmin && data.authorUid !== user?.uid) return;
+        if (!isAdmin && data.authorUid && data.authorUid !== user?.uid) return;
         loaded.push({
           id: d.id,
           title: data.title || "",
