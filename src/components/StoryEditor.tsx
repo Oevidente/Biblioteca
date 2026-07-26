@@ -38,8 +38,9 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
   const { t, language } = useLanguage();
   const editorRef = useRef<HTMLDivElement>(null);
   
-  // Combine initial pages into editor content
-  const [editorHtml, setEditorHtml] = useState<string>(() => {
+  const isInitialized = useRef(false);
+
+  const getInitialHtml = () => {
     if (initialPages && initialPages.length > 0) {
       return initialPages
         .map((p, idx) => {
@@ -50,7 +51,7 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
         .join("");
     }
     return "";
-  });
+  };
 
   const [autoPagination, setAutoPagination] = useState<boolean>(true);
   const [wordsPerPage, setWordsPerPage] = useState<number>(300);
@@ -163,7 +164,6 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
   const handleContentChange = () => {
     if (!editorRef.current) return;
     const currentHtml = editorRef.current.innerHTML;
-    setEditorHtml(currentHtml);
 
     const { pages, wordCount, cleanText } = processHtmlIntoPages(currentHtml);
     setComputedPages(pages);
@@ -172,12 +172,24 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
   };
 
   useEffect(() => {
-    // Initial calculation
-    if (editorHtml) {
-      const { pages, wordCount, cleanText } = processHtmlIntoPages(editorHtml);
+    if (editorRef.current && !isInitialized.current) {
+      const html = getInitialHtml();
+      editorRef.current.innerHTML = html;
+      isInitialized.current = true;
+      const { pages, wordCount, cleanText } = processHtmlIntoPages(html);
       setComputedPages(pages);
       setTotalWords(wordCount);
       onChange(pages, cleanText, wordCount);
+    }
+  }, [initialPages]);
+
+  useEffect(() => {
+    // Recalculate on pagination settings change
+    if (editorRef.current) {
+      const currentHtml = editorRef.current.innerHTML;
+      const { pages, wordCount, cleanText } = processHtmlIntoPages(currentHtml);
+      setComputedPages(pages);
+      setTotalWords(wordCount);
     }
   }, [autoPagination, wordsPerPage]);
 
@@ -650,11 +662,10 @@ export function StoryEditor({ initialPages = [], onChange, className }: StoryEdi
             ref={editorRef}
             contentEditable
             onInput={handleContentChange}
-            dangerouslySetInnerHTML={{ __html: editorHtml }}
             className="w-full min-h-[350px] max-h-[600px] overflow-y-auto p-4 sm:p-8 bg-white dark:bg-[#1A1A1A] border border-[#1A1A1A]/15 dark:border-white/15 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white font-serif text-base sm:text-lg leading-relaxed text-[#1A1A1A] dark:text-[#F5F5F0] shadow-inner prose dark:prose-invert max-w-none"
             style={{ minHeight: "350px" }}
           />
-          {!editorHtml && (
+          {totalWords === 0 && (
             <div className="absolute top-4 left-4 sm:top-8 sm:left-8 text-sm sm:text-base font-serif opacity-40 pointer-events-none">
               {t("typeContentHere")}
             </div>
