@@ -5,7 +5,7 @@ export type Language = "pt" | "es" | "en" | "id";
 export const translations = {
   pt: {
     // Navigation / Header / Footer
-    library: "Inkora",
+    library: "Acervo",
     admin: "Área do Autor",
     toggleTheme: "Alternar modo claro e escuro",
     login: "Entrar",
@@ -15,7 +15,7 @@ export const translations = {
     version: "Versão",
     online: "Online",
     bthDigital: "INK Digital",
-    bthLibrary: "Inkora",
+    bthLibrary: "Acervo",
     language: "Idioma",
     
     // Home Page
@@ -409,7 +409,7 @@ export const translations = {
   },
   es: {
     // Navigation / Header / Footer
-    library: "Inkora",
+    library: "Acervo",
     admin: "Área de Autor",
     toggleTheme: "Alternar modo claro y oscuro",
     login: "Iniciar Sesión",
@@ -419,7 +419,7 @@ export const translations = {
     version: "Versión",
     online: "En línea",
     bthDigital: "INK Digital",
-    bthLibrary: "Inkora",
+    bthLibrary: "Acervo",
     language: "Idioma",
     
     // Home Page
@@ -813,7 +813,7 @@ export const translations = {
   },
   en: {
     // Navigation / Header / Footer
-    library: "Inkora",
+    library: "Collection",
     admin: "Author Area",
     toggleTheme: "Toggle light and dark mode",
     login: "Log In",
@@ -823,7 +823,7 @@ export const translations = {
     version: "Version",
     online: "Online",
     bthDigital: "INK Digital",
-    bthLibrary: "Inkora",
+    bthLibrary: "Collection",
     language: "Language",
     
     // Home Page
@@ -1217,7 +1217,7 @@ export const translations = {
   },
   id: {
     // Navigation / Header / Footer
-    library: "Inkora",
+    library: "Koleksi",
     admin: "Area Penulis",
     toggleTheme: "Ubah mode terang dan gelap",
     login: "Masuk",
@@ -1227,7 +1227,7 @@ export const translations = {
     version: "Versi",
     online: "Online",
     bthDigital: "INK Digital",
-    bthLibrary: "Inkora",
+    bthLibrary: "Koleksi",
     language: "Bahasa",
     
     // Home Page
