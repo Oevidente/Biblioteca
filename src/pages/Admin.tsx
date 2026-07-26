@@ -1105,7 +1105,7 @@ export function Admin() {
                 className="w-full flex items-center justify-center gap-2 bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] font-bold text-xs uppercase tracking-widest py-4 rounded-xl hover:bg-[#333] dark:hover:bg-[#EAE8E2] transition-colors disabled:opacity-50"
               >
                 {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <PenTool className="w-4 h-4" />}
-                Iniciar Escrita no Site
+                {t("writeOnSite")}
               </button>
             </div>
           )}
