@@ -15,7 +15,7 @@ import {
   setDoc,
   where 
 } from "../lib/firebase";
-import { ChevronLeft, ChevronRight, ArrowLeft, Star, MessageSquare, CheckCircle, ShieldAlert, User as UserIcon, ArrowUp, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Star, MessageSquare, CheckCircle, ShieldAlert, User as UserIcon, ArrowUp, Clock, Eye, Sun } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -65,6 +65,34 @@ export function Reader() {
   const [approvedComments, setApprovedComments] = useState<CommentData[]>([]);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+
+  // Eye Comfort yellow filter intensity state (0 to 100)
+  const [eyeComfortIntensity, setEyeComfortIntensity] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem("inkora_eye_comfort_intensity");
+      return saved !== null ? Math.min(100, Math.max(0, Number(saved))) : 0;
+    } catch (e) {
+      return 0;
+    }
+  });
+
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("inkora_eye_comfort_intensity", eyeComfortIntensity.toString());
+    } catch (e) {
+      console.error("Error saving eye comfort intensity:", e);
+    }
+  }, [eyeComfortIntensity]);
 
   // Monitor scroll height to show/hide "return to top" button and update progress
   useEffect(() => {
@@ -408,8 +436,97 @@ export function Reader() {
         </div>
       </header>
 
+      {/* Eye Comfort & Reading Customization Toolbar */}
+      <div className="mb-6 bg-white dark:bg-[#0A0A0A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-2xl p-4 sm:p-5 shadow-sm transition-all">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          {/* Label and Info */}
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className={cn(
+              "p-2.5 rounded-xl transition-colors shrink-0 flex items-center justify-center",
+              eyeComfortIntensity > 0 
+                ? "bg-amber-400/20 text-amber-700 dark:text-amber-300" 
+                : "bg-[#1A1A1A]/5 dark:bg-white/5 opacity-60"
+            )}>
+              <Eye className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-bold font-serif uppercase tracking-wider">{t("eyeComfort")}</h3>
+                {eyeComfortIntensity > 0 ? (
+                  <span className="text-[9px] bg-amber-400/25 text-amber-900 dark:text-amber-200 font-mono font-bold px-2 py-0.5 rounded-full">
+                    {t("yellowFilter")} {eyeComfortIntensity}%
+                  </span>
+                ) : (
+                  <span className="text-[9px] bg-[#1A1A1A]/5 dark:bg-white/5 opacity-50 font-mono font-bold px-2 py-0.5 rounded-full">
+                    {t("off")}
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] opacity-60 font-serif mt-0.5">{t("eyeComfortDescription")}</p>
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+            {/* Slider */}
+            <div className="flex items-center gap-2.5 w-full sm:w-56 bg-[#F5F5F0] dark:bg-[#1A1A1A] px-3.5 py-2 rounded-xl border border-[#1A1A1A]/10 dark:border-white/10">
+              <Sun className="w-3.5 h-3.5 opacity-50 shrink-0 text-amber-500" />
+              <input 
+                type="range" 
+                min="0" 
+                max="100" 
+                step="5"
+                value={eyeComfortIntensity} 
+                onChange={(e) => setEyeComfortIntensity(Number(e.target.value))}
+                className="w-full h-1.5 bg-[#1A1A1A]/10 dark:bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                title={t("filterIntensity")}
+                aria-label={t("filterIntensity")}
+              />
+              <span className="text-[10px] font-mono font-bold w-9 text-right shrink-0">
+                {eyeComfortIntensity}%
+              </span>
+            </div>
+
+            {/* Quick Presets */}
+            <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end">
+              {[
+                { label: t("off"), val: 0 },
+                { label: "25%", val: 25 },
+                { label: "50%", val: 50 },
+                { label: "75%", val: 75 }
+              ].map((preset) => (
+                <button
+                  key={preset.val}
+                  onClick={() => setEyeComfortIntensity(preset.val)}
+                  className={cn(
+                    "text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg border transition-all",
+                    eyeComfortIntensity === preset.val
+                      ? "bg-amber-400 dark:bg-amber-500 text-black border-amber-400 dark:border-amber-500 font-extrabold shadow-sm"
+                      : "border-[#1A1A1A]/10 dark:border-white/10 opacity-70 hover:opacity-100 bg-[#F5F5F0] dark:bg-[#1A1A1A]"
+                  )}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Reader Page Frame */}
-      <div className="relative min-h-[50vh] bg-white dark:bg-[#0A0A0A] p-6 sm:p-10 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10 shadow-sm">
+      <div className="relative min-h-[50vh] bg-white dark:bg-[#0A0A0A] p-6 sm:p-10 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10 shadow-sm overflow-hidden">
+        {/* Eye Comfort Warm Yellow Filter Overlay */}
+        {eyeComfortIntensity > 0 && (
+          <div 
+            className="absolute inset-0 rounded-2xl pointer-events-none z-20 transition-colors duration-200"
+            style={{
+              backgroundColor: isDark 
+                ? `rgba(251, 191, 36, ${(eyeComfortIntensity / 100) * 0.22})` 
+                : `rgba(245, 180, 0, ${(eyeComfortIntensity / 100) * 0.36})`,
+              mixBlendMode: isDark ? 'screen' : 'multiply'
+            }}
+          />
+        )}
         <AnimatePresence mode="wait">
           {loadingPage ? (
             <motion.div

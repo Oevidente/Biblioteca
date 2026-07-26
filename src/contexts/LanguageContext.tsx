@@ -64,6 +64,13 @@ export const translations = {
     pageNotFound: "Página não encontrada.",
     errorLoadingPage: "Erro ao carregar página.",
     
+    // Eye Comfort
+    eyeComfort: "Conforto Ocular",
+    yellowFilter: "Filtro Amarelo",
+    filterIntensity: "Intensidade do Filtro",
+    eyeComfortDescription: "Filtro amarelo anti-fadiga para leitura suave",
+    off: "Desligado",
+    
     // Auth Modal
     changePassword: "Alterar Senha",
     myProfile: "Meu Perfil",
@@ -291,6 +298,13 @@ export const translations = {
     errorSubmitReview: "Error al enviar la reseña.",
     pageNotFound: "Página no encontrada.",
     errorLoadingPage: "Error al cargar la página.",
+    
+    // Eye Comfort
+    eyeComfort: "Confort Ocular",
+    yellowFilter: "Filtro Amarillo",
+    filterIntensity: "Intensidad del Filtro",
+    eyeComfortDescription: "Filtro amarillo anti-fatiga para lectura suave",
+    off: "Desactivado",
     
     // Auth Modal
     changePassword: "Cambiar Contraseña",
@@ -520,6 +534,13 @@ export const translations = {
     pageNotFound: "Page not found.",
     errorLoadingPage: "Error loading page.",
     
+    // Eye Comfort
+    eyeComfort: "Eye Comfort",
+    yellowFilter: "Yellow Filter",
+    filterIntensity: "Filter Intensity",
+    eyeComfortDescription: "Anti-fatigue yellow filter for smooth reading",
+    off: "Off",
+    
     // Auth Modal
     changePassword: "Change Password",
     myProfile: "My Profile",
@@ -747,6 +768,13 @@ export const translations = {
     errorSubmitReview: "Gagal mengirim ulasan.",
     pageNotFound: "Halaman tidak ditemukan.",
     errorLoadingPage: "Gagal memuat halaman.",
+    
+    // Eye Comfort
+    eyeComfort: "Kenyamanan Mata",
+    yellowFilter: "Filter Kuning",
+    filterIntensity: "Intensitas Filter",
+    eyeComfortDescription: "Filter kuning anti-lelah untuk membaca dengan nyaman",
+    off: "Mati",
     
     // Auth Modal
     changePassword: "Ubah Kata Sandi",
