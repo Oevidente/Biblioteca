@@ -1,7 +1,7 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { Link } from "react-router-dom";
 import { BookCoverImage } from "../components/BookCoverImage";
-import { db, collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, updateDoc, getDocs } from "../lib/firebase";
+import { db, collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, updateDoc, getDocs, deleteDoc, writeBatch } from "../lib/firebase";
 import { BookOpen, Search, Heart, Clock, Library, Star, UserCheck, ListPlus, Download, Calendar, Plus, Trash2 } from "lucide-react";
 import { useAuth, ADMIN_EMAIL } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -240,6 +240,51 @@ export function Home() {
         });
       } catch (err) {
         console.error("Failed to update user favorites in Firestore:", err);
+      }
+    }
+  };
+
+  const handleRemoveFromHistory = async (storyId: string, e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const updated = history.filter(item => item.id !== storyId);
+    setHistory(updated);
+    try {
+      localStorage.setItem("reading_history", JSON.stringify(updated));
+    } catch (err) {
+      console.error("Error updating local reading history:", err);
+    }
+
+    if (user) {
+      try {
+        await deleteDoc(doc(db, `users/${user.uid}/progress`, storyId));
+      } catch (err) {
+        console.error("Error deleting reading progress from Firestore:", err);
+      }
+    }
+  };
+
+  const handleClearAllHistory = async () => {
+    if (!confirm(t("confirmClearHistory"))) return;
+
+    setHistory([]);
+    try {
+      localStorage.setItem("reading_history", JSON.stringify([]));
+    } catch (err) {
+      console.error("Error clearing local reading history:", err);
+    }
+
+    if (user) {
+      try {
+        const progSnap = await getDocs(collection(db, `users/${user.uid}/progress`));
+        const batch = writeBatch(db);
+        progSnap.forEach((docSnap) => {
+          batch.delete(docSnap.ref);
+        });
+        await batch.commit();
+      } catch (err) {
+        console.error("Error clearing reading history from Firestore:", err);
       }
     }
   };
@@ -534,49 +579,85 @@ export function Home() {
       )}
 
       {activeTab === "history" && (
-        <div className="max-w-3xl mx-auto space-y-4">
+        <div className="max-w-3xl mx-auto space-y-6">
+          <div className="flex justify-between items-center pb-2 border-b border-black/5 dark:border-white/5">
+            <div>
+              <h2 className="font-serif font-bold text-2xl">{t("history")}</h2>
+              <p className="text-xs opacity-60 mt-0.5">{t("exploreArchive")}</p>
+            </div>
+            {history.length > 0 && (
+              <button
+                onClick={handleClearAllHistory}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all paper-btn-red"
+                title={t("clearHistory")}
+                aria-label={t("clearHistory")}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{t("clearHistory")}</span>
+              </button>
+            )}
+          </div>
+
           {history.length === 0 ? (
             <div className="text-center py-20 opacity-50 font-serif border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl">
               {t("noHistoryFound")}
             </div>
           ) : (
-            history.map((item, idx) => {
-              const matchedStory = stories.find(s => s.id === item.id);
-              const cover = item.coverImage || matchedStory?.coverImage;
+            <div className="space-y-4">
+              {history.map((item, idx) => {
+                const matchedStory = stories.find(s => s.id === item.id);
+                const cover = item.coverImage || matchedStory?.coverImage;
 
-              return (
-                <Link 
-                  key={`${item.id}-${idx}`} 
-                  to={`/story/${item.id}`} 
-                  className="flex items-center gap-4 sm:gap-6 p-4 rounded-2xl hover:-translate-y-0.5 transition-all group paper-card"
-                >
-                  <div className="w-14 sm:w-16 aspect-[2/3] h-auto bg-[#EAE8E2] dark:bg-[#2A2A2A] rounded-lg overflow-hidden shrink-0">
-                    <BookCoverImage 
-                      src={cover} 
-                      alt={item.title} 
-                      title={item.title} 
-                      className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" 
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-serif font-bold text-base sm:text-lg truncate">{item.title}</h3>
-                    <div className="flex items-center gap-3 mt-1.5">
-                      <span className="text-[10px] uppercase font-bold tracking-widest opacity-60">
-                        {t("pageOf", { page: item.page + 1, total: item.totalPages })}
-                      </span>
-                      <span className="text-[10px] uppercase font-bold tracking-widest opacity-40">
-                        {new Date(item.timestamp).toLocaleDateString()}
-                      </span>
+                return (
+                  <div 
+                    key={`${item.id}-${idx}`} 
+                    className="flex items-center justify-between gap-3 sm:gap-6 p-4 rounded-2xl hover:-translate-y-0.5 transition-all group paper-card"
+                  >
+                    <Link 
+                      to={`/story/${item.id}`} 
+                      className="flex items-center gap-3 sm:gap-5 flex-1 min-w-0"
+                    >
+                      <div className="w-14 sm:w-16 aspect-[2/3] h-auto bg-[#EAE8E2] dark:bg-[#2A2A2A] rounded-lg overflow-hidden shrink-0">
+                        <BookCoverImage 
+                          src={cover} 
+                          alt={item.title} 
+                          title={item.title} 
+                          className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" 
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-serif font-bold text-base sm:text-lg truncate group-hover:opacity-80 transition-opacity">{item.title}</h3>
+                        <div className="flex items-center gap-2 sm:gap-3 mt-1.5 flex-wrap">
+                          <span className="text-[10px] uppercase font-bold tracking-widest opacity-60">
+                            {t("pageOf", { page: item.page + 1, total: item.totalPages })}
+                          </span>
+                          <span className="text-[10px] uppercase font-bold tracking-widest opacity-40">
+                            {new Date(item.timestamp).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Link 
+                        to={`/story/${item.id}`}
+                        className="px-3 sm:px-4 py-2 rounded-full font-bold text-[9px] sm:text-[10px] uppercase tracking-widest paper-btn-dark shrink-0"
+                      >
+                        {t("continueReading")}
+                      </Link>
+                      <button
+                        onClick={(e) => handleRemoveFromHistory(item.id, e)}
+                        className="p-2 sm:p-2.5 rounded-full transition-all paper-btn-red shrink-0"
+                        title={t("removeFromHistory")}
+                        aria-label={t("removeFromHistory")}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                  <div className="shrink-0">
-                    <span className="px-3.5 py-2 rounded-full font-bold text-[9px] sm:text-[10px] uppercase tracking-widest paper-btn-dark">
-                      {t("continueReading")}
-                    </span>
-                  </div>
-                </Link>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </div>
       )}
