@@ -52,11 +52,7 @@ export function Community() {
   const loadGlobalActivitiesData = async () => {
     setLoadingGlobalActivities(true);
     const activitiesData = await fetchGlobalActivities();
-    // Remove the current user's own activities from the community feed
-    const filteredActivities = currentUserProfile?.uid
-      ? activitiesData.filter(act => act.uid !== currentUserProfile.uid)
-      : activitiesData;
-    setGlobalActivities(filteredActivities);
+    setGlobalActivities(activitiesData);
     setLoadingGlobalActivities(false);
   };
 
