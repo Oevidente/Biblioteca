@@ -10,8 +10,8 @@ import { Layout } from "./components/Layout";
 import { Home } from "./pages/Home";
 import { Reader } from "./pages/Reader";
 import { Admin } from "./pages/Admin";
-
 import { Writer } from "./pages/Writer";
+import { ProfilePage } from "./pages/Profile";
 
 export default function App() {
   return (
@@ -24,6 +24,10 @@ export default function App() {
               <Route path="story/:id" element={<Reader />} />
               <Route path="admin" element={<Admin />} />
               <Route path="writer/:id" element={<Writer />} />
+              <Route path="profile" element={<ProfilePage />} />
+              <Route path="community" element={<ProfilePage />} />
+              <Route path="user/:usernameParam" element={<ProfilePage />} />
+              <Route path="profile/:uidParam" element={<ProfilePage />} />
             </Route>
           </Routes>
         </HashRouter>

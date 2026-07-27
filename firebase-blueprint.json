@@ -43,6 +43,41 @@
         { "name": "totalPages", "type": "number", "isRequired": true },
         { "name": "updatedAt", "type": "timestamp", "isRequired": true }
       ]
+    },
+    {
+      "name": "Follow",
+      "properties": [
+        { "name": "followerUid", "type": "string", "isRequired": true },
+        { "name": "followingUid", "type": "string", "isRequired": true },
+        { "name": "createdAt", "type": "timestamp", "isRequired": true }
+      ]
+    },
+    {
+      "name": "FriendRequest",
+      "properties": [
+        { "name": "senderUid", "type": "string", "isRequired": true },
+        { "name": "receiverUid", "type": "string", "isRequired": true },
+        { "name": "senderName", "type": "string", "isRequired": true },
+        { "name": "status", "type": "string", "isRequired": true },
+        { "name": "createdAt", "type": "timestamp", "isRequired": true }
+      ]
+    },
+    {
+      "name": "Friend",
+      "properties": [
+        { "name": "users", "type": "string[]", "isRequired": true },
+        { "name": "createdAt", "type": "timestamp", "isRequired": true }
+      ]
+    },
+    {
+      "name": "Notification",
+      "properties": [
+        { "name": "recipientUid", "type": "string", "isRequired": true },
+        { "name": "senderUid", "type": "string", "isRequired": true },
+        { "name": "type", "type": "string", "isRequired": true },
+        { "name": "status", "type": "string", "isRequired": true },
+        { "name": "createdAt", "type": "timestamp", "isRequired": true }
+      ]
     }
   ]
 }

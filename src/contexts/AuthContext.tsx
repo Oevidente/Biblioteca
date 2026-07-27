@@ -27,6 +27,12 @@ export interface UserProfile {
   email: string;
   displayName?: string;
   username?: string;
+  photoURL?: string;
+  bio?: string;
+  isHistoryPublic?: boolean;
+  followersCount?: number;
+  followingCount?: number;
+  friendsCount?: number;
   createdAt?: string;
   role?: string;
   favorites?: string[];
@@ -45,6 +51,14 @@ interface AuthContextType {
   checkEmailExists: (email: string) => Promise<{ success: boolean; error?: string }>;
   resetPasswordDirect: (email: string, newPass: string) => Promise<{ success: boolean; error?: string }>;
   refreshProfile: () => Promise<void>;
+  updateProfileInfo: (updates: {
+    displayName?: string;
+    username?: string;
+    email?: string;
+    bio?: string;
+    photoURL?: string;
+    isHistoryPublic?: boolean;
+  }) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -356,6 +370,92 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateProfileInfo = async (updates: {
+    displayName?: string;
+    username?: string;
+    email?: string;
+    bio?: string;
+    photoURL?: string;
+    isHistoryPublic?: boolean;
+  }) => {
+    if (!user || !profile) {
+      return { success: false, error: "Usuário não está autenticado." };
+    }
+
+    try {
+      const payload: Partial<UserProfile> = {};
+
+      if (updates.displayName !== undefined) {
+        payload.displayName = updates.displayName.trim();
+      }
+
+      if (updates.bio !== undefined) {
+        payload.bio = updates.bio.trim();
+      }
+
+      if (updates.photoURL !== undefined) {
+        payload.photoURL = updates.photoURL.trim();
+      }
+
+      if (updates.isHistoryPublic !== undefined) {
+        payload.isHistoryPublic = updates.isHistoryPublic;
+      }
+
+      // Check username uniqueness if modified
+      if (updates.username !== undefined && updates.username.trim()) {
+        const cleanUsername = updates.username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+        if (!cleanUsername) {
+          return { success: false, error: "O nome de usuário deve conter apenas letras, números ou _" };
+        }
+        if (cleanUsername !== profile.username) {
+          const qUser = query(collection(db, "users"), where("username", "==", cleanUsername));
+          const snapUser = await getDocs(qUser);
+          if (!snapUser.empty) {
+            return { success: false, error: "Este nome de usuário já está em uso por outra conta." };
+          }
+          payload.username = cleanUsername;
+        }
+      }
+
+      // Check email uniqueness if modified
+      if (updates.email !== undefined && updates.email.trim()) {
+        const cleanEmail = updates.email.trim().toLowerCase();
+        if (!cleanEmail.includes("@")) {
+          return { success: false, error: "Informe um e-mail válido." };
+        }
+        if (cleanEmail !== profile.email.toLowerCase()) {
+          const qEmail = query(collection(db, "users"), where("email", "==", cleanEmail));
+          const snapEmail = await getDocs(qEmail);
+          if (!snapEmail.empty) {
+            return { success: false, error: "Este e-mail já está cadastrado em outra conta." };
+          }
+          payload.email = cleanEmail;
+        }
+      }
+
+      if (Object.keys(payload).length > 0) {
+        const userRef = doc(db, "users", user.uid);
+        await updateDoc(userRef, payload as any);
+
+        const updatedProfile = { ...profile, ...payload };
+        setProfile(updatedProfile);
+
+        if (payload.email || payload.displayName) {
+          setUser({
+            ...user,
+            email: payload.email || user.email,
+            displayName: payload.displayName || user.displayName
+          } as User);
+        }
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      console.error("Error updating profile info:", err);
+      return { success: false, error: err.message || "Erro ao atualizar dados do perfil." };
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -367,7 +467,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       changePassword,
       checkEmailExists,
       resetPasswordDirect,
-      refreshProfile
+      refreshProfile,
+      updateProfileInfo
     }}>
       {children}
     </AuthContext.Provider>

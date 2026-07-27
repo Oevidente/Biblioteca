@@ -510,7 +510,12 @@ export function Reader() {
         <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold mb-3 tracking-tight leading-tight">{story.title}</h1>
         {story.author && (
           <div className="flex flex-col items-center gap-2 mb-6 opacity-60">
-            <p className="text-xs sm:text-sm font-bold uppercase tracking-widest">{t("by")} {story.author}</p>
+            <Link 
+              to={story.authorUid ? `/profile/${story.authorUid}` : `/user/${story.author}`}
+              className="text-xs sm:text-sm font-bold uppercase tracking-widest hover:underline hover:opacity-100 transition-opacity"
+            >
+              {t("by")} {story.author}
+            </Link>
             <p className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" />
               {Math.ceil((story.wordCount || (story.totalPages * 250)) / 250)} {t("readTime")}
@@ -893,7 +898,7 @@ export function Reader() {
                   <MessageSquare className="w-3.5 h-3.5" /> {t("commentLabel")}
                 </label>
                 <textarea
-                  value={comment}
+                  value={comment || ""}
                   onChange={(e) => setComment(e.target.value)}
                   className="w-full rounded-xl p-4 focus:outline-none resize-none text-xs sm:text-sm paper-card"
                   rows={4}
@@ -955,7 +960,7 @@ export function Reader() {
               <div className="flex gap-2">
                 <input 
                   type="text" 
-                  value={newNoteInput}
+                  value={newNoteInput || ""}
                   onChange={(e) => setNewNoteInput(e.target.value)}
                   placeholder="Anotação ou citação privada..."
                   className="flex-1 p-2.5 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-black/10 dark:border-white/10 rounded-xl focus:outline-none"
@@ -1091,7 +1096,7 @@ export function Reader() {
               <div className="flex gap-2">
                 <input 
                   type="text" 
-                  value={newPlaylistTitle}
+                  value={newPlaylistTitle || ""}
                   onChange={(e) => setNewPlaylistTitle(e.target.value)}
                   placeholder="Nome da nova playlist..."
                   className="flex-1 p-2 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-black/10 dark:border-white/10 rounded-xl focus:outline-none"

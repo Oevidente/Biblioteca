@@ -93,7 +93,7 @@ export function Writer() {
             return;
           }
           setStory(data);
-          setEditTitle(data.title);
+          setEditTitle(data.title || "");
           setEditAuthor(data.author || "");
           
           let rawDate = data.scheduledReleaseAt || "";
@@ -192,6 +192,7 @@ export function Writer() {
       await updateDoc(storyRef, {
         title: editTitle || story.title,
         author: editAuthor || story.author,
+        authorUid: user?.uid || story.authorUid,
         totalPages: cleanPages.length,
         wordCount,
         tags,
@@ -332,7 +333,7 @@ export function Writer() {
             <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1.5">{t("editTitle")}</label>
             <input 
               type="text" 
-              value={editTitle} 
+              value={editTitle || ""} 
               onChange={(e) => setEditTitle(e.target.value)}
               className="w-full px-3.5 py-2.5 text-base sm:text-lg font-serif font-bold rounded-xl focus:outline-none transition-colors paper-card"
             />
@@ -341,7 +342,7 @@ export function Writer() {
             <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1.5">{t("editAuthor")}</label>
             <input 
               type="text" 
-              value={editAuthor} 
+              value={editAuthor || ""} 
               onChange={(e) => setEditAuthor(e.target.value)}
               className="w-full px-3.5 py-2.5 text-base sm:text-lg font-serif rounded-xl focus:outline-none transition-colors paper-card"
             />
@@ -392,7 +393,7 @@ export function Writer() {
             </div>
             <input 
               type="datetime-local" 
-              value={scheduledReleaseAt} 
+              value={scheduledReleaseAt || ""} 
               onChange={(e) => setScheduledReleaseAt(e.target.value)}
               className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl focus:outline-none transition-colors paper-card"
             />

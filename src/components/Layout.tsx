@@ -105,6 +105,15 @@ export function Layout() {
             {t("library")}
           </Link>
 
+          <Link 
+            to="/profile?tab=search" 
+            className={`text-[11px] font-bold tracking-widest uppercase transition-opacity ${
+              location.pathname === "/profile" && location.search.includes("tab=search") ? "border-b-2 border-[#1A1A1A] dark:border-[#F5F5F0] pb-1 opacity-100" : "opacity-60 hover:opacity-100"
+            }`}
+          >
+            {t("community")}
+          </Link>
+
           {(profile?.role === 'admin' || profile?.role === 'author') && (
             <Link 
               to="/admin" 
@@ -157,15 +166,18 @@ export function Layout() {
             </span>
           </button>
 
-          {/* User Auth Button */}
+          {/* User Auth Button & Profile Nav */}
           {user ? (
-            <button
-              onClick={() => openAuth("profile")}
-              className="flex items-center gap-2 px-4 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest transition-colors paper-btn-dark shadow-sm"
-            >
-              <UserIcon className="w-3.5 h-3.5" />
-              <span className="max-w-[120px] truncate">{profile?.username ? `@${profile.username}` : (profile?.displayName || user.email?.split("@")[0])}</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <Link
+                to="/profile"
+                className="flex items-center gap-2 px-4 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest transition-all paper-btn-dark shadow-sm hover:scale-105"
+                title="Meu Perfil Social"
+              >
+                <UserIcon className="w-3.5 h-3.5" />
+                <span className="max-w-[120px] truncate">{profile?.username ? `@${profile.username}` : (profile?.displayName || user.email?.split("@")[0])}</span>
+              </Link>
+            </div>
           ) : (
             <div className="flex items-center gap-2">
               <button
@@ -245,6 +257,13 @@ export function Layout() {
           >
             {t("library")}
           </Link>
+          <Link 
+            to="/profile?tab=search" 
+            onClick={() => setMobileMenuOpen(false)}
+            className="block text-xs font-bold tracking-widest uppercase py-2 border-b border-[#1A1A1A]/5 dark:border-white/5"
+          >
+            {t("community")}
+          </Link>
           {(profile?.role === 'admin' || profile?.role === 'author') && (
             <Link 
               to="/admin" 
@@ -255,13 +274,14 @@ export function Layout() {
           )}
 
           {user ? (
-            <button
-              onClick={() => { setMobileMenuOpen(false); openAuth("profile"); }}
+            <Link
+              to="/profile"
+              onClick={() => setMobileMenuOpen(false)}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-full font-bold text-xs uppercase tracking-widest mt-2 paper-btn-dark"
             >
               <UserIcon className="w-4 h-4" />
               <span>{t("profile")} ({profile?.username ? `@${profile.username}` : (profile?.displayName || user.email?.split("@")[0])})</span>
-            </button>
+            </Link>
           ) : (
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
@@ -293,7 +313,7 @@ export function Layout() {
           <span className="text-[9px] uppercase font-bold tracking-widest opacity-60 hidden sm:inline">Firebase {t("online")}</span>
         </div>
         <div className="flex items-center space-x-4">
-          <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">{t("version")} 2.8.6-beta</span>
+          <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">{t("version")} 2.8.9-beta</span>
         </div>
       </footer>
 

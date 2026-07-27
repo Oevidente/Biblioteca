@@ -313,7 +313,7 @@ export function Admin() {
 
   const handleStartEdit = (story: StoryItem) => {
     setEditingStoryId(story.id);
-    setEditTitle(story.title);
+    setEditTitle(story.title || "");
     setEditAuthor(story.author || "");
     setEditTagsInput((story.tags || []).join(", "));
     setEditCoverImage(story.coverImage || "");
@@ -1500,7 +1500,7 @@ export function Admin() {
               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">{t("storyTitle")}</label>
               <input
                 type="text"
-                value={title}
+                value={title || ""}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm paper-card"
                 placeholder={t("storyTitlePlaceholder")}
@@ -1511,7 +1511,7 @@ export function Admin() {
               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">{t("editAuthor")}</label>
               <input
                 type="text"
-                value={author}
+                value={author || ""}
                 onChange={(e) => setAuthor(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm paper-card"
                 placeholder={t("authorPlaceholder")}
@@ -1553,7 +1553,7 @@ export function Admin() {
               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-2">{t("publishDate")}</label>
               <input
                 type="date"
-                value={publicationDate}
+                value={publicationDate || ""}
                 onChange={(e) => setPublicationDate(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm paper-card"
                 required
@@ -1701,7 +1701,7 @@ export function Admin() {
                 <input
                   type="text"
                   placeholder={t("searchPlaceholder")}
-                  value={searchStoryQuery}
+                  value={searchStoryQuery || ""}
                   onChange={(e) => setSearchStoryQuery(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 text-xs rounded-xl focus:outline-none paper-card"
                 />
@@ -1794,7 +1794,7 @@ export function Admin() {
                               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("editTitle")}</label>
                               <input
                                 type="text"
-                                value={editTitle}
+                                value={editTitle || ""}
                                 onChange={(e) => setEditTitle(e.target.value)}
                                 className="w-full px-3 py-2 text-sm bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none"
                               />
@@ -1803,7 +1803,7 @@ export function Admin() {
                               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("editAuthor")}</label>
                               <input
                                 type="text"
-                                value={editAuthor}
+                                value={editAuthor || ""}
                                 onChange={(e) => setEditAuthor(e.target.value)}
                                 className="w-full px-3 py-2 text-sm bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none"
                               />
@@ -1843,7 +1843,7 @@ export function Admin() {
                               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("publishDate")}</label>
                               <input
                                 type="date"
-                                value={editPublicationDate}
+                                value={editPublicationDate || ""}
                                 onChange={(e) => setEditPublicationDate(e.target.value)}
                                 className="w-full px-3 py-2 text-sm bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none"
                               />
@@ -1891,7 +1891,7 @@ export function Admin() {
                             <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("editTags")}</label>
                             <input
                               type="text"
-                              value={editTagsInput}
+                              value={editTagsInput || ""}
                               onChange={(e) => setEditTagsInput(e.target.value)}
                               className="w-full px-3 py-2 text-sm bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none"
                               placeholder={t("editTagsPlaceholder")}

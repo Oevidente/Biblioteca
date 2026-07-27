@@ -396,7 +396,13 @@ export function Home() {
             </h3>
             {story.author && (
               <p className="text-[10px] uppercase font-bold tracking-widest opacity-60 mt-1 truncate flex items-center gap-1.5 flex-wrap">
-                <span>{t("by")} {story.author}</span>
+                <Link 
+                  to={story.authorUid ? `/profile/${story.authorUid}` : `/user/${story.author}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="hover:underline hover:opacity-100 transition-opacity inline-flex items-center gap-1"
+                >
+                  {t("by")} {story.author}
+                </Link>
                 <span className="w-1 h-1 rounded-full bg-current opacity-40"></span>
                 <span className="flex items-center gap-1">
                   <Clock className="w-3 h-3" /> 
@@ -524,7 +530,7 @@ export function Home() {
               <input 
                 type="text" 
                 placeholder={t("searchPlaceholder")} 
-                value={searchQuery}
+                value={searchQuery || ""}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 rounded-full focus:outline-none text-xs sm:text-sm paper-card"
               />
@@ -815,7 +821,7 @@ export function Home() {
               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("playlistTitle")}</label>
               <input 
                 type="text" 
-                value={newPlaylistTitle} 
+                value={newPlaylistTitle || ""} 
                 onChange={(e) => setNewPlaylistTitle(e.target.value)}
                 className="w-full p-3 text-xs rounded-xl focus:outline-none paper-card"
                 placeholder="Ex: Melhores Romances de Fantasia"
@@ -825,7 +831,7 @@ export function Home() {
             <div>
               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("playlistDescription")}</label>
               <textarea 
-                value={newPlaylistDesc} 
+                value={newPlaylistDesc || ""} 
                 onChange={(e) => setNewPlaylistDesc(e.target.value)}
                 className="w-full p-3 text-xs rounded-xl focus:outline-none h-20 paper-card"
                 placeholder="Descrição opcional..."
@@ -1025,7 +1031,7 @@ export function Home() {
               <Search className="w-4 h-4 absolute left-3 top-3 opacity-40" />
               <input 
                 type="text" 
-                value={playlistPickerSearch}
+                value={playlistPickerSearch || ""}
                 onChange={(e) => setPlaylistPickerSearch(e.target.value)}
                 placeholder="Buscar histórias por título ou autor..."
                 className="w-full pl-9 pr-3 py-2 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-black/10 dark:border-white/10 rounded-xl focus:outline-none"
@@ -1165,7 +1171,7 @@ export function Home() {
               <div className="flex gap-2">
                 <input 
                   type="text" 
-                  value={newPlaylistTitle}
+                  value={newPlaylistTitle || ""}
                   onChange={(e) => setNewPlaylistTitle(e.target.value)}
                   placeholder="Nome da nova playlist..."
                   className="flex-1 p-2 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-black/10 dark:border-white/10 rounded-xl focus:outline-none"

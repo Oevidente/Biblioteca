@@ -40,6 +40,26 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Follows Collection
+    match /follows/{followId} {
+      allow read, write: if true;
+    }
+
+    // Friend Requests Collection
+    match /friendRequests/{reqId} {
+      allow read, write: if true;
+    }
+
+    // Friends Collection
+    match /friends/{friendId} {
+      allow read, write: if true;
+    }
+
+    // Notifications Collection
+    match /notifications/{notifId} {
+      allow read, write: if true;
+    }
+
     // Collection Group rule for progress queries (used in Admin Analytics)
     match /{path=**}/progress/{progressId} {
       allow read, write: if true;

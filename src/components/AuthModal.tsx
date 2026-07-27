@@ -1,4 +1,5 @@
 import { useState, FormEvent, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { X, Lock, Mail, User as UserIcon, KeyRound, CheckCircle2, AlertCircle, ShieldCheck, Eye, EyeOff, AtSign, Award, BookOpen, MessageSquare, Moon, ListPlus, Globe, Feather } from "lucide-react";
@@ -14,9 +15,17 @@ interface AuthModalProps {
 export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalProps) {
   const { user, profile, login, register, logout, changePassword, checkEmailExists, resetPasswordDirect } = useAuth();
   const { language, t } = useLanguage();
+  const navigate = useNavigate();
   
   const [profileTab, setProfileTab] = useState<"security" | "achievements">("achievements");
   const [unlockedBadges, setUnlockedBadges] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (isOpen && initialMode === "profile") {
+      onClose();
+      navigate("/profile");
+    }
+  }, [isOpen, initialMode, navigate, onClose]);
 
   useEffect(() => {
     const checkAchievementsAndLoad = async () => {

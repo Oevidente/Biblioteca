@@ -6,6 +6,7 @@ export const translations = {
   pt: {
     // Navigation / Header / Footer
     library: "Acervo",
+    community: "Comunidade",
     admin: "Área do Autor",
     toggleTheme: "Alternar modo claro e escuro",
     login: "Entrar",
@@ -418,6 +419,7 @@ export const translations = {
   es: {
     // Navigation / Header / Footer
     library: "Acervo",
+    community: "Comunidad",
     admin: "Área de Autor",
     toggleTheme: "Alternar modo claro y oscuro",
     login: "Iniciar Sesión",
@@ -830,6 +832,7 @@ export const translations = {
   en: {
     // Navigation / Header / Footer
     library: "Collection",
+    community: "Community",
     admin: "Author Area",
     toggleTheme: "Toggle light and dark mode",
     login: "Log In",
@@ -1242,6 +1245,7 @@ export const translations = {
   id: {
     // Navigation / Header / Footer
     library: "Koleksi",
+    community: "Komunitas",
     admin: "Area Penulis",
     toggleTheme: "Ubah mode terang dan gelap",
     login: "Masuk",
