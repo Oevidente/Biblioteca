@@ -13,31 +13,20 @@ export interface ReadingList {
   updatedAt: string;
 }
 
-const LOCAL_PLAYLISTS_KEY = "inkora_local_playlists";
-
-export function getLocalPlaylists(): ReadingList[] {
+export async function fetchUserPlaylists(userId: string): Promise<ReadingList[]> {
   try {
-    const raw = localStorage.getItem(LOCAL_PLAYLISTS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
+    const q = query(collection(db, "playlists"), where("userId", "==", userId));
+    const snap = await getDocs(q);
+    const firestorePlaylists: ReadingList[] = snap.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+    })) as ReadingList[];
+    
+    return firestorePlaylists;
+  } catch (err) {
+    console.warn("Firestore playlists offline:", err);
     return [];
   }
-}
-
-export function saveLocalPlaylist(playlist: ReadingList): void {
-  const playlists = getLocalPlaylists();
-  const index = playlists.findIndex((p) => p.id === playlist.id);
-  if (index >= 0) {
-    playlists[index] = playlist;
-  } else {
-    playlists.push(playlist);
-  }
-  localStorage.setItem(LOCAL_PLAYLISTS_KEY, JSON.stringify(playlists));
-}
-
-export function deleteLocalPlaylist(id: string): void {
-  const playlists = getLocalPlaylists().filter((p) => p.id !== id);
-  localStorage.setItem(LOCAL_PLAYLISTS_KEY, JSON.stringify(playlists));
 }
 
 export async function fetchPublicPlaylists(): Promise<ReadingList[]> {
@@ -49,37 +38,30 @@ export async function fetchPublicPlaylists(): Promise<ReadingList[]> {
       ...d.data(),
     })) as ReadingList[];
     
-    // Merge with local ones if not present
-    const local = getLocalPlaylists().filter((p) => p.isPublic);
-    const map = new Map<string, ReadingList>();
-    firestorePlaylists.forEach((p) => map.set(p.id, p));
-    local.forEach((p) => {
-      if (!map.has(p.id)) map.set(p.id, p);
-    });
-    return Array.from(map.values());
+    return firestorePlaylists;
   } catch (err) {
-    console.warn("Firestore playlists offline, returning local:", err);
-    return getLocalPlaylists().filter((p) => p.isPublic);
+    console.warn("Firestore playlists offline:", err);
+    return [];
   }
 }
 
 export async function createOrUpdatePlaylist(playlist: ReadingList): Promise<void> {
-  saveLocalPlaylist(playlist);
   try {
     const ref = doc(db, "playlists", playlist.id);
     await setDoc(ref, playlist, { merge: true });
   } catch (err) {
-    console.warn("Could not save playlist to Firestore, saved locally:", err);
+    console.warn("Could not save playlist to Firestore:", err);
+    throw err;
   }
 }
 
 export async function deletePlaylist(playlistId: string): Promise<void> {
-  deleteLocalPlaylist(playlistId);
   try {
     const ref = doc(db, "playlists", playlistId);
     await deleteDoc(ref);
   } catch (err) {
     console.warn("Could not delete playlist from Firestore:", err);
+    throw err;
   }
 }
 

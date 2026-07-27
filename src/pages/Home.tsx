@@ -2,13 +2,14 @@ import { useEffect, useState, type MouseEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BookCoverImage } from "../components/BookCoverImage";
 import { TranslatedText } from "../components/TranslatedText";
+import { ConfirmModal } from "../components/ConfirmModal";
 import { db, collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, updateDoc, getDocs, deleteDoc, writeBatch } from "../lib/firebase";
 import { BookOpen, Search, Heart, Clock, Library, Star, UserCheck, ListPlus, Download, Calendar, Plus, Trash2 } from "lucide-react";
 import { useAuth, ADMIN_EMAIL } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { getCanonicalTag, getLocalizedTag } from "../lib/tagger";
 import { getAllOfflineStories, OfflineStory, removeOfflineStory } from "../lib/offlineStorage";
-import { fetchPublicPlaylists, ReadingList, createOrUpdatePlaylist, getLocalPlaylists, deleteLocalPlaylist, deletePlaylist, toggleStoryInPlaylist } from "../lib/playlists";
+import { fetchPublicPlaylists, fetchUserPlaylists, ReadingList, createOrUpdatePlaylist, deletePlaylist, toggleStoryInPlaylist } from "../lib/playlists";
 import { Check, Edit3, FolderPlus, X, ExternalLink } from "lucide-react";
 import { logUserActivity } from "../lib/social";
 import { clsx, type ClassValue } from "clsx";
@@ -76,6 +77,7 @@ export function Home() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [offlineStories, setOfflineStories] = useState<OfflineStory[]>([]);
   const [playlists, setPlaylists] = useState<ReadingList[]>([]);
+  const [playlistFilter, setPlaylistFilter] = useState<"mine" | "public">("mine");
   
   // Playlist Modal State
   const [showCreatePlaylistModal, setShowCreatePlaylistModal] = useState(false);
@@ -91,6 +93,19 @@ export function Home() {
   // Story Card -> Playlist Selector Modal State
   const [storyForPlaylistModal, setStoryForPlaylistModal] = useState<Story | null>(null);
 
+  // Confirm Modal State
+  const [confirmModalConfig, setConfirmModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
+
   // Load offline stories
   const loadOfflineData = async () => {
     try {
@@ -104,8 +119,13 @@ export function Home() {
   // Load playlists
   const loadPlaylistsData = async () => {
     try {
-      const publicLists = await fetchPublicPlaylists();
-      setPlaylists(publicLists);
+      if (playlistFilter === "mine") {
+        const myLists = await fetchUserPlaylists(user?.uid || "guest");
+        setPlaylists(myLists);
+      } else {
+        const publicLists = await fetchPublicPlaylists();
+        setPlaylists(publicLists);
+      }
     } catch (e) {
       console.error("Error loading playlists:", e);
     }
@@ -113,8 +133,11 @@ export function Home() {
 
   useEffect(() => {
     loadOfflineData();
-    loadPlaylistsData();
   }, []);
+
+  useEffect(() => {
+    loadPlaylistsData();
+  }, [playlistFilter, user]);
 
   // Load stories real-time from Firestore
   useEffect(() => {
@@ -288,27 +311,32 @@ export function Home() {
   };
 
   const handleClearAllHistory = async () => {
-    if (!confirm(t("confirmClearHistory"))) return;
+    setConfirmModalConfig({
+      isOpen: true,
+      title: t("clearHistory") || "Limpar Histórico",
+      message: t("confirmClearHistory") || "Tem certeza que deseja limpar todo o histórico de leitura?",
+      onConfirm: async () => {
+        setHistory([]);
+        try {
+          localStorage.setItem("reading_history", JSON.stringify([]));
+        } catch (err) {
+          console.error("Error clearing local reading history:", err);
+        }
 
-    setHistory([]);
-    try {
-      localStorage.setItem("reading_history", JSON.stringify([]));
-    } catch (err) {
-      console.error("Error clearing local reading history:", err);
-    }
-
-    if (user) {
-      try {
-        const progSnap = await getDocs(collection(db, `users/${user.uid}/progress`));
-        const batch = writeBatch(db);
-        progSnap.forEach((docSnap) => {
-          batch.delete(docSnap.ref);
-        });
-        await batch.commit();
-      } catch (err) {
-        console.error("Error clearing reading history from Firestore:", err);
+        if (user) {
+          try {
+            const progSnap = await getDocs(collection(db, `users/${user.uid}/progress`));
+            const batch = writeBatch(db);
+            progSnap.forEach((docSnap) => {
+              batch.delete(docSnap.ref);
+            });
+            await batch.commit();
+          } catch (err) {
+            console.error("Error clearing reading history from Firestore:", err);
+          }
+        }
       }
-    }
+    });
   };
 
   // Derive genres
@@ -699,10 +727,31 @@ export function Home() {
       {/* PLAYLISTS TAB */}
       {activeTab === "playlists" && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h2 className="font-serif font-bold text-2xl">{t("playlists")}</h2>
-              <p className="text-xs opacity-60 mt-0.5">{t("publicPlaylists")}</p>
+              <div className="flex items-center gap-2 mt-2 bg-[#F5F5F0] dark:bg-[#2A2A2A] p-1 rounded-full w-fit">
+                <button
+                  onClick={() => setPlaylistFilter("mine")}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                    playlistFilter === "mine"
+                      ? "bg-white dark:bg-[#1A1A1A] shadow-sm opacity-100"
+                      : "opacity-60 hover:opacity-100"
+                  }`}
+                >
+                  {t("myPlaylists") || "Minhas Playlists"}
+                </button>
+                <button
+                  onClick={() => setPlaylistFilter("public")}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                    playlistFilter === "public"
+                      ? "bg-white dark:bg-[#1A1A1A] shadow-sm opacity-100"
+                      : "opacity-60 hover:opacity-100"
+                  }`}
+                >
+                  {t("publicPlaylists") || "Playlists Públicas"}
+                </button>
+              </div>
             </div>
             <button
               onClick={() => setShowCreatePlaylistModal(true)}
@@ -767,20 +816,27 @@ export function Home() {
                           className="flex-1 py-2 px-3 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 paper-btn-dark"
                         >
                           <FolderPlus className="w-3.5 h-3.5" />
-                          <span>{t("managePlaylist")}</span>
+                          <span>{user?.uid === pl.userId ? t("managePlaylist") || "Gerenciar Playlist" : "Ver Playlist"}</span>
                         </button>
-                        <button
-                          onClick={async () => {
-                            if (confirm(`Deseja excluir a playlist "${pl.title}"?`)) {
-                              await deletePlaylist(pl.id);
-                              await loadPlaylistsData();
-                            }
-                          }}
-                          className="p-2 rounded-xl transition-colors paper-btn-red"
-                          title={t("deletePlaylist")}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {user?.uid === pl.userId && (
+                          <button
+                            onClick={() => {
+                              setConfirmModalConfig({
+                                isOpen: true,
+                                title: t("deletePlaylist") || "Excluir Playlist",
+                                message: `Deseja excluir a playlist "${pl.title}"?`,
+                                onConfirm: async () => {
+                                  await deletePlaylist(pl.id);
+                                  await loadPlaylistsData();
+                                }
+                              });
+                            }}
+                            className="p-2 rounded-xl transition-colors paper-btn-red"
+                            title={t("deletePlaylist") || "Excluir Playlist"}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -959,16 +1015,18 @@ export function Home() {
               <h3 className="font-serif font-bold text-sm uppercase tracking-wider opacity-80">
                 Histórias Incluídas ({selectedPlaylistForDetail.storyIds.length})
               </h3>
-              <button
-                onClick={() => {
-                  setPlaylistPickerSearch("");
-                  setShowAddStoriesToPlaylistModal(true);
-                }}
-                className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span>{t("addStories")}</span>
-              </button>
+              {user?.uid === selectedPlaylistForDetail.userId && (
+                <button
+                  onClick={() => {
+                    setPlaylistPickerSearch("");
+                    setShowAddStoriesToPlaylistModal(true);
+                  }}
+                  className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{t("addStories")}</span>
+                </button>
+              )}
             </div>
 
             {/* Stories List inside Playlist */}
@@ -976,16 +1034,18 @@ export function Home() {
               {selectedPlaylistForDetail.storyIds.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-black/10 dark:border-white/10 rounded-xl space-y-3">
                   <p className="text-sm opacity-60 font-serif">{t("emptyPlaylist")}</p>
-                  <button
-                    onClick={() => {
-                      setPlaylistPickerSearch("");
-                      setShowAddStoriesToPlaylistModal(true);
-                    }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Adicionar Histórias Agora</span>
-                  </button>
+                  {user?.uid === selectedPlaylistForDetail.userId && (
+                    <button
+                      onClick={() => {
+                        setPlaylistPickerSearch("");
+                        setShowAddStoriesToPlaylistModal(true);
+                      }}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Adicionar Histórias Agora</span>
+                    </button>
+                  )}
                 </div>
               ) : (
                 stories
@@ -1009,17 +1069,19 @@ export function Home() {
                         >
                           <BookOpen className="w-3.5 h-3.5" />
                         </Link>
-                        <button
-                          onClick={async () => {
-                            const updated = await toggleStoryInPlaylist(selectedPlaylistForDetail, s.id);
-                            setSelectedPlaylistForDetail(updated);
-                            await loadPlaylistsData();
-                          }}
-                          className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg text-xs font-bold"
-                          title="Remover desta playlist"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {user?.uid === selectedPlaylistForDetail.userId && (
+                          <button
+                            onClick={async () => {
+                              const updated = await toggleStoryInPlaylist(selectedPlaylistForDetail, s.id);
+                              setSelectedPlaylistForDetail(updated);
+                              await loadPlaylistsData();
+                            }}
+                            className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg text-xs font-bold"
+                            title="Remover desta playlist"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))
@@ -1028,19 +1090,28 @@ export function Home() {
 
             {/* Footer */}
             <div className="pt-3 border-t border-black/10 dark:border-white/10 flex justify-between items-center">
-              <button
-                onClick={async () => {
-                  if (confirm(`Excluir a playlist "${selectedPlaylistForDetail.title}"?`)) {
-                    await deletePlaylist(selectedPlaylistForDetail.id);
-                    setSelectedPlaylistForDetail(null);
-                    await loadPlaylistsData();
-                  }
-                }}
-                className="text-xs text-red-500 font-bold uppercase tracking-wider flex items-center gap-1 hover:underline"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Excluir Playlist</span>
-              </button>
+              <div>
+                {user?.uid === selectedPlaylistForDetail.userId && (
+                  <button
+                    onClick={() => {
+                      setConfirmModalConfig({
+                        isOpen: true,
+                        title: t("deletePlaylist") || "Excluir Playlist",
+                        message: `Excluir a playlist "${selectedPlaylistForDetail.title}"?`,
+                        onConfirm: async () => {
+                          await deletePlaylist(selectedPlaylistForDetail.id);
+                          setSelectedPlaylistForDetail(null);
+                          await loadPlaylistsData();
+                        }
+                      });
+                    }}
+                    className="text-xs text-red-500 font-bold uppercase tracking-wider flex items-center gap-1 hover:underline"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Excluir Playlist</span>
+                  </button>
+                )}
+              </div>
               <button
                 onClick={() => setSelectedPlaylistForDetail(null)}
                 className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest"
@@ -1268,6 +1339,14 @@ export function Home() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmModalConfig.isOpen}
+        title={confirmModalConfig.title}
+        message={confirmModalConfig.message}
+        onConfirm={confirmModalConfig.onConfirm}
+        onCancel={() => setConfirmModalConfig({ ...confirmModalConfig, isOpen: false })}
+      />
     </div>
   );
 }

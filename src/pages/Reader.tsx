@@ -21,7 +21,7 @@ import { useAuth, ADMIN_EMAIL } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { saveStoryOffline, isStoryDownloaded, removeOfflineStory } from "../lib/offlineStorage";
 import { getBookmarksAndNotes, saveBookmarkNote, deleteBookmarkNote, BookmarkNote } from "../lib/bookmarks";
-import { fetchPublicPlaylists, ReadingList, toggleStoryInPlaylist, createOrUpdatePlaylist } from "../lib/playlists";
+import { fetchUserPlaylists, ReadingList, toggleStoryInPlaylist, createOrUpdatePlaylist } from "../lib/playlists";
 import { unlockAchievement } from "../lib/achievements";
 import { logUserActivity } from "../lib/social";
 import { translateStoryPageHtml } from "../lib/storyTranslator";
@@ -147,7 +147,7 @@ export function Reader() {
   const [newPlaylistTitle, setNewPlaylistTitle] = useState("");
 
   const loadPlaylists = async () => {
-    const list = await fetchPublicPlaylists();
+    const list = await fetchUserPlaylists(user?.uid || "guest");
     setPlaylists(list);
   };
 
