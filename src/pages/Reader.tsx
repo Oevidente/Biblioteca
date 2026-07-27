@@ -15,7 +15,7 @@ import {
   setDoc,
   where 
 } from "../lib/firebase";
-import { ChevronLeft, ChevronRight, ArrowLeft, Star, MessageSquare, CheckCircle, ShieldAlert, User as UserIcon, ArrowUp, Clock, Eye, Sun, Type, Download, Bookmark, FileText, Check, ListPlus, Plus, X, Languages, Globe } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Star, MessageSquare, CheckCircle, ShieldAlert, User as UserIcon, ArrowUp, Clock, Eye, Sun, Type, Download, Bookmark, FileText, Check, ListPlus, Plus, X, Languages, Globe, Heart } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth, ADMIN_EMAIL } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -24,6 +24,7 @@ import { getBookmarksAndNotes, saveBookmarkNote, deleteBookmarkNote, BookmarkNot
 import { fetchPublicPlaylists, ReadingList, toggleStoryInPlaylist, createOrUpdatePlaylist } from "../lib/playlists";
 import { unlockAchievement } from "../lib/achievements";
 import { translateStoryPageHtml } from "../lib/storyTranslator";
+import { TranslatedText } from "../components/TranslatedText";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -490,7 +491,7 @@ export function Reader() {
           <Clock className="w-8 h-8" />
         </div>
         <h2 className="text-2xl sm:text-3xl font-bold text-[#1A1A1A] dark:text-[#F5F5F0]">
-          {story.title}
+          <TranslatedText text={story.title} />
         </h2>
         {story.author && (
           <p className="text-xs uppercase font-bold tracking-widest opacity-60">
@@ -558,7 +559,9 @@ export function Reader() {
       )}
 
       <header className="mb-10 text-center">
-        <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold mb-3 tracking-tight leading-tight">{story.title}</h1>
+        <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold mb-3 tracking-tight leading-tight">
+          <TranslatedText text={story.title} />
+        </h1>
         {story.author && (
           <div className="flex flex-col items-center gap-2 mb-6 opacity-60">
             <Link 
@@ -949,6 +952,41 @@ export function Reader() {
           animate={{ opacity: 1, y: 0 }}
           className="mt-16 border-t border-[#1A1A1A]/10 dark:border-white/10 pt-12"
         >
+          {/* Supporters and Contributors Area */}
+          {(() => {
+            if (!story.supporters) return null;
+            const supportersList = (Array.isArray(story.supporters) 
+              ? story.supporters 
+              : (story.supporters as string).split(",").map(s => s.trim())
+            ).filter(Boolean);
+            
+            if (supportersList.length === 0) return null;
+
+            return (
+              <div className="mb-12 max-w-lg mx-auto text-center p-6 sm:p-8 rounded-2xl bg-amber-500/5 border border-amber-500/10 space-y-4">
+                <div className="flex items-center justify-center gap-2">
+                  <Heart className="w-5 h-5 text-amber-500 fill-amber-500/20 animate-pulse" />
+                  <h3 className="font-serif font-bold text-lg sm:text-xl text-[#1A1A1A] dark:text-white">
+                    {t("storySupporters")}
+                  </h3>
+                </div>
+                <p className="text-xs opacity-70 font-serif italic max-w-md mx-auto">
+                  {t("specialThanks")}
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                  {supportersList.map((supporter, idx) => (
+                    <span 
+                      key={idx} 
+                      className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#1A1A1A]/5 dark:bg-white/5 border border-black/5 dark:border-white/5 tracking-wide text-[#1A1A1A] dark:text-white/90"
+                    >
+                      {supporter}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="text-center mb-8">
             <h2 className="text-2xl font-serif font-bold mb-2">{t("endOfStory")}</h2>
             <p className="opacity-60 text-xs sm:text-sm font-serif">{t("enjoyedReading")}</p>

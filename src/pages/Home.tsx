@@ -1,6 +1,7 @@
 import { useEffect, useState, type MouseEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { BookCoverImage } from "../components/BookCoverImage";
+import { TranslatedText } from "../components/TranslatedText";
 import { db, collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, updateDoc, getDocs, deleteDoc, writeBatch } from "../lib/firebase";
 import { BookOpen, Search, Heart, Clock, Library, Star, UserCheck, ListPlus, Download, Calendar, Plus, Trash2 } from "lucide-react";
 import { useAuth, ADMIN_EMAIL } from "../contexts/AuthContext";
@@ -43,6 +44,7 @@ interface HistoryItem {
 }
 
 export function Home() {
+  const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { t, language } = useLanguage();
   
@@ -345,7 +347,11 @@ export function Home() {
     const isScheduledFuture = story.scheduledReleaseAt && new Date(story.scheduledReleaseAt).getTime() > Date.now();
     
     return (
-      <Link key={story.id} to={`/story/${story.id}`} className="group flex flex-col h-full">
+      <div 
+        key={story.id} 
+        onClick={() => navigate(`/story/${story.id}`)} 
+        className="group flex flex-col h-full cursor-pointer"
+      >
         {/* Cover Image Container */}
         <div className="relative aspect-[2/3] w-full rounded-[22px] overflow-hidden transition-all duration-300 group-hover:-translate-y-1 paper-card">
           <BookCoverImage 
@@ -392,7 +398,7 @@ export function Home() {
         <div className="mt-3 px-1 flex-1 flex flex-col justify-between">
           <div>
             <h3 className="font-serif font-bold text-base sm:text-lg line-clamp-2 leading-tight group-hover:opacity-80 transition-opacity">
-              {story.title}
+              <TranslatedText text={story.title} />
             </h3>
             {story.author && (
               <p className="text-[10px] uppercase font-bold tracking-widest opacity-60 mt-1 truncate flex items-center gap-1.5 flex-wrap">
@@ -443,7 +449,7 @@ export function Home() {
             );
           })()}
         </div>
-      </Link>
+      </div>
     );
   };
 
@@ -632,7 +638,9 @@ export function Home() {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-serif font-bold text-base sm:text-lg truncate group-hover:opacity-80 transition-opacity">{item.title}</h3>
+                        <h3 className="font-serif font-bold text-base sm:text-lg truncate group-hover:opacity-80 transition-opacity">
+                          <TranslatedText text={item.title} />
+                        </h3>
                         <div className="flex items-center gap-2 sm:gap-3 mt-1.5 flex-wrap">
                           <span className="text-[10px] uppercase font-bold tracking-widest opacity-60">
                             {t("pageOf", { page: item.page + 1, total: item.totalPages })}
@@ -783,7 +791,9 @@ export function Home() {
                     <BookCoverImage src={item.coverImage} alt={item.title} title={item.title} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-serif font-bold text-base truncate">{item.title}</h3>
+                    <h3 className="font-serif font-bold text-base truncate">
+                      <TranslatedText text={item.title} />
+                    </h3>
                     <p className="text-[10px] opacity-60 uppercase font-bold tracking-widest mt-1">{item.totalPages} páginas salvas</p>
                     <div className="flex items-center gap-2 mt-3">
                       <Link 

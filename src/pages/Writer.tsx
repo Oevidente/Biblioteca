@@ -4,7 +4,7 @@ import { db, doc, getDoc, updateDoc, collection, getDocs, query, orderBy, setDoc
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { StoryEditor } from "../components/StoryEditor";
-import { ArrowLeft, Save, Loader2, Send, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Send, CheckCircle2, Heart } from "lucide-react";
 import { generateTagsLocal } from "../lib/tagger";
 
 interface StoryData {
@@ -16,6 +16,7 @@ interface StoryData {
   isDraft?: boolean;
   scheduledReleaseAt?: string;
   tags?: string[];
+  supporters?: string[] | string;
 }
 
 export function Writer() {
@@ -31,6 +32,7 @@ export function Writer() {
   const [editTitle, setEditTitle] = useState("");
   const [editAuthor, setEditAuthor] = useState("");
   const [scheduledReleaseAt, setScheduledReleaseAt] = useState("");
+  const [editSupporters, setEditSupporters] = useState("");
   const [, setFullText] = useState("");
   const [wordCount, setWordCount] = useState(0);
 
@@ -46,6 +48,7 @@ export function Writer() {
     editTitle,
     editAuthor,
     scheduledReleaseAt,
+    editSupporters,
     pages,
     wordCount,
     hasUnsavedChanges,
@@ -60,13 +63,14 @@ export function Writer() {
       editTitle,
       editAuthor,
       scheduledReleaseAt,
+      editSupporters,
       pages,
       wordCount,
       hasUnsavedChanges,
       isSaving,
       isAutoSaving
     };
-  }, [id, story, editTitle, editAuthor, scheduledReleaseAt, pages, wordCount, hasUnsavedChanges, isSaving, isAutoSaving]);
+  }, [id, story, editTitle, editAuthor, scheduledReleaseAt, editSupporters, pages, wordCount, hasUnsavedChanges, isSaving, isAutoSaving]);
 
   // Track edits to mark unsaved
   const isFirstLoad = useRef(true);
@@ -77,7 +81,7 @@ export function Writer() {
       return;
     }
     setHasUnsavedChanges(true);
-  }, [editTitle, editAuthor, pages, scheduledReleaseAt, loading]);
+  }, [editTitle, editAuthor, editSupporters, pages, scheduledReleaseAt, loading]);
 
   useEffect(() => {
     async function loadStory() {
@@ -95,6 +99,15 @@ export function Writer() {
           setStory(data);
           setEditTitle(data.title || "");
           setEditAuthor(data.author || "");
+
+          const rawSupporters = data.supporters;
+          if (Array.isArray(rawSupporters)) {
+            setEditSupporters(rawSupporters.join(", "));
+          } else if (typeof rawSupporters === "string") {
+            setEditSupporters(rawSupporters);
+          } else {
+            setEditSupporters("");
+          }
           
           let rawDate = data.scheduledReleaseAt || "";
           if (rawDate && rawDate.includes("Z")) {
@@ -144,12 +157,18 @@ export function Writer() {
           tags = generateTagsLocal(textSample || state.editTitle);
         }
 
+        const supportersArray = (state.editSupporters || "")
+          .split(",")
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+
         await updateDoc(storyRef, {
           title: state.editTitle || state.story.title,
           author: state.editAuthor || state.story.author,
           totalPages: cleanPages.length,
           wordCount: state.wordCount,
           tags,
+          supporters: supportersArray,
           scheduledReleaseAt: state.scheduledReleaseAt || "",
           isDraft: state.story.isDraft ?? true
         });
@@ -160,7 +179,7 @@ export function Writer() {
         });
         await Promise.all(promises);
 
-        setStory(prev => prev ? { ...prev, title: state.editTitle || state.story.title, author: state.editAuthor || state.story.author, tags } : prev);
+        setStory(prev => prev ? { ...prev, title: state.editTitle || state.story.title, author: state.editAuthor || state.story.author, tags, supporters: supportersArray } : prev);
 
         setLastAutoSaveTime(new Date());
         setHasUnsavedChanges(false);
@@ -189,6 +208,11 @@ export function Writer() {
         tags = generateTagsLocal(textSample || editTitle);
       }
 
+      const supportersArray = (editSupporters || "")
+        .split(",")
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+
       await updateDoc(storyRef, {
         title: editTitle || story.title,
         author: editAuthor || story.author,
@@ -196,6 +220,7 @@ export function Writer() {
         totalPages: cleanPages.length,
         wordCount,
         tags,
+        supporters: supportersArray,
         scheduledReleaseAt: scheduledReleaseAt || "",
         isDraft: asDraft
       });
@@ -207,7 +232,7 @@ export function Writer() {
       });
       await Promise.all(promises);
 
-      setStory(prev => prev ? { ...prev, isDraft: asDraft, title: editTitle, author: editAuthor, tags } : prev);
+      setStory(prev => prev ? { ...prev, isDraft: asDraft, title: editTitle, author: editAuthor, tags, supporters: supportersArray } : prev);
       setHasUnsavedChanges(false);
       setLastAutoSaveTime(new Date());
       setMessage(asDraft ? t("draftSavedSuccess") : t("draftPublishedSuccess"));
@@ -398,6 +423,22 @@ export function Writer() {
               className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl focus:outline-none transition-colors paper-card"
             />
           </div>
+        </div>
+
+        {/* Supporters & Contributors Section */}
+        <div className="mb-6 p-4 rounded-xl bg-amber-500/5 border border-amber-500/10">
+          <div className="flex items-center gap-2 mb-2">
+            <Heart className="w-4 h-4 text-amber-500 shrink-0" />
+            <label className="block text-[10px] uppercase font-bold tracking-widest opacity-80">{t("supporters")}</label>
+          </div>
+          <input 
+            type="text" 
+            value={editSupporters || ""} 
+            onChange={(e) => setEditSupporters(e.target.value)}
+            placeholder={t("supportersPlaceholder")}
+            className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl focus:outline-none transition-colors paper-card"
+          />
+          <span className="block text-[9px] opacity-50 mt-1.5 font-mono">{t("supportersHelp")}</span>
         </div>
 
         <div className="border-t border-black/5 dark:border-white/5 pt-6">

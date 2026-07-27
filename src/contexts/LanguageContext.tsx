@@ -78,6 +78,13 @@ export const translations = {
     showTranslatedText: "Ver Traduzido",
     naturalTranslationNotice: "Tradução nativa contínua ativa para o idioma do site.",
     
+    // Supporters
+    supporters: "Apoiadores e Agradecimentos",
+    supportersHelp: "Insira os nomes de quem apoiou ou ajudou na escrita (separados por vírgula)",
+    supportersPlaceholder: "Ex: Ana Silva, Carlos Eduardo, Maria Luiza",
+    storySupporters: "Apoiadores desta história",
+    specialThanks: "Agradecimentos especiais a quem ajudou a tornar esta história possível!",
+    
     // Eye Comfort
     eyeComfort: "Conforto Ocular",
     yellowFilter: "Filtro Amarelo",
@@ -499,6 +506,13 @@ export const translations = {
     showOriginalText: "Ver Original (PT)",
     showTranslatedText: "Ver Traducido",
     naturalTranslationNotice: "Traducción nativa continua activa para el idioma del sitio.",
+    
+    // Supporters
+    supporters: "Patrocinadores y Agradecimientos",
+    supportersHelp: "Ingrese los nombres de quienes apoyaron o ayudaron en la escritura (separados por coma)",
+    supportersPlaceholder: "Ej: Ana Silva, Carlos Eduardo, Maria Luiza",
+    storySupporters: "Patrocinadores de esta historia",
+    specialThanks: "¡Agradecimientos especiales a quienes hicieron posible esta historia!",
     
     // Eye Comfort
     eyeComfort: "Confort Ocular",
@@ -922,6 +936,13 @@ export const translations = {
     showTranslatedText: "Show Translated",
     naturalTranslationNotice: "Fluent native translation active for site language.",
     
+    // Supporters
+    supporters: "Supporters & Special Thanks",
+    supportersHelp: "Enter names of supporters and contributors (separated by commas)",
+    supportersPlaceholder: "e.g. Ana Silva, Carlos Eduardo, Maria Luiza",
+    storySupporters: "Supporters of this story",
+    specialThanks: "Special thanks to the supporters and contributors who made this story possible!",
+    
     // Eye Comfort
     eyeComfort: "Eye Comfort",
     yellowFilter: "Yellow Filter",
@@ -1343,6 +1364,13 @@ export const translations = {
     showOriginalText: "Lihat Teks Asli (PT)",
     showTranslatedText: "Lihat Terjemahan",
     naturalTranslationNotice: "Terjemahan lancar aktif untuk bahasa situs.",
+    
+    // Supporters
+    supporters: "Pendukung & Ucapan Terima Kasih",
+    supportersHelp: "Masukkan nama pendukung yang membantu penulisan (dipisahkan dengan koma)",
+    supportersPlaceholder: "Contoh: Ana Silva, Carlos Eduardo, Maria Luiza",
+    storySupporters: "Pendukung cerita ini",
+    specialThanks: "Ucapan terima kasih khusus kepada para pendukung yang membantu mewujudkan cerita ini!",
     
     // Eye Comfort
     eyeComfort: "Kenyamanan Mata",

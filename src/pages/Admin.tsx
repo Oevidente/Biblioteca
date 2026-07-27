@@ -109,6 +109,7 @@ interface StoryItem {
   publicationDate?: string;
   authorUid?: string;
   isDraft?: boolean;
+  supporters?: string[] | string;
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs = 60000, stageName = "operação"): Promise<T> {
@@ -172,6 +173,7 @@ export function Admin() {
   const [editTitle, setEditTitle] = useState("");
   const [editAuthor, setEditAuthor] = useState("");
   const [editTagsInput, setEditTagsInput] = useState("");
+  const [editSupporters, setEditSupporters] = useState("");
   const [editPublicationDate, setEditPublicationDate] = useState("");
   const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
   const [editCoverImage, setEditCoverImage] = useState<string>("");
@@ -215,7 +217,8 @@ export function Admin() {
           createdAt: data.createdAt,
           publicationDate: data.publicationDate || "",
           authorUid: data.authorUid,
-          isDraft: data.isDraft || false
+          isDraft: data.isDraft || false,
+          supporters: data.supporters || []
         });
       });
       setStoriesList(loaded);
@@ -316,6 +319,16 @@ export function Admin() {
     setEditTitle(story.title || "");
     setEditAuthor(story.author || "");
     setEditTagsInput((story.tags || []).join(", "));
+    
+    const rawSupporters = story.supporters;
+    if (Array.isArray(rawSupporters)) {
+      setEditSupporters(rawSupporters.join(", "));
+    } else if (typeof rawSupporters === "string") {
+      setEditSupporters(rawSupporters);
+    } else {
+      setEditSupporters("");
+    }
+
     setEditCoverImage(story.coverImage || "");
     setEditCoverFile(null);
 
@@ -337,6 +350,7 @@ export function Admin() {
     setEditTitle("");
     setEditAuthor("");
     setEditTagsInput("");
+    setEditSupporters("");
     setEditPublicationDate("");
     setEditCoverImage("");
     setEditCoverFile(null);
@@ -366,6 +380,11 @@ export function Admin() {
         .map((t) => t.trim())
         .filter((t) => t.length > 0);
 
+      const supportersArray = editSupporters
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+
       let finalCoverUrl = editCoverImage;
 
       if (editCoverFile) {
@@ -387,6 +406,7 @@ export function Admin() {
         title: editTitle.trim(),
         author: editAuthor.trim(),
         tags: tagsArray,
+        supporters: supportersArray,
         publicationDate: editPublicationDate,
         coverImage: finalCoverUrl
       });
@@ -394,7 +414,7 @@ export function Admin() {
       setStoriesList((prev) =>
         prev.map((s) =>
           s.id === storyId
-            ? { ...s, title: editTitle.trim(), author: editAuthor.trim(), tags: tagsArray, publicationDate: editPublicationDate, coverImage: finalCoverUrl }
+            ? { ...s, title: editTitle.trim(), author: editAuthor.trim(), tags: tagsArray, supporters: supportersArray, publicationDate: editPublicationDate, coverImage: finalCoverUrl }
             : s
         )
       );
@@ -405,7 +425,7 @@ export function Admin() {
           const list = JSON.parse(cached);
           const updatedList = list.map((item: any) =>
             item.id === storyId
-              ? { ...item, title: editTitle.trim(), author: editAuthor.trim(), tags: tagsArray, publicationDate: editPublicationDate, coverImage: finalCoverUrl }
+              ? { ...item, title: editTitle.trim(), author: editAuthor.trim(), tags: tagsArray, supporters: supportersArray, publicationDate: editPublicationDate, coverImage: finalCoverUrl }
               : item
           );
           localStorage.setItem("luminary_cached_stories", JSON.stringify(updatedList));
@@ -418,6 +438,7 @@ export function Admin() {
       setEditingStoryId(null);
       setEditCoverFile(null);
       setEditCoverImage("");
+      setEditSupporters("");
     } catch (err: any) {
       console.error("Error updating story:", err);
       setManageMsg(`${t("errorUpdatingStory")}${err.message || err}`);
@@ -1887,7 +1908,7 @@ export function Admin() {
                             </div>
                           </div>
 
-                          <div>
+                           <div>
                             <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("editTags")}</label>
                             <input
                               type="text"
@@ -1896,6 +1917,18 @@ export function Admin() {
                               className="w-full px-3 py-2 text-sm bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none"
                               placeholder={t("editTagsPlaceholder")}
                             />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("supporters")}</label>
+                            <input
+                              type="text"
+                              value={editSupporters || ""}
+                              onChange={(e) => setEditSupporters(e.target.value)}
+                              className="w-full px-3 py-2 text-sm bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-xl focus:outline-none"
+                              placeholder={t("supportersPlaceholder")}
+                            />
+                            <span className="block text-[9px] opacity-50 mt-1 font-mono">{t("supportersHelp")}</span>
                           </div>
 
                           <div className="flex justify-end gap-3 pt-2">

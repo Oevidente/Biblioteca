@@ -145,11 +145,10 @@ function splitIntoSmartChunks(text: string, maxLength: number = 1000): string[] 
 /**
  * Translates a plain text block with caching, chunking, and multi-provider fallbacks.
  */
-export async function translateTextBlock(text: string, targetLang: 'es' | 'en' | 'id'): Promise<string> {
+export function getCachedTranslation(text: string, targetLang: 'es' | 'en' | 'id'): string | null {
   const trimmed = text.trim();
   if (!trimmed) return text;
 
-  // Exact phrase match from literary dictionary
   if (literaryFallbackPT[trimmed] && literaryFallbackPT[trimmed][targetLang]) {
     return literaryFallbackPT[trimmed][targetLang];
   }
@@ -158,6 +157,26 @@ export async function translateTextBlock(text: string, targetLang: 'es' | 'en' |
   if (memoryCache[cacheKey]) {
     return memoryCache[cacheKey];
   }
+
+  try {
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      memoryCache[cacheKey] = cached;
+      return cached;
+    }
+  } catch (e) {}
+
+  return null;
+}
+
+export async function translateTextBlock(text: string, targetLang: 'es' | 'en' | 'id'): Promise<string> {
+  const trimmed = text.trim();
+  if (!trimmed) return text;
+
+  const cached = getCachedTranslation(trimmed, targetLang);
+  if (cached) return cached;
+
+  const cacheKey = `txt_v2_${targetLang}_${trimmed.slice(0, 80)}_${trimmed.length}`;
 
   // If text is very long, chunk it into smaller blocks
   const chunks = splitIntoSmartChunks(trimmed, 1200);
@@ -185,6 +204,10 @@ export async function translateTextBlock(text: string, targetLang: 'es' | 'en' |
 
   const finalTranslation = translatedChunks.join(" ");
   memoryCache[cacheKey] = finalTranslation;
+  try {
+    sessionStorage.setItem(cacheKey, finalTranslation);
+  } catch (e) {}
+  
   return finalTranslation;
 }
 

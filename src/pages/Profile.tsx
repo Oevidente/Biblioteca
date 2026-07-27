@@ -4,6 +4,7 @@ import { useAuth, UserProfile } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { formatCoverUrl } from "../utils/imageUtils";
 import { resizeImage } from "../lib/imageResizer";
+import { TranslatedText } from "../components/TranslatedText";
 import { 
   User as UserIcon, 
   Settings, 
@@ -682,7 +683,7 @@ export function ProfilePage() {
                     title={`${a.title[language] || a.title.pt} (${isUnlocked ? "Conquistado" : "Bloqueado"})`}
                     className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 border transition-transform group-hover:scale-105 ${
                       isUnlocked 
-                        ? `bg-gradient-to-br ${theme.gradient} text-white shadow-md ${theme.border} ${theme.glow}` 
+                        ? `bg-gradient-to-br ${theme.gradient} text-white shadow-md ${theme.border} ${theme.shadow}` 
                         : "bg-black/10 dark:bg-white/10 text-black/30 dark:text-white/30 border-black/5 dark:border-white/5 grayscale opacity-40"
                     }`}
                   >
@@ -958,7 +959,7 @@ export function ProfilePage() {
                   <div className="flex-1 min-w-0 flex flex-col justify-between">
                     <div>
                       <h3 className="font-serif font-bold text-sm line-clamp-2 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                        {story.title}
+                        <TranslatedText text={story.title} />
                       </h3>
                       <p className="text-xs opacity-60 mt-1">Por {story.author}</p>
                     </div>
@@ -1003,7 +1004,9 @@ export function ProfilePage() {
                       <img src={formatCoverUrl(item.coverImage)} alt={item.storyTitle} className="w-12 h-16 object-cover rounded-lg shrink-0 shadow-sm" />
                     )}
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-serif font-bold text-sm truncate">{item.storyTitle}</h4>
+                      <h4 className="font-serif font-bold text-sm truncate">
+                        <TranslatedText text={item.storyTitle} />
+                      </h4>
                       <p className="text-xs opacity-60">{item.author}</p>
                       
                       {/* Progress Bar */}
