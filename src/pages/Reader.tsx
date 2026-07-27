@@ -220,6 +220,51 @@ export function Reader() {
   );
   const pendingTocScrollRef = useRef<string | null>(null);
 
+  const extractTocHeadingsFromPages = (
+    pages: { [pageIdx: number]: string },
+    totalPages?: number,
+  ): TocHeadingItem[] => {
+    const list: TocHeadingItem[] = [];
+    const tempDiv = document.createElement('div');
+    const totalP = totalPages || Object.keys(pages).length || 1;
+    const seenTexts = new Set<string>();
+
+    for (let p = 0; p < totalP; p++) {
+      const html = pages[p];
+      if (!html) continue;
+
+      tempDiv.innerHTML = html;
+      const els = tempDiv.querySelectorAll('h1, h2');
+
+      els.forEach((el, hIdx) => {
+        const htmlEl = el as HTMLElement;
+        const text = htmlEl.innerText || htmlEl.textContent || '';
+        const cleanedText = text.replace(/\s+/g, ' ').trim();
+        const normalizedText = cleanedText.toLowerCase();
+
+        if (!cleanedText || cleanedText.length < 3) return;
+        if (story?.title) {
+          const storyTitle = story.title
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toLowerCase();
+          if (normalizedText === storyTitle) return;
+        }
+        if (seenTexts.has(normalizedText)) return;
+
+        seenTexts.add(normalizedText);
+        list.push({
+          id: `toc-p${p}-h${hIdx}`,
+          text: cleanedText,
+          level: htmlEl.tagName === 'H1' ? 1 : 2,
+          pageIndex: p,
+        });
+      });
+    }
+
+    return list;
+  };
+
   useEffect(() => {
     if (currentPage !== undefined && pageContent) {
       setAllPagesContent((prev) => ({ ...prev, [currentPage]: pageContent }));
@@ -234,6 +279,12 @@ export function Reader() {
         const offline = await getOfflineStory(id);
         if (offline && offline.pages) {
           setAllPagesContent(offline.pages);
+          setTocHeadings(
+            extractTocHeadingsFromPages(
+              offline.pages,
+              story?.totalPages || Object.keys(offline.pages).length || 1,
+            ),
+          );
           return;
         }
       } catch (e) {
@@ -256,10 +307,23 @@ export function Reader() {
           pagesMap[0] = pageContent;
         }
         setAllPagesContent(pagesMap);
+        setTocHeadings(
+          extractTocHeadingsFromPages(
+            pagesMap,
+            story?.totalPages || Object.keys(pagesMap).length || 1,
+          ),
+        );
       } catch (e) {
         console.error('Error loading all pages for TOC:', e);
         if (pageContent) {
-          setAllPagesContent({ [currentPage]: pageContent });
+          const fallbackPages = { [currentPage]: pageContent };
+          setAllPagesContent(fallbackPages);
+          setTocHeadings(
+            extractTocHeadingsFromPages(
+              fallbackPages,
+              story?.totalPages || Object.keys(fallbackPages).length || 1,
+            ),
+          );
         }
       }
     }
@@ -268,30 +332,12 @@ export function Reader() {
   }, [id, story?.totalPages]);
 
   useEffect(() => {
-    const list: TocHeadingItem[] = [];
-    const tempDiv = document.createElement('div');
-    const totalP =
-      story?.totalPages || Object.keys(allPagesContent).length || 1;
-
-    for (let p = 0; p < totalP; p++) {
-      const html = allPagesContent[p];
-      if (!html) continue;
-      tempDiv.innerHTML = html;
-      const els = tempDiv.querySelectorAll('h1, h2');
-      els.forEach((el, hIdx) => {
-        const htmlEl = el as HTMLElement;
-        const text = htmlEl.innerText || htmlEl.textContent || '';
-        if (text.trim()) {
-          list.push({
-            id: `toc-p${p}-h${hIdx}`,
-            text: text.trim(),
-            level: htmlEl.tagName === 'H1' ? 1 : 2,
-            pageIndex: p,
-          });
-        }
-      });
-    }
-    setTocHeadings(list);
+    setTocHeadings(
+      extractTocHeadingsFromPages(
+        allPagesContent,
+        story?.totalPages || Object.keys(allPagesContent).length || 1,
+      ),
+    );
   }, [allPagesContent, story?.totalPages]);
 
   const structuredToc = useMemo(() => {
