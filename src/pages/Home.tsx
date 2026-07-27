@@ -10,6 +10,7 @@ import { getCanonicalTag, getLocalizedTag } from "../lib/tagger";
 import { getAllOfflineStories, OfflineStory, removeOfflineStory } from "../lib/offlineStorage";
 import { fetchPublicPlaylists, ReadingList, createOrUpdatePlaylist, getLocalPlaylists, deleteLocalPlaylist, deletePlaylist, toggleStoryInPlaylist } from "../lib/playlists";
 import { Check, Edit3, FolderPlus, X, ExternalLink } from "lucide-react";
+import { logUserActivity } from "../lib/social";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -224,6 +225,7 @@ export function Home() {
     e.stopPropagation();
 
     let newFavs: string[];
+    const isAdding = !favorites.includes(id);
     if (favorites.includes(id)) {
       newFavs = favorites.filter(f => f !== id);
     } else {
@@ -240,6 +242,24 @@ export function Home() {
         await updateDoc(userRef, { favorites: newFavs }).catch(async () => {
           await setDoc(userRef, { favorites: newFavs }, { merge: true });
         });
+
+        // Log social activity if they are favoriting a story
+        if (isAdding && profile) {
+          const story = stories.find(s => s.id === id);
+          if (story) {
+            await logUserActivity({
+              uid: user.uid,
+              userName: profile.displayName || profile.email.split("@")[0],
+              userUsername: profile.username || "",
+              userPhoto: profile.photoURL || "",
+              type: "read",
+              title: `Adicionou "${story.title}" aos favoritos`,
+              targetId: id,
+              targetTitle: story.title,
+              createdAt: new Date().toISOString()
+            });
+          }
+        }
       } catch (err) {
         console.error("Failed to update user favorites in Firestore:", err);
       }
@@ -883,6 +903,19 @@ export function Home() {
                     updatedAt: new Date().toISOString()
                   };
                   await createOrUpdatePlaylist(newPl);
+                  if (newPl.isPublic && user && profile) {
+                    await logUserActivity({
+                      uid: user.uid,
+                      userName: profile.displayName || profile.email.split("@")[0],
+                      userUsername: profile.username || "",
+                      userPhoto: profile.photoURL || "",
+                      type: "published",
+                      title: `Criou a playlist pública "${newPl.title}"`,
+                      targetId: newPl.id,
+                      targetTitle: newPl.title,
+                      createdAt: new Date().toISOString()
+                    });
+                  }
                   setNewPlaylistTitle("");
                   setNewPlaylistDesc("");
                   setShowCreatePlaylistModal(false);
@@ -1201,6 +1234,19 @@ export function Home() {
                       updatedAt: new Date().toISOString()
                     };
                     await createOrUpdatePlaylist(newPl);
+                    if (user && profile) {
+                      await logUserActivity({
+                        uid: user.uid,
+                        userName: profile.displayName || profile.email.split("@")[0],
+                        userUsername: profile.username || "",
+                        userPhoto: profile.photoURL || "",
+                        type: "published",
+                        title: `Criou a playlist pública "${newPl.title}"`,
+                        targetId: newPl.id,
+                        targetTitle: newPl.title,
+                        createdAt: new Date().toISOString()
+                      });
+                    }
                     setNewPlaylistTitle("");
                     await loadPlaylistsData();
                   }}

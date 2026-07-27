@@ -12,6 +12,7 @@ import { Reader } from "./pages/Reader";
 import { Admin } from "./pages/Admin";
 import { Writer } from "./pages/Writer";
 import { ProfilePage } from "./pages/Profile";
+import { Community } from "./pages/Community";
 
 export default function App() {
   return (
@@ -25,7 +26,7 @@ export default function App() {
               <Route path="admin" element={<Admin />} />
               <Route path="writer/:id" element={<Writer />} />
               <Route path="profile" element={<ProfilePage />} />
-              <Route path="community" element={<ProfilePage />} />
+              <Route path="community" element={<Community />} />
               <Route path="user/:usernameParam" element={<ProfilePage />} />
               <Route path="profile/:uidParam" element={<ProfilePage />} />
             </Route>

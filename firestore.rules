@@ -60,6 +60,16 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Playlists Collection
+    match /playlists/{playlistId} {
+      allow read, write: if true;
+    }
+
+    // Global Activities Collection
+    match /activities/{activityId} {
+      allow read, write: if true;
+    }
+    
     // Collection Group rule for progress queries (used in Admin Analytics)
     match /{path=**}/progress/{progressId} {
       allow read, write: if true;

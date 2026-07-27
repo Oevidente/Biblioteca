@@ -151,8 +151,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, pass: string) => {
-    const cleanEmail = email.trim();
+  const login = async (emailOrUsername: string, pass: string) => {
+    let cleanEmail = emailOrUsername.trim();
+    const isEmail = cleanEmail.includes("@") && !cleanEmail.startsWith("@");
+
+    if (!isEmail) {
+      const cleanUsername = cleanEmail.startsWith("@")
+        ? cleanEmail.slice(1).trim().toLowerCase()
+        : cleanEmail.trim().toLowerCase();
+      
+      try {
+        const q = query(collection(db, "users"), where("username", "==", cleanUsername));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          cleanEmail = snap.docs[0].data().email || "";
+        } else {
+          return { 
+            success: false, 
+            error: "Usuário não encontrado. Verifique seu nome de usuário." 
+          };
+        }
+      } catch (err) {
+        console.error("Error looking up username for login:", err);
+        return {
+          success: false,
+          error: "Erro ao buscar nome de usuário."
+        };
+      }
+    }
+
     try {
       const res = await signInWithEmailAndPassword(auth, cleanEmail, pass);
       if (res.user && res.user.email) {

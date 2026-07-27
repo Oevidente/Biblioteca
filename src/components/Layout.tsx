@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { Moon, Sun, User as UserIcon, Menu, X, LogIn } from "lucide-react";
+import { Moon, Sun, User as UserIcon, Menu, X, LogIn, LogOut } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { AuthModal } from "./AuthModal";
@@ -48,7 +48,7 @@ function FlagIcon({ lang, className = "w-5 h-3.5 shadow-sm rounded-sm overflow-h
 }
 
 export function Layout() {
-  const { user, profile } = useAuth();
+  const { user, profile, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const location = useLocation();
 
@@ -106,9 +106,9 @@ export function Layout() {
           </Link>
 
           <Link 
-            to="/profile?tab=search" 
+            to="/community" 
             className={`text-[11px] font-bold tracking-widest uppercase transition-opacity ${
-              location.pathname === "/profile" && location.search.includes("tab=search") ? "border-b-2 border-[#1A1A1A] dark:border-[#F5F5F0] pb-1 opacity-100" : "opacity-60 hover:opacity-100"
+              location.pathname === "/community" ? "border-b-2 border-[#1A1A1A] dark:border-[#F5F5F0] pb-1 opacity-100" : "opacity-60 hover:opacity-100"
             }`}
           >
             {t("community")}
@@ -177,6 +177,16 @@ export function Layout() {
                 <UserIcon className="w-3.5 h-3.5" />
                 <span className="max-w-[120px] truncate">{profile?.username ? `@${profile.username}` : (profile?.displayName || user.email?.split("@")[0])}</span>
               </Link>
+              <button
+                onClick={async () => {
+                  await logout();
+                }}
+                className="flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase opacity-65 hover:opacity-100 hover:text-red-500 transition-colors px-3 py-1.5"
+                title={t("logout")}
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden lg:inline">{t("logout")}</span>
+              </button>
             </div>
           ) : (
             <div className="flex items-center gap-2">
@@ -258,7 +268,7 @@ export function Layout() {
             {t("library")}
           </Link>
           <Link 
-            to="/profile?tab=search" 
+            to="/community" 
             onClick={() => setMobileMenuOpen(false)}
             className="block text-xs font-bold tracking-widest uppercase py-2 border-b border-[#1A1A1A]/5 dark:border-white/5"
           >
@@ -274,14 +284,26 @@ export function Layout() {
           )}
 
           {user ? (
-            <Link
-              to="/profile"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-full font-bold text-xs uppercase tracking-widest mt-2 paper-btn-dark"
-            >
-              <UserIcon className="w-4 h-4" />
-              <span>{t("profile")} ({profile?.username ? `@${profile.username}` : (profile?.displayName || user.email?.split("@")[0])})</span>
-            </Link>
+            <div className="space-y-2 pt-1">
+              <Link
+                to="/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-full font-bold text-xs uppercase tracking-widest paper-btn-dark"
+              >
+                <UserIcon className="w-4 h-4" />
+                <span>{t("profile")} ({profile?.username ? `@${profile.username}` : (profile?.displayName || user.email?.split("@")[0])})</span>
+              </Link>
+              <button
+                onClick={async () => {
+                  setMobileMenuOpen(false);
+                  await logout();
+                }}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-full font-bold text-xs uppercase tracking-widest text-center paper-btn-light border border-black/10 dark:border-white/10 text-red-500 hover:bg-red-500/5 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>{t("logout")}</span>
+              </button>
+            </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
@@ -313,7 +335,7 @@ export function Layout() {
           <span className="text-[9px] uppercase font-bold tracking-widest opacity-60 hidden sm:inline">Firebase {t("online")}</span>
         </div>
         <div className="flex items-center space-x-4">
-          <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">{t("version")} 2.9.4-beta</span>
+          <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">{t("version")} 2.9.6-beta</span>
         </div>
       </footer>
 

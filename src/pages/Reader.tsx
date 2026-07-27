@@ -23,6 +23,7 @@ import { saveStoryOffline, isStoryDownloaded, removeOfflineStory } from "../lib/
 import { getBookmarksAndNotes, saveBookmarkNote, deleteBookmarkNote, BookmarkNote } from "../lib/bookmarks";
 import { fetchPublicPlaylists, ReadingList, toggleStoryInPlaylist, createOrUpdatePlaylist } from "../lib/playlists";
 import { unlockAchievement } from "../lib/achievements";
+import { logUserActivity } from "../lib/social";
 import { translateStoryPageHtml } from "../lib/storyTranslator";
 import { TranslatedText } from "../components/TranslatedText";
 import { clsx, type ClassValue } from "clsx";
@@ -168,9 +169,9 @@ export function Reader() {
   useEffect(() => {
     localStorage.setItem("inkora_font_family", fontFamily);
     if (fontFamily === "opendyslexic") {
-      unlockAchievement("polyglot");
+      unlockAchievement("polyglot", user?.uid);
     }
-  }, [fontFamily]);
+  }, [fontFamily, user]);
 
   useEffect(() => {
     localStorage.setItem("inkora_margin_size", marginSize);
@@ -184,15 +185,15 @@ export function Reader() {
     if (id) {
       isStoryDownloaded(id).then(setIsDownloaded);
       setNotesList(getBookmarksAndNotes(id));
-      unlockAchievement("first_page");
+      unlockAchievement("first_page", user?.uid);
 
       // Check night owl achievement
       const currentHour = new Date().getHours();
       if (currentHour >= 0 && currentHour < 5) {
-        unlockAchievement("night_owl");
+        unlockAchievement("night_owl", user?.uid);
       }
     }
-  }, [id]);
+  }, [id, user]);
 
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
 
@@ -409,7 +410,7 @@ export function Reader() {
     }
 
     // 3. Save progress to Firestore if logged in
-    if (user) {
+    if (user && story) {
       const progRef = doc(db, `users/${user.uid}/progress`, id);
       setDoc(progRef, {
         storyId: id,
@@ -418,7 +419,24 @@ export function Reader() {
         page: currentPage || 0,
         totalPages: story.totalPages ?? 0,
         updatedAt: new Date().toISOString()
-      }, { merge: true }).catch(err => {
+      }, { merge: true }).then(() => {
+        // Log start of reading once per story session/user
+        const localReadLogKey = `has_logged_read_${user.uid}_${id}`;
+        if (!localStorage.getItem(localReadLogKey) && profile) {
+          logUserActivity({
+            uid: user.uid,
+            userName: profile.displayName || profile.email.split("@")[0],
+            userUsername: profile.username || "",
+            userPhoto: profile.photoURL || "",
+            type: "read",
+            title: `Começou a ler a história "${story.title}"`,
+            targetId: id,
+            targetTitle: story.title,
+            createdAt: new Date().toISOString()
+          });
+          localStorage.setItem(localReadLogKey, "true");
+        }
+      }).catch(err => {
         console.error("Error saving progress to Firestore:", err);
       });
     }
@@ -449,6 +467,21 @@ export function Reader() {
         ratingsCount: increment(1)
       });
       
+      if (user && profile && story) {
+        await logUserActivity({
+          uid: user.uid,
+          userName: profile.displayName || profile.email.split("@")[0],
+          userUsername: profile.username || "",
+          userPhoto: profile.photoURL || "",
+          type: "comment",
+          title: `Avaliou a história "${story.title}" com ${rating} estrelas`,
+          targetId: id,
+          targetTitle: story.title,
+          details: comment.trim() || undefined,
+          createdAt: new Date().toISOString()
+        });
+      }
+
       setSubmitted(true);
     } catch (err) {
       console.error(err);
@@ -1242,6 +1275,19 @@ export function Reader() {
                       updatedAt: new Date().toISOString()
                     };
                     await createOrUpdatePlaylist(newPl);
+                    if (user && profile) {
+                      await logUserActivity({
+                        uid: user.uid,
+                        userName: profile.displayName || profile.email.split("@")[0],
+                        userUsername: profile.username || "",
+                        userPhoto: profile.photoURL || "",
+                        type: "published",
+                        title: `Criou a playlist pública "${newPl.title}"`,
+                        targetId: newPl.id,
+                        targetTitle: newPl.title,
+                        createdAt: new Date().toISOString()
+                      });
+                    }
                     setNewPlaylistTitle("");
                     await loadPlaylists();
                   }}

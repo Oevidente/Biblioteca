@@ -38,7 +38,8 @@ import {
   ChevronRight,
   ChevronDown,
   LogOut,
-  FolderUp
+  FolderUp,
+  Library
 } from "lucide-react";
 import { ACHIEVEMENTS, getUnlockedAchievements } from "../lib/achievements";
 import { 
@@ -52,6 +53,7 @@ import {
   respondFriendRequest, 
   getFriendshipStatus, 
   fetchUserActivities, 
+  fetchGlobalActivities,
   fetchUserNotifications, 
   markNotificationAsRead, 
   fetchUserReadingProgress, 
@@ -59,6 +61,8 @@ import {
   fetchUserFriendsList, 
   fetchUserFollowersList, 
   fetchUserFollowingList,
+  fetchUserFriendRequests,
+  undoFriendRequest,
   ActivityItem,
   NotificationItem,
   ReadingHistoryItem
@@ -159,6 +163,7 @@ export function ProfilePage() {
   const { user, profile: currentUserProfile, logout, updateProfileInfo, changePassword } = useAuth();
   const { language, t } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Profile being viewed
   const [targetProfile, setTargetProfile] = useState<UserProfile | null>(null);
@@ -171,11 +176,12 @@ export function ProfilePage() {
   const [actionLoading, setActionLoading] = useState(false);
 
   // Profile Content Data
-  const [activeTab, setActiveTab] = useState<"activities" | "stories" | "history" | "badges" | "network" | "notifications" | "search">("activities");
+  const [activeTab, setActiveTab] = useState<"activities" | "stories" | "history" | "badges" | "network" | "notifications">("activities");
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [publishedStories, setPublishedStories] = useState<any[]>([]);
   const [readingHistory, setReadingHistory] = useState<ReadingHistoryItem[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [friendRequestsMap, setFriendRequestsMap] = useState<Record<string, "pending" | "accepted" | "rejected">>({});
   const [friendsList, setFriendsList] = useState<UserProfile[]>([]);
   const [followersList, setFollowersList] = useState<UserProfile[]>([]);
   const [followingList, setFollowingList] = useState<UserProfile[]>([]);
@@ -187,7 +193,7 @@ export function ProfilePage() {
     const set = new Set<string>();
 
     if (isSelf) {
-      getUnlockedAchievements().forEach((id) => set.add(id));
+      getUnlockedAchievements(targetProfile.uid).forEach((id) => set.add(id));
     }
 
     if (Array.isArray(targetProfile.achievements)) {
@@ -207,10 +213,7 @@ export function ProfilePage() {
     return Array.from(set);
   })();
 
-  // User Search State
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+
 
   // Edit Settings Modal State
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -286,14 +289,15 @@ export function ProfilePage() {
         }
 
         // Fetch user data in parallel
-        const [acts, stories, history, notifs, friends, followers, following] = await Promise.all([
+        const [acts, stories, history, notifs, friends, followers, following, receivedRequests] = await Promise.all([
           fetchUserActivities(p.uid),
           fetchUserPublishedStories(p.uid, { displayName: p.displayName, username: p.username, email: p.email }),
           fetchUserReadingProgress(p.uid),
           checkSelf && currentUserProfile ? fetchUserNotifications(p.uid) : Promise.resolve([]),
           fetchUserFriendsList(p.uid),
           fetchUserFollowersList(p.uid),
-          fetchUserFollowingList(p.uid)
+          fetchUserFollowingList(p.uid),
+          checkSelf && currentUserProfile ? fetchUserFriendRequests(p.uid) : Promise.resolve([])
         ]);
 
         if (isMounted) {
@@ -304,6 +308,14 @@ export function ProfilePage() {
           setFriendsList(friends);
           setFollowersList(followers);
           setFollowingList(following);
+          
+          const reqMap: Record<string, "pending" | "accepted" | "rejected"> = {};
+          if (Array.isArray(receivedRequests)) {
+            receivedRequests.forEach((req) => {
+              if (req.id) reqMap[req.id] = req.status;
+            });
+          }
+          setFriendRequestsMap(reqMap);
         }
       }
 
@@ -314,44 +326,24 @@ export function ProfilePage() {
     return () => { isMounted = false; };
   }, [usernameParam, uidParam, currentUserProfile]);
 
-  // Sync tab and search query from URL parameters or /community route
-  const [searchParams] = useSearchParams();
-  const location = useLocation();
-
+  // Mark notifications as read when entering the notifications tab
   useEffect(() => {
-    const tabFromUrl = searchParams.get("tab");
-    const qFromUrl = searchParams.get("q");
-
-    if (tabFromUrl === "search" || location.pathname === "/community" || qFromUrl) {
-      setActiveTab("search");
-      if (qFromUrl) {
-        setSearchQuery(qFromUrl);
+    if (activeTab === "notifications" && isSelf && notifications.length > 0) {
+      const unread = notifications.filter((n) => n.status === "unread");
+      if (unread.length > 0) {
+        unread.forEach((n) => {
+          if (n.id) {
+            markNotificationAsRead(n.id);
+          }
+        });
+        setNotifications((prev) =>
+          prev.map((n) => (n.status === "unread" ? { ...n, status: "read" } : n))
+        );
       }
     }
-  }, [searchParams, location.pathname]);
+  }, [activeTab, notifications.length, isSelf]);
 
-  // Handle Search Users & Live Community Query
-  const handleUserSearch = async (e?: FormEvent) => {
-    if (e) e.preventDefault();
-    setIsSearching(true);
-    const results = await searchUsers(searchQuery, currentUserProfile?.uid);
-    setSearchResults(results);
-    setIsSearching(false);
-  };
 
-  useEffect(() => {
-    if (activeTab === "search") {
-      let isCancelled = false;
-      setIsSearching(true);
-      searchUsers(searchQuery, currentUserProfile?.uid).then((results) => {
-        if (!isCancelled) {
-          setSearchResults(results);
-          setIsSearching(false);
-        }
-      });
-      return () => { isCancelled = true; };
-    }
-  }, [activeTab, searchQuery, currentUserProfile?.uid]);
 
   // Social Actions
   const handleToggleFollow = async () => {
@@ -391,13 +383,55 @@ export function ProfilePage() {
 
     const ok = await respondFriendRequest(requestId, status, currentUserProfile);
     if (ok) {
-      // Refresh notifications & friends
+      // Refresh notifications & friends & requests map
       const updatedNotifs = await fetchUserNotifications(currentUserProfile.uid);
       const updatedFriends = await fetchUserFriendsList(currentUserProfile.uid);
+      const updatedRequests = await fetchUserFriendRequests(currentUserProfile.uid);
+      
+      const reqMap: Record<string, "pending" | "accepted" | "rejected"> = {};
+      if (Array.isArray(updatedRequests)) {
+        updatedRequests.forEach((req) => {
+          if (req.id) reqMap[req.id] = req.status;
+        });
+      }
+
       setNotifications(updatedNotifs);
       setFriendsList(updatedFriends);
+      setFriendRequestsMap(reqMap);
+
       if (targetProfile && friendshipStatus === "pending_received") {
         setFriendshipStatus(status === "accepted" ? "friends" : "none");
+      }
+    }
+    setActionLoading(false);
+  };
+
+  const handleUndoFriendRequest = async (requestId: string) => {
+    if (!currentUserProfile || actionLoading) return;
+    setActionLoading(true);
+
+    const ok = await undoFriendRequest(requestId, currentUserProfile);
+    if (ok) {
+      // Refresh notifications & friends & requests map
+      const updatedNotifs = await fetchUserNotifications(currentUserProfile.uid);
+      const updatedFriends = await fetchUserFriendsList(currentUserProfile.uid);
+      const updatedRequests = await fetchUserFriendRequests(currentUserProfile.uid);
+      
+      const reqMap: Record<string, "pending" | "accepted" | "rejected"> = {};
+      if (Array.isArray(updatedRequests)) {
+        updatedRequests.forEach((req) => {
+          if (req.id) reqMap[req.id] = req.status;
+        });
+      }
+
+      setNotifications(updatedNotifs);
+      setFriendsList(updatedFriends);
+      setFriendRequestsMap(reqMap);
+
+      if (targetProfile) {
+        // Since we unfriended, set status to none or check status again
+        const fStatus = await getFriendshipStatus(currentUserProfile.uid, targetProfile.uid);
+        setFriendshipStatus(fStatus);
       }
     }
     setActionLoading(false);
@@ -582,13 +616,25 @@ export function ProfilePage() {
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center justify-center gap-3 shrink-0">
             {isSelf ? (
-              <button
-                onClick={() => setIsSettingsOpen(true)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm paper-btn-dark"
-              >
-                <Settings className="w-4 h-4" />
-                <span>Configurações</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm paper-btn-dark"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Configurações</span>
+                </button>
+                <button
+                  onClick={async () => {
+                    await logout();
+                    navigate("/");
+                  }}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm paper-btn-light border border-black/10 dark:border-white/10 text-red-500 hover:bg-red-500/5 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>{t("logout")}</span>
+                </button>
+              </div>
             ) : (
               <div className="flex items-center gap-2">
                 {/* Follow Button */}
@@ -719,7 +765,7 @@ export function ProfilePage() {
                   {activeTab === "history" && "Histórico de Leitura"}
                   {activeTab === "badges" && `Medalhas (${unlockedAchievementIds.length}/${ACHIEVEMENTS.length})`}
                   {activeTab === "network" && "Rede Social"}
-                  {activeTab === "search" && "Buscar Usuários"}
+                  {activeTab === "search" && "Comunidade"}
                   {activeTab === "notifications" && `Notificações ${unreadCount > 0 ? `(${unreadCount})` : ""}`}
                 </p>
               </div>
@@ -736,7 +782,7 @@ export function ProfilePage() {
             <option value="history">Histórico de Leitura</option>
             <option value="badges">Medalhas ({unlockedAchievementIds.length}/{ACHIEVEMENTS.length})</option>
             <option value="network">Rede Social</option>
-            <option value="search">Buscar Usuários</option>
+            <option value="search">Comunidade</option>
             {isSelf && <option value="notifications">Notificações {unreadCount > 0 ? `(${unreadCount})` : ""}</option>}
           </select>
         </div>
@@ -795,15 +841,7 @@ export function ProfilePage() {
             <span className="truncate text-[8px]">Rede</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab("search")}
-            className={`py-2 px-1 rounded-xl text-[10px] font-bold uppercase tracking-wider flex flex-col items-center justify-center gap-1 transition-all ${
-              activeTab === "search" ? "paper-btn-dark shadow-sm" : "paper-card opacity-70 hover:opacity-100"
-            }`}
-          >
-            <Search className="w-3.5 h-3.5" />
-            <span className="truncate text-[8px]">Buscar</span>
-          </button>
+
 
           {isSelf && (
             <button
@@ -878,15 +916,7 @@ export function ProfilePage() {
           <span>Rede Social</span>
         </button>
 
-        <button
-          onClick={() => setActiveTab("search")}
-          className={`pb-3 border-b-2 transition-colors shrink-0 flex items-center gap-2 ${
-            activeTab === "search" ? "border-[#1A1A1A] dark:border-[#F5F5F0] opacity-100" : "border-transparent opacity-50 hover:opacity-100"
-          }`}
-        >
-          <Search className="w-4 h-4" />
-          <span>Buscar Usuários</span>
-        </button>
+
 
         {isSelf && (
           <button
@@ -1251,100 +1281,51 @@ export function ProfilePage() {
 
                 {n.type === "friend_request" && n.requestId && (
                   <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => handleRespondFriendRequest(n.requestId!, "accepted")}
-                      className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
-                    >
-                      Aceitar
-                    </button>
-                    <button
-                      onClick={() => handleRespondFriendRequest(n.requestId!, "rejected")}
-                      className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider paper-btn-light"
-                    >
-                      Recusar
-                    </button>
+                    {(() => {
+                      const requestStatus = friendRequestsMap[n.requestId] || "pending";
+                      if (requestStatus === "accepted") {
+                        return (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                              Aceita
+                            </span>
+                            <button
+                              onClick={() => handleUndoFriendRequest(n.requestId!)}
+                              className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-red-500 hover:bg-red-500/5 border border-red-500/10 transition-colors"
+                            >
+                              Desfazer
+                            </button>
+                          </div>
+                        );
+                      } else if (requestStatus === "rejected") {
+                        return (
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-red-500/70">
+                            Recusada
+                          </span>
+                        );
+                      } else {
+                        return (
+                          <>
+                            <button
+                              onClick={() => handleRespondFriendRequest(n.requestId!, "accepted")}
+                              className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
+                            >
+                              Aceitar
+                            </button>
+                            <button
+                              onClick={() => handleRespondFriendRequest(n.requestId!, "rejected")}
+                              className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider paper-btn-light"
+                            >
+                              Recusar
+                            </button>
+                          </>
+                        );
+                      }
+                    })()}
                   </div>
                 )}
               </div>
             ))
-          )}
-        </div>
-      )}
-
-      {/* TAB: BUSCAR USUÁRIOS */}
-      {activeTab === "search" && (
-        <div className="space-y-6">
-          <form onSubmit={handleUserSearch} className="flex gap-3">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 opacity-40" />
-              <input
-                type="text"
-                value={searchQuery ?? ""}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Pesquisar por nome ou @usuario..."
-                className="w-full pl-11 pr-4 py-3 rounded-2xl text-xs focus:outline-none paper-card"
-              />
-            </div>
-            <button type="submit" disabled={isSearching} className="px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest paper-btn-dark">
-              {isSearching ? "Buscando..." : "Buscar"}
-            </button>
-          </form>
-
-          {isSearching ? (
-            <div className="text-center py-12 paper-card rounded-2xl">
-              <p className="text-xs uppercase font-bold tracking-widest opacity-60">Buscando leitores na comunidade...</p>
-            </div>
-          ) : searchResults.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {searchResults.map((u) => (
-                <div key={u.uid} className="paper-card rounded-2xl p-4 flex items-center justify-between gap-4 shadow-sm hover:border-black/20 dark:hover:border-white/20 transition-all">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center font-serif font-bold overflow-hidden shrink-0 border border-black/10 dark:border-white/10">
-                      {u.photoURL ? (
-                        <img src={formatCoverUrl(u.photoURL)} alt={u.displayName || u.username} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-sm">{(u.displayName || u.username || u.email || "U")[0].toUpperCase()}</span>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-bold text-xs truncate">{u.displayName || `@${u.username}`}</p>
-                        <span className={`px-2 py-0.5 rounded-full text-[8px] uppercase font-bold tracking-widest shrink-0 ${
-                          u.role === "admin" 
-                            ? "bg-purple-500/20 text-purple-700 dark:text-purple-300"
-                            : u.role === "author"
-                            ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
-                            : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
-                        }`}>
-                          {u.role === "admin" ? "Admin" : u.role === "author" ? "Autor" : "Leitor"}
-                        </span>
-                      </div>
-                      {u.username && <p className="text-[10px] opacity-60 font-mono">@{u.username}</p>}
-                      {u.bio && <p className="text-[10px] opacity-70 line-clamp-1 mt-0.5">{u.bio}</p>}
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => navigate(`/user/${u.username || u.uid}`)}
-                    className="px-3.5 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 paper-btn-dark flex items-center gap-1.5 hover:scale-105 transition-transform"
-                  >
-                    <UserIcon className="w-3 h-3" />
-                    <span>Ver Perfil</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 paper-card rounded-2xl space-y-2">
-              <Users className="w-8 h-8 mx-auto opacity-40" />
-              <p className="text-xs uppercase font-bold tracking-widest opacity-60">Nenhum leitor encontrado com essa busca.</p>
-              <button 
-                onClick={() => { setSearchQuery(""); }}
-                className="text-xs font-bold uppercase tracking-widest border-b border-current pt-2 hover:opacity-80"
-              >
-                Ver todos da comunidade
-              </button>
-            </div>
           )}
         </div>
       )}

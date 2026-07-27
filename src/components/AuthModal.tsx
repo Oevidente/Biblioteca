@@ -32,7 +32,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
       if (!user) return;
       
       // Get current achievements
-      let unlocked = getUnlockedAchievements();
+      let unlocked = getUnlockedAchievements(user.uid);
       let changed = false;
       
       try {
@@ -77,7 +77,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
         // If we found any story, unlock the achievement!
         if (hasPublished) {
           if (!unlocked.includes("published_author")) {
-            unlockAchievement("published_author");
+            unlockAchievement("published_author", user.uid);
             changed = true;
           }
         }
@@ -85,7 +85,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
         console.error("Error checking achievements:", err);
       }
       
-      setUnlockedBadges(getUnlockedAchievements());
+      setUnlockedBadges(getUnlockedAchievements(user.uid));
     };
 
     if (isOpen && user) {
@@ -450,15 +450,15 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
             {mode === "login" && (
               <form onSubmit={handleLoginSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("email")}</label>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("emailOrUsername", "E-mail ou Usuário")}</label>
                   <div className="relative">
                     <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
                     <input 
-                      type="email" 
+                      type="text" 
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full pl-9 pr-4 py-3 text-xs rounded-xl focus:outline-none paper-card"
-                      placeholder="seu@email.com"
+                      placeholder="seu@email.com ou usuario"
                       required
                     />
                   </div>

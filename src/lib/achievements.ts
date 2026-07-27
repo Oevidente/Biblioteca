@@ -139,23 +139,29 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
 ];
 
+import { auth } from "./firebase";
+
 const LOCAL_KEY = "inkora_unlocked_achievements";
 
-export function getUnlockedAchievements(): string[] {
+export function getUnlockedAchievements(userId?: string): string[] {
   try {
-    const raw = localStorage.getItem(LOCAL_KEY);
+    const activeUid = userId || auth.currentUser?.uid;
+    const key = activeUid ? `${LOCAL_KEY}_${activeUid}` : LOCAL_KEY;
+    const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }
 }
 
-export function unlockAchievement(achievementId: string): boolean {
+export function unlockAchievement(achievementId: string, userId?: string): boolean {
   try {
-    const current = getUnlockedAchievements();
+    const activeUid = userId || auth.currentUser?.uid;
+    const key = activeUid ? `${LOCAL_KEY}_${activeUid}` : LOCAL_KEY;
+    const current = getUnlockedAchievements(activeUid);
     if (!current.includes(achievementId)) {
       const updated = [...current, achievementId];
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(updated));
+      localStorage.setItem(key, JSON.stringify(updated));
       return true; // Newly unlocked
     }
   } catch (e) {

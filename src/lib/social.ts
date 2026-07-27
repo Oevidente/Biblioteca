@@ -310,6 +310,56 @@ export async function respondFriendRequest(
   }
 }
 
+export async function fetchUserFriendRequests(uid: string): Promise<FriendRequest[]> {
+  try {
+    const q = query(
+      collection(db, "friendRequests"),
+      where("receiverUid", "==", uid)
+    );
+    const snap = await getDocs(q);
+    const items: FriendRequest[] = [];
+    snap.forEach((docSnap) => {
+      items.push({ id: docSnap.id, ...docSnap.data() } as FriendRequest);
+    });
+    return items;
+  } catch (error) {
+    console.error("Error fetching friend requests:", error);
+    return [];
+  }
+}
+
+export async function undoFriendRequest(
+  requestId: string,
+  recipientProfile: UserProfile
+): Promise<boolean> {
+  try {
+    const reqRef = doc(db, "friendRequests", requestId);
+    const reqSnap = await getDoc(reqRef);
+    if (!reqSnap.exists()) return false;
+
+    const reqData = reqSnap.data() as FriendRequest;
+    
+    // Set status of the request back to rejected (or we can delete/none)
+    await updateDoc(reqRef, { status: "rejected" });
+
+    // Identify the friendship document and delete it
+    const friendshipId = [reqData.senderUid, reqData.receiverUid].sort().join("_");
+    const friendshipRef = doc(db, "friends", friendshipId);
+    const friendshipSnap = await getDoc(friendshipRef);
+    if (friendshipSnap.exists()) {
+      await deleteDoc(friendshipRef);
+      // Decrement friends counts
+      await updateDoc(doc(db, "users", reqData.senderUid), { friendsCount: increment(-1) }).catch(() => {});
+      await updateDoc(doc(db, "users", reqData.receiverUid), { friendsCount: increment(-1) }).catch(() => {});
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error undoing friend request:", error);
+    return false;
+  }
+}
+
 export async function getFriendshipStatus(currentUid: string, targetUid: string): Promise<"friends" | "pending_sent" | "pending_received" | "none"> {
   if (!currentUid || !targetUid || currentUid === targetUid) return "none";
 
@@ -348,10 +398,14 @@ export async function getFriendshipStatus(currentUid: string, targetUid: string)
 // User Activities
 export async function logUserActivity(activity: ActivityItem): Promise<void> {
   try {
-    await addDoc(collection(db, `users/${activity.uid}/activities`), {
+    const activityData = {
       ...activity,
       createdAt: activity.createdAt || new Date().toISOString()
-    });
+    };
+    // 1. Log to user's personal activities
+    await addDoc(collection(db, `users/${activity.uid}/activities`), activityData);
+    // 2. Log to global activities
+    await addDoc(collection(db, "activities"), activityData);
   } catch (error) {
     console.warn("Could not log user activity:", error);
   }
@@ -371,6 +425,26 @@ export async function fetchUserActivities(uid: string): Promise<ActivityItem[]> 
     return items;
   } catch (error) {
     console.warn("Error fetching user activities:", error);
+    return [];
+  }
+}
+
+export async function fetchGlobalActivities(): Promise<ActivityItem[]> {
+  try {
+    const q = query(collection(db, "activities"));
+    const snap = await getDocs(q);
+    const items: ActivityItem[] = [];
+    snap.forEach((docSnap) => {
+      items.push({ id: docSnap.id, ...docSnap.data() } as ActivityItem);
+    });
+    // Sort client-side to ensure ordering even if Firestore index is building
+    return items.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+  } catch (error) {
+    console.warn("Error fetching global activities:", error);
     return [];
   }
 }
