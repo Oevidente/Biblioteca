@@ -3,9 +3,11 @@ import { useParams, Link, useNavigate, useSearchParams, useLocation } from "reac
 import { useAuth, UserProfile } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { formatCoverUrl } from "../utils/imageUtils";
+import { getLocalizedActivity } from "../utils/activityTranslator";
 import { resizeImage } from "../lib/imageResizer";
 import { TranslatedText } from "../components/TranslatedText";
 import { 
+  Star,
   User as UserIcon, 
   Settings, 
   UserPlus, 
@@ -528,7 +530,7 @@ export function ProfilePage() {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-8">
         <div className="w-10 h-10 border-3 border-[#1A1A1A] dark:border-white border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-xs font-bold uppercase tracking-widest opacity-60">Carregando perfil...</p>
+        <p className="text-xs font-bold uppercase tracking-widest opacity-60">{t("loadingProfile") || "Carregando perfil..."}</p>
       </div>
     );
   }
@@ -539,7 +541,7 @@ export function ProfilePage() {
         <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center mb-4">
           <UserX className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-serif font-bold tracking-tight mb-2">Perfil não encontrado</h2>
+        <h2 className="text-2xl font-serif font-bold tracking-tight mb-2">{t("profileNotFound") || "Perfil não encontrado"}</h2>
         <p className="text-xs opacity-70 leading-relaxed mb-6">
           O usuário procurado não existe ou pode ter alterado o nome de usuário.
         </p>
@@ -622,7 +624,7 @@ export function ProfilePage() {
                   className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm paper-btn-dark"
                 >
                   <Settings className="w-4 h-4" />
-                  <span>Configurações</span>
+                  <span>{t("settings")}</span>
                 </button>
                 <button
                   onClick={async () => {
@@ -646,14 +648,14 @@ export function ProfilePage() {
                   }`}
                 >
                   {isFollowing ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-                  <span>{isFollowing ? "Seguindo" : "Seguir"}</span>
+                  <span>{isFollowing ? t("following") : t("follow")}</span>
                 </button>
 
                 {/* Friend Request Button */}
                 {friendshipStatus === "friends" ? (
                   <span className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Amigos</span>
+                    <span>{t("friends")}</span>
                   </span>
                 ) : friendshipStatus === "pending_sent" ? (
                   <span className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
@@ -685,32 +687,32 @@ export function ProfilePage() {
 
         {/* METRICS ROW */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-6 mt-6 border-t border-[#1A1A1A]/10 dark:border-white/10 text-center">
-          <div className="p-3 rounded-2xl bg-black/5 dark:bg-white/5">
+          <div className="p-3 rounded-2xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center min-h-[72px]">
             <p className="text-xl font-bold font-serif">{friendsList.length}</p>
-            <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Amigos</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">{t("friends")}</p>
           </div>
-          <div className="p-3 rounded-2xl bg-black/5 dark:bg-white/5">
+          <div className="p-3 rounded-2xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center min-h-[72px]">
             <p className="text-xl font-bold font-serif">{targetProfile.followersCount || followersList.length}</p>
-            <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Seguidores</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">{t("followers")}</p>
           </div>
-          <div className="p-3 rounded-2xl bg-black/5 dark:bg-white/5">
+          <div className="p-3 rounded-2xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center min-h-[72px]">
             <p className="text-xl font-bold font-serif">{targetProfile.followingCount || followingList.length}</p>
-            <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Seguindo</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">{t("following")}</p>
           </div>
           {isAuthorRole && (
-            <div className="p-3 rounded-2xl bg-black/5 dark:bg-white/5">
+            <div className="p-3 rounded-2xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center min-h-[72px]">
               <p className="text-xl font-bold font-serif">{publishedStories.length}</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Histórias</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">{t("stories") || "Histórias"}</p>
             </div>
           )}
           <div 
             onClick={() => setActiveTab("badges")}
-            className="p-3.5 rounded-2xl bg-black/5 dark:bg-white/5 col-span-2 sm:col-span-1 cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-all border border-transparent hover:border-amber-500/30 group text-left"
+            className="p-3.5 rounded-2xl bg-black/5 dark:bg-white/5 col-span-2 sm:col-span-1 cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-all border border-transparent hover:border-amber-500/30 group text-left flex flex-col justify-center min-h-[72px]"
           >
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-1.5">
                 <Award className="w-4 h-4 text-amber-500" />
-                <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Medalhas</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{t("badges")}</span>
               </div>
               <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300">
                 {unlockedAchievementIds.length}/{ACHIEVEMENTS.length}
@@ -760,13 +762,13 @@ export function ProfilePage() {
               <div className="min-w-0">
                 <p className="text-[9px] uppercase font-bold tracking-widest opacity-50">Seção Ativa</p>
                 <p className="text-xs font-bold uppercase tracking-wider truncate">
-                  {activeTab === "activities" && "Atividades Recentes"}
-                  {activeTab === "stories" && `Histórias (${publishedStories.length})`}
-                  {activeTab === "history" && "Histórico de Leitura"}
-                  {activeTab === "badges" && `Medalhas (${unlockedAchievementIds.length}/${ACHIEVEMENTS.length})`}
-                  {activeTab === "network" && "Rede Social"}
-                  {activeTab === "search" && "Comunidade"}
-                  {activeTab === "notifications" && `Notificações ${unreadCount > 0 ? `(${unreadCount})` : ""}`}
+                  {activeTab === "activities" && t("recentActivities")}
+                  {activeTab === "stories" && `${t("stories")} (${publishedStories.length})`}
+                  {activeTab === "history" && t("readingHistory")}
+                  {activeTab === "badges" && `${t("badges")} (${unlockedAchievementIds.length}/${ACHIEVEMENTS.length})`}
+                  {activeTab === "network" && t("network")}
+                  {activeTab === "search" && t("community")}
+                  {activeTab === "notifications" && `${t("notifications")} ${unreadCount > 0 ? `(${unreadCount})` : ""}`}
                 </p>
               </div>
             </div>
@@ -777,13 +779,13 @@ export function ProfilePage() {
             onChange={(e) => setActiveTab(e.target.value as any)}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           >
-            <option value="activities">Atividades Recentes</option>
-            {isAuthorRole && <option value="stories">Histórias Publicadas ({publishedStories.length})</option>}
-            <option value="history">Histórico de Leitura</option>
-            <option value="badges">Medalhas ({unlockedAchievementIds.length}/{ACHIEVEMENTS.length})</option>
-            <option value="network">Rede Social</option>
-            <option value="search">Comunidade</option>
-            {isSelf && <option value="notifications">Notificações {unreadCount > 0 ? `(${unreadCount})` : ""}</option>}
+            <option value="activities">{t("recentActivities")}</option>
+            {isAuthorRole && <option value="stories">{t("stories")} ({publishedStories.length})</option>}
+            <option value="history">{t("readingHistory")}</option>
+            <option value="badges">{t("badges")} ({unlockedAchievementIds.length}/{ACHIEVEMENTS.length})</option>
+            <option value="network">{t("network")}</option>
+            <option value="search">{t("community")}</option>
+            {isSelf && <option value="notifications">{t("notifications")} {unreadCount > 0 ? `(${unreadCount})` : ""}</option>}
           </select>
         </div>
 
@@ -828,7 +830,7 @@ export function ProfilePage() {
             }`}
           >
             <Award className="w-3.5 h-3.5 text-amber-500" />
-            <span className="truncate text-[8px]">Medalhas</span>
+            <span className="truncate text-[8px]">{t("badges")}</span>
           </button>
 
           <button
@@ -871,7 +873,7 @@ export function ProfilePage() {
           }`}
         >
           <Sparkles className="w-4 h-4" />
-          <span>Atividades Recentes</span>
+          <span>{t("recentActivities")}</span>
         </button>
 
         {isAuthorRole && (
@@ -882,7 +884,7 @@ export function ProfilePage() {
             }`}
           >
             <Feather className="w-4 h-4" />
-            <span>Histórias Publicadas ({publishedStories.length})</span>
+            <span>{t("stories")} ({publishedStories.length})</span>
           </button>
         )}
 
@@ -893,7 +895,7 @@ export function ProfilePage() {
           }`}
         >
           <BookOpen className="w-4 h-4" />
-          <span>Histórico de Leitura</span>
+          <span>{t("readingHistory")}</span>
         </button>
 
         <button
@@ -903,7 +905,7 @@ export function ProfilePage() {
           }`}
         >
           <Award className="w-4 h-4 text-amber-500" />
-          <span>Medalhas ({unlockedAchievementIds.length})</span>
+          <span>{t("badges")} ({unlockedAchievementIds.length})</span>
         </button>
 
         <button
@@ -913,7 +915,7 @@ export function ProfilePage() {
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>Rede Social</span>
+          <span>{t("network")}</span>
         </button>
 
 
@@ -926,7 +928,7 @@ export function ProfilePage() {
             }`}
           >
             <Bell className="w-4 h-4" />
-            <span>Notificações</span>
+            <span>{t("notifications")}</span>
             {unreadCount > 0 && (
               <span className="w-4 h-4 rounded-full bg-red-500 text-white font-mono text-[9px] flex items-center justify-center">
                 {unreadCount}
@@ -953,7 +955,7 @@ export function ProfilePage() {
                     {act.type === "published" ? <Feather className="w-5 h-5" /> : act.type === "follow" ? <UserPlus className="w-5 h-5" /> : act.type === "friend" ? <Users className="w-5 h-5" /> : <BookOpen className="w-5 h-5" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold leading-snug">{act.title}</p>
+                    <p className="text-xs font-bold leading-snug">{getLocalizedActivity(act, t)}</p>
                     {act.details && <p className="text-[11px] opacity-70 mt-0.5 line-clamp-1">{act.details}</p>}
                     <p className="text-[10px] opacity-50 font-mono mt-1">
                       {new Date(act.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
@@ -996,7 +998,7 @@ export function ProfilePage() {
                     <div className="flex items-center justify-between text-[10px] opacity-70 font-mono pt-2 border-t border-[#1A1A1A]/5 dark:border-white/5">
                       <span>{story.pages ? story.pages.length : 0} pág(s)</span>
                       <span className="flex items-center gap-1 font-bold text-amber-500">
-                        ★ {story.rating ? story.rating.toFixed(1) : "N/A"}
+                        <Star className="w-3 h-3 fill-amber-500 text-amber-500" /> {story.rating ? story.rating.toFixed(1) : "N/A"}
                       </span>
                     </div>
                   </div>
@@ -1212,19 +1214,19 @@ export function ProfilePage() {
               onClick={() => setNetworkSubTab("friends")}
               className={`px-3 py-1.5 rounded-full transition-colors ${networkSubTab === "friends" ? "paper-btn-dark" : "opacity-60"}`}
             >
-              Amigos ({friendsList.length})
+              {t("friends")} ({friendsList.length})
             </button>
             <button
               onClick={() => setNetworkSubTab("followers")}
               className={`px-3 py-1.5 rounded-full transition-colors ${networkSubTab === "followers" ? "paper-btn-dark" : "opacity-60"}`}
             >
-              Seguidores ({followersList.length})
+              {t("followers")} ({followersList.length})
             </button>
             <button
               onClick={() => setNetworkSubTab("following")}
               className={`px-3 py-1.5 rounded-full transition-colors ${networkSubTab === "following" ? "paper-btn-dark" : "opacity-60"}`}
             >
-              Seguindo ({followingList.length})
+              {t("following")} ({followingList.length})
             </button>
           </div>
 

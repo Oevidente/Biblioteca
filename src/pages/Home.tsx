@@ -776,7 +776,7 @@ export function Home() {
                       <div className="flex justify-between items-start gap-2">
                         <div>
                           <h3 className="font-serif font-bold text-lg leading-tight">{pl.title}</h3>
-                          <p className="text-xs opacity-60 line-clamp-2 mt-1">{pl.description || "Coleção de histórias selecionadas."}</p>
+                          <p className="text-xs opacity-60 line-clamp-2 mt-1">{pl.description || t("defaultPlaylistDescription")}</p>
                         </div>
                         <span className="text-[9px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 paper-btn-light">
                           {t("storiesCount").replace("{count}", String(pl.storyIds.length))}
@@ -806,7 +806,7 @@ export function Home() {
                     
                     <div className="pt-3 border-t border-black/5 dark:border-white/5 space-y-2">
                       <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider opacity-60">
-                        <span>{t("by")} {pl.userName || "Leitor"}</span>
+                        <span>{t("by")} {pl.userName || t("defaultReaderName")}</span>
                         <span>{new Date(pl.createdAt).toLocaleDateString()}</span>
                       </div>
                       
@@ -816,7 +816,7 @@ export function Home() {
                           className="flex-1 py-2 px-3 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 paper-btn-dark"
                         >
                           <FolderPlus className="w-3.5 h-3.5" />
-                          <span>{user?.uid === pl.userId ? t("managePlaylist") || "Gerenciar Playlist" : "Ver Playlist"}</span>
+                          <span>{user?.uid === pl.userId ? t("managePlaylist") : t("viewPlaylist")}</span>
                         </button>
                         {user?.uid === pl.userId && (
                           <button
@@ -870,7 +870,7 @@ export function Home() {
                     <h3 className="font-serif font-bold text-base truncate">
                       <TranslatedText text={item.title} />
                     </h3>
-                    <p className="text-[10px] opacity-60 uppercase font-bold tracking-widest mt-1">{item.totalPages} páginas salvas</p>
+                    <p className="text-[10px] opacity-60 uppercase font-bold tracking-widest mt-1">{item.totalPages} {t("pagesSaved")}</p>
                     <div className="flex items-center gap-2 mt-3">
                       <Link 
                         to={`/story/${item.id}`} 
@@ -952,7 +952,7 @@ export function Home() {
                     title: newPlaylistTitle,
                     description: newPlaylistDesc,
                     userId: user?.uid || "guest",
-                    userName: profile?.username ? `@${profile.username}` : (profile?.displayName || "Leitor"),
+                    userName: profile?.username ? `@${profile.username}` : (profile?.displayName || t("defaultReaderName")),
                     isPublic: newPlaylistPublic,
                     storyIds: [],
                     createdAt: new Date().toISOString(),
@@ -997,7 +997,7 @@ export function Home() {
                   Playlist
                 </span>
                 <h2 className="font-serif font-bold text-2xl mt-1">{selectedPlaylistForDetail.title}</h2>
-                <p className="text-xs opacity-60 mt-0.5">{selectedPlaylistForDetail.description || "Sem descrição."}</p>
+                <p className="text-xs opacity-60 mt-0.5">{selectedPlaylistForDetail.description || t("noDescription")}</p>
                 <p className="text-[10px] font-mono opacity-50 mt-1 uppercase">
                   {t("by")} {selectedPlaylistForDetail.userName} • {t("storiesCount").replace("{count}", String(selectedPlaylistForDetail.storyIds.length))}
                 </p>
@@ -1013,7 +1013,7 @@ export function Home() {
             {/* Action Bar */}
             <div className="flex justify-between items-center gap-3">
               <h3 className="font-serif font-bold text-sm uppercase tracking-wider opacity-80">
-                Histórias Incluídas ({selectedPlaylistForDetail.storyIds.length})
+                Histórias {t("included")}s ({selectedPlaylistForDetail.storyIds.length})
               </h3>
               {user?.uid === selectedPlaylistForDetail.userId && (
                 <button
@@ -1043,7 +1043,7 @@ export function Home() {
                       className="bg-blue-600 text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5"
                     >
                       <Plus className="w-4 h-4" />
-                      <span>Adicionar Histórias Agora</span>
+                      <span>{t("addStoriesNow")}</span>
                     </button>
                   )}
                 </div>
@@ -1108,7 +1108,7 @@ export function Home() {
                     className="text-xs text-red-500 font-bold uppercase tracking-wider flex items-center gap-1 hover:underline"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>Excluir Playlist</span>
+                    <span>{t("deletePlaylist")}</span>
                   </button>
                 )}
               </div>
@@ -1169,7 +1169,7 @@ export function Home() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="font-serif font-bold text-xs truncate">{s.title}</h4>
-                        <p className="text-[10px] opacity-50 truncate">{s.author || "Autor desconhecido"}</p>
+                        <p className="text-[10px] opacity-50 truncate">{s.author || t("unknownAuthor")}</p>
                       </div>
                       <button
                         onClick={async () => {
@@ -1187,12 +1187,12 @@ export function Home() {
                         {isIncluded ? (
                           <>
                             <Check className="w-3 h-3" />
-                            <span>Incluída</span>
+                            <span>{t("included")}</span>
                           </>
                         ) : (
                           <>
                             <Plus className="w-3 h-3" />
-                            <span>Incluir</span>
+                            <span>{t("include")}</span>
                           </>
                         )}
                       </button>
@@ -1264,12 +1264,12 @@ export function Home() {
                         {inPlaylist ? (
                           <>
                             <Check className="w-3 h-3" />
-                            <span>Remover</span>
+                            <span>{t("remove")}</span>
                           </>
                         ) : (
                           <>
                             <Plus className="w-3 h-3" />
-                            <span>Adicionar</span>
+                            <span>{t("add")}</span>
                           </>
                         )}
                       </button>
@@ -1298,7 +1298,7 @@ export function Home() {
                       title: newPlaylistTitle,
                       description: "Coleção de leituras",
                       userId: user?.uid || "guest",
-                      userName: profile?.username ? `@${profile.username}` : (profile?.displayName || "Leitor"),
+                      userName: profile?.username ? `@${profile.username}` : (profile?.displayName || t("defaultReaderName")),
                       isPublic: true,
                       storyIds: [storyForPlaylistModal.id],
                       createdAt: new Date().toISOString(),
@@ -1323,7 +1323,7 @@ export function Home() {
                   }}
                   className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider shrink-0"
                 >
-                  Criar & Incluir
+                  Criar & {t("include")}
                 </button>
               </div>
             </div>

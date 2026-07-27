@@ -10,7 +10,7 @@
 
 @font-face {
   font-family: 'OpenDyslexic';
-  src: url('https://cdn.jsdelivr.net/gh/antijingoist/open-dyslexic@master/font/OpenDyslexic-Regular.woff') format('woff');
+  src: url('https://jsdelivr.net') format('woff');
   font-weight: normal;
   font-style: normal;
   font-display: swap;

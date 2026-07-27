@@ -1,33 +1,73 @@
-import { useEffect, useState, useRef, type FormEvent } from "react";
-import { useParams, Link } from "react-router-dom";
-import { 
-  db, 
-  doc, 
-  getDoc, 
-  collection, 
-  addDoc, 
-  query, 
-  orderBy, 
-  getDocs, 
-  Timestamp, 
-  updateDoc, 
-  increment, 
+import { useEffect, useState, useRef, useMemo, type FormEvent } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import {
+  db,
+  doc,
+  getDoc,
+  collection,
+  addDoc,
+  query,
+  orderBy,
+  getDocs,
+  Timestamp,
+  updateDoc,
+  increment,
   setDoc,
-  where 
-} from "../lib/firebase";
-import { ChevronLeft, ChevronRight, ArrowLeft, Star, MessageSquare, CheckCircle, ShieldAlert, User as UserIcon, ArrowUp, Clock, Eye, Sun, Type, Download, Bookmark, FileText, Check, ListPlus, Plus, X, Languages, Globe, Heart } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
-import { useAuth, ADMIN_EMAIL } from "../contexts/AuthContext";
-import { useLanguage } from "../contexts/LanguageContext";
-import { saveStoryOffline, isStoryDownloaded, removeOfflineStory } from "../lib/offlineStorage";
-import { getBookmarksAndNotes, saveBookmarkNote, deleteBookmarkNote, BookmarkNote } from "../lib/bookmarks";
-import { fetchUserPlaylists, ReadingList, toggleStoryInPlaylist, createOrUpdatePlaylist } from "../lib/playlists";
-import { unlockAchievement } from "../lib/achievements";
-import { logUserActivity } from "../lib/social";
-import { translateStoryPageHtml } from "../lib/storyTranslator";
-import { TranslatedText } from "../components/TranslatedText";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+  where,
+} from '../lib/firebase';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ArrowLeft,
+  Star,
+  MessageSquare,
+  CheckCircle,
+  ShieldAlert,
+  User as UserIcon,
+  ArrowUp,
+  Clock,
+  Eye,
+  Sun,
+  Type,
+  Download,
+  Bookmark,
+  FileText,
+  Check,
+  ListPlus,
+  Plus,
+  X,
+  Languages,
+  Globe,
+  Heart,
+  List,
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { useAuth, ADMIN_EMAIL } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import {
+  saveStoryOffline,
+  isStoryDownloaded,
+  removeOfflineStory,
+  getOfflineStory,
+} from '../lib/offlineStorage';
+import {
+  getBookmarksAndNotes,
+  saveBookmarkNote,
+  deleteBookmarkNote,
+  BookmarkNote,
+} from '../lib/bookmarks';
+import {
+  fetchUserPlaylists,
+  ReadingList,
+  toggleStoryInPlaylist,
+  createOrUpdatePlaylist,
+} from '../lib/playlists';
+import { unlockAchievement } from '../lib/achievements';
+import { logUserActivity } from '../lib/social';
+import { translateStoryPageHtml } from '../lib/storyTranslator';
+import { TranslatedText } from '../components/TranslatedText';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -48,7 +88,7 @@ interface CommentData {
   text: string;
   rating: number;
   userName?: string;
-  status?: "pending" | "approved" | "rejected" | "hidden";
+  status?: 'pending' | 'approved' | 'rejected' | 'hidden';
   createdAt: any;
 }
 
@@ -60,39 +100,44 @@ export function Reader() {
   const [story, setStory] = useState<StoryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
-  const [pageContent, setPageContent] = useState<string>("");
+  const [pageContent, setPageContent] = useState<string>('');
   const [loadingPage, setLoadingPage] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Story Translation State
-  const [isTranslationEnabled, setIsTranslationEnabled] = useState<boolean>(() => {
-    return localStorage.getItem("inkora_translate_story") === "true";
-  });
-  const [displayContent, setDisplayContent] = useState<string>("");
+  const [isTranslationEnabled, setIsTranslationEnabled] = useState<boolean>(
+    () => {
+      return localStorage.getItem('inkora_translate_story') === 'true';
+    },
+  );
+  const [displayContent, setDisplayContent] = useState<string>('');
   const [isTranslating, setIsTranslating] = useState<boolean>(false);
 
   useEffect(() => {
-    localStorage.setItem("inkora_translate_story", isTranslationEnabled ? "true" : "false");
+    localStorage.setItem(
+      'inkora_translate_story',
+      isTranslationEnabled ? 'true' : 'false',
+    );
   }, [isTranslationEnabled]);
 
   useEffect(() => {
     let isCancelled = false;
 
     async function processPageTranslation() {
-      if (language !== "pt" && isTranslationEnabled && pageContent) {
+      if (language !== 'pt' && isTranslationEnabled && pageContent) {
         setIsTranslating(true);
         try {
           const translated = await translateStoryPageHtml(
-            pageContent, 
-            language as "es" | "en" | "id", 
-            id || "story", 
-            currentPage
+            pageContent,
+            language as 'es' | 'en' | 'id',
+            id || 'story',
+            currentPage,
           );
           if (!isCancelled) {
             setDisplayContent(translated);
           }
         } catch (e) {
-          console.error("Translation processing error:", e);
+          console.error('Translation processing error:', e);
           if (!isCancelled) {
             setDisplayContent(pageContent);
           }
@@ -109,45 +154,218 @@ export function Reader() {
 
     processPageTranslation();
 
-    return () => { isCancelled = true; };
+    return () => {
+      isCancelled = true;
+    };
   }, [pageContent, isTranslationEnabled, language, id, currentPage]);
-  
+
   const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState("");
+  const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [promptProgress, setPromptProgress] = useState<{page: number} | null>(null);
+  const [promptProgress, setPromptProgress] = useState<{ page: number } | null>(
+    null,
+  );
   const isInitialProgressLoaded = useRef(false);
-  
+
   const [approvedComments, setApprovedComments] = useState<CommentData[]>([]);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
   // Advanced Typography & Themes
-  const [fontFamily, setFontFamily] = useState<"serif" | "sans" | "opendyslexic">(() => {
-    return (localStorage.getItem("inkora_font_family") as any) || "serif";
+  const [fontFamily, setFontFamily] = useState<
+    'serif' | 'sans' | 'opendyslexic'
+  >(() => {
+    return (localStorage.getItem('inkora_font_family') as any) || 'serif';
   });
-  const [marginSize, setMarginSize] = useState<"narrow" | "normal" | "wide">(() => {
-    return (localStorage.getItem("inkora_margin_size") as any) || "normal";
-  });
-  const [lineSpacing, setLineSpacing] = useState<"compact" | "relaxed" | "loose">(() => {
-    return (localStorage.getItem("inkora_line_spacing") as any) || "relaxed";
+  const [marginSize, setMarginSize] = useState<'narrow' | 'normal' | 'wide'>(
+    () => {
+      return (localStorage.getItem('inkora_margin_size') as any) || 'normal';
+    },
+  );
+  const [lineSpacing, setLineSpacing] = useState<
+    'compact' | 'relaxed' | 'loose'
+  >(() => {
+    return (localStorage.getItem('inkora_line_spacing') as any) || 'relaxed';
   });
 
   // Offline and Bookmarks
   const [isDownloaded, setIsDownloaded] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [notesList, setNotesList] = useState<BookmarkNote[]>([]);
-  const [newNoteInput, setNewNoteInput] = useState("");
+  const [newNoteInput, setNewNoteInput] = useState('');
   const [showNotesDrawer, setShowNotesDrawer] = useState(false);
 
   // Playlists State
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
   const [playlists, setPlaylists] = useState<ReadingList[]>([]);
-  const [newPlaylistTitle, setNewPlaylistTitle] = useState("");
+  const [newPlaylistTitle, setNewPlaylistTitle] = useState('');
+
+  // Table of Contents (Index) State across all pages
+  interface TocHeadingItem {
+    id: string;
+    text: string;
+    level: 1 | 2;
+    pageIndex: number;
+  }
+  const [allPagesContent, setAllPagesContent] = useState<{
+    [pageIdx: number]: string;
+  }>({});
+  const [tocHeadings, setTocHeadings] = useState<TocHeadingItem[]>([]);
+  const [showTocSidebar, setShowTocSidebar] = useState<boolean>(
+    () => window.innerWidth >= 1280,
+  );
+  const [expandedTocSection, setExpandedTocSection] = useState<number | null>(
+    null,
+  );
+  const pendingTocScrollRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (currentPage !== undefined && pageContent) {
+      setAllPagesContent((prev) => ({ ...prev, [currentPage]: pageContent }));
+    }
+  }, [pageContent, currentPage]);
+
+  useEffect(() => {
+    async function loadAllStoryPages() {
+      if (!id || !story) return;
+      const pagesMap: { [pageIdx: number]: string } = {};
+      try {
+        const offline = await getOfflineStory(id);
+        if (offline && offline.pages) {
+          setAllPagesContent(offline.pages);
+          return;
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      try {
+        const pSnap = await getDocs(
+          query(collection(db, `stories/${id}/pages`), orderBy('index', 'asc')),
+        );
+        pSnap.forEach((d) => {
+          const data = d.data();
+          const idx =
+            typeof data.index === 'number'
+              ? data.index
+              : parseInt(d.id, 10) || 0;
+          pagesMap[idx] = data.content || '';
+        });
+        if (Object.keys(pagesMap).length === 0 && pageContent) {
+          pagesMap[0] = pageContent;
+        }
+        setAllPagesContent(pagesMap);
+      } catch (e) {
+        console.error('Error loading all pages for TOC:', e);
+        if (pageContent) {
+          setAllPagesContent({ [currentPage]: pageContent });
+        }
+      }
+    }
+
+    loadAllStoryPages();
+  }, [id, story?.totalPages]);
+
+  useEffect(() => {
+    const list: TocHeadingItem[] = [];
+    const tempDiv = document.createElement('div');
+    const totalP =
+      story?.totalPages || Object.keys(allPagesContent).length || 1;
+
+    for (let p = 0; p < totalP; p++) {
+      const html = allPagesContent[p];
+      if (!html) continue;
+      tempDiv.innerHTML = html;
+      const els = tempDiv.querySelectorAll('h1, h2');
+      els.forEach((el, hIdx) => {
+        const htmlEl = el as HTMLElement;
+        const text = htmlEl.innerText || htmlEl.textContent || '';
+        if (text.trim()) {
+          list.push({
+            id: `toc-p${p}-h${hIdx}`,
+            text: text.trim(),
+            level: htmlEl.tagName === 'H1' ? 1 : 2,
+            pageIndex: p,
+          });
+        }
+      });
+    }
+    setTocHeadings(list);
+  }, [allPagesContent, story?.totalPages]);
+
+  const structuredToc = useMemo(() => {
+    const result: { h1: TocHeadingItem; h2s: TocHeadingItem[] }[] = [];
+    let currentH1: TocHeadingItem | null = null;
+    let currentH2s: TocHeadingItem[] = [];
+
+    tocHeadings.forEach((h) => {
+      if (h.level === 1) {
+        if (currentH1) {
+          result.push({ h1: currentH1, h2s: currentH2s });
+        }
+        currentH1 = h;
+        currentH2s = [];
+      } else {
+        if (currentH1) {
+          currentH2s.push(h);
+        } else {
+          currentH1 = {
+            id: `dummy-h1-${h.id}`,
+            text: 'Início',
+            level: 1,
+            pageIndex: h.pageIndex,
+          };
+          currentH2s.push(h);
+        }
+      }
+    });
+    if (currentH1) {
+      result.push({ h1: currentH1, h2s: currentH2s });
+    }
+    return result;
+  }, [tocHeadings]);
+
+  const handleTocClick = (h: TocHeadingItem) => {
+    setShowTocSidebar(false);
+    if (h.pageIndex !== currentPage) {
+      pendingTocScrollRef.current = h.text;
+      setCurrentPage(h.pageIndex);
+    } else {
+      setTimeout(() => {
+        if (!containerRef.current) return;
+        const els = containerRef.current.querySelectorAll('h1, h2');
+        for (const el of Array.from(els)) {
+          const htmlEl = el as HTMLElement;
+          if ((htmlEl.textContent || '').trim() === h.text) {
+            htmlEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            break;
+          }
+        }
+      }, 50);
+    }
+  };
+
+  useEffect(() => {
+    if (pendingTocScrollRef.current && !loadingPage && displayContent) {
+      const targetText = pendingTocScrollRef.current;
+      pendingTocScrollRef.current = null;
+      setTimeout(() => {
+        if (!containerRef.current) return;
+        const els = containerRef.current.querySelectorAll('h1, h2');
+        for (const el of Array.from(els)) {
+          const htmlEl = el as HTMLElement;
+          if ((htmlEl.textContent || '').trim() === targetText) {
+            htmlEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            break;
+          }
+        }
+      }, 150);
+    }
+  }, [displayContent, loadingPage, currentPage]);
 
   const loadPlaylists = async () => {
-    const list = await fetchUserPlaylists(user?.uid || "guest");
+    const list = await fetchUserPlaylists(user?.uid || 'guest');
     setPlaylists(list);
   };
 
@@ -159,7 +377,7 @@ export function Reader() {
   // Eye Comfort yellow filter intensity state (0 to 100)
   const [eyeComfortIntensity, setEyeComfortIntensity] = useState<number>(() => {
     try {
-      const saved = localStorage.getItem("inkora_eye_comfort_intensity");
+      const saved = localStorage.getItem('inkora_eye_comfort_intensity');
       return saved !== null ? Math.min(100, Math.max(0, Number(saved))) : 0;
     } catch (e) {
       return 0;
@@ -167,49 +385,57 @@ export function Reader() {
   });
 
   useEffect(() => {
-    localStorage.setItem("inkora_font_family", fontFamily);
-    if (fontFamily === "opendyslexic") {
-      unlockAchievement("polyglot", user?.uid);
+    localStorage.setItem('inkora_font_family', fontFamily);
+    if (fontFamily === 'opendyslexic') {
+      unlockAchievement('polyglot', user?.uid);
     }
   }, [fontFamily, user]);
 
   useEffect(() => {
-    localStorage.setItem("inkora_margin_size", marginSize);
+    localStorage.setItem('inkora_margin_size', marginSize);
   }, [marginSize]);
 
   useEffect(() => {
-    localStorage.setItem("inkora_line_spacing", lineSpacing);
+    localStorage.setItem('inkora_line_spacing', lineSpacing);
   }, [lineSpacing]);
 
   useEffect(() => {
     if (id) {
       isStoryDownloaded(id).then(setIsDownloaded);
       setNotesList(getBookmarksAndNotes(id));
-      unlockAchievement("first_page", user?.uid);
+      unlockAchievement('first_page', user?.uid);
 
       // Check night owl achievement
       const currentHour = new Date().getHours();
       if (currentHour >= 0 && currentHour < 5) {
-        unlockAchievement("night_owl", user?.uid);
+        unlockAchievement('night_owl', user?.uid);
       }
     }
   }, [id, user]);
 
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains('dark'),
+  );
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.classList.contains("dark"));
+      setIsDark(document.documentElement.classList.contains('dark'));
     });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
     return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
     try {
-      localStorage.setItem("inkora_eye_comfort_intensity", eyeComfortIntensity.toString());
+      localStorage.setItem(
+        'inkora_eye_comfort_intensity',
+        eyeComfortIntensity.toString(),
+      );
     } catch (e) {
-      console.error("Error saving eye comfort intensity:", e);
+      console.error('Error saving eye comfort intensity:', e);
     }
   }, [eyeComfortIntensity]);
 
@@ -224,19 +450,23 @@ export function Reader() {
 
       // Read progress logic
       if (story && story.totalPages > 0) {
-        const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-        const currentScrollPercent = docHeight > 0 ? (window.scrollY / docHeight) : 1;
-        const overallProgress = ((currentPage + currentScrollPercent) / story.totalPages) * 100;
+        const docHeight =
+          document.documentElement.scrollHeight -
+          document.documentElement.clientHeight;
+        const currentScrollPercent =
+          docHeight > 0 ? window.scrollY / docHeight : 1;
+        const overallProgress =
+          ((currentPage + currentScrollPercent) / story.totalPages) * 100;
         setScrollProgress(Math.min(overallProgress, 100));
       }
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll);
     handleScroll(); // Initial check
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [currentPage, story]);
 
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Load Story metadata & saved progress
@@ -248,7 +478,7 @@ export function Reader() {
       // Check local inkora_cached_stories first for immediate render
       let cachedTotalPages = 1;
       try {
-        const cachedStories = localStorage.getItem("inkora_cached_stories");
+        const cachedStories = localStorage.getItem('inkora_cached_stories');
         if (cachedStories) {
           const list = JSON.parse(cachedStories);
           const found = list.find((s: any) => s.id === id);
@@ -263,12 +493,12 @@ export function Reader() {
       }
 
       try {
-        const docRef = doc(db, "stories", id);
+        const docRef = doc(db, 'stories', id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data() as StoryData;
           setStory(data);
-          
+
           // Check progress in Firestore if user is logged in
           let savedPage = 0;
           if (user) {
@@ -277,12 +507,12 @@ export function Reader() {
               const progSnap = await getDoc(progRef);
               if (progSnap.exists()) {
                 const pData = progSnap.data();
-                if (typeof pData.page === "number") {
+                if (typeof pData.page === 'number') {
                   savedPage = pData.page;
                 }
               }
             } catch (e) {
-              console.error("Error loading user progress from Firestore:", e);
+              console.error('Error loading user progress from Firestore:', e);
             }
           }
 
@@ -319,8 +549,8 @@ export function Reader() {
         setPageContent(cachedPage);
         setLoadingPage(false);
       } else {
-        setPageContent("");
-        setDisplayContent("");
+        setPageContent('');
+        setDisplayContent('');
         setLoadingPage(true);
       }
 
@@ -336,12 +566,12 @@ export function Reader() {
             console.error(e);
           }
         } else {
-          setPageContent("<p>" + t("pageNotFound") + "</p>");
+          setPageContent('<p>' + t('pageNotFound') + '</p>');
         }
       } catch (err) {
         console.error(err);
         if (!cachedPage) {
-          setPageContent("<p>" + t("errorLoadingPage") + "</p>");
+          setPageContent('<p>' + t('errorLoadingPage') + '</p>');
         }
       } finally {
         setLoadingPage(false);
@@ -357,26 +587,26 @@ export function Reader() {
       if (!id) return;
       try {
         const commentsRef = collection(db, `stories/${id}/comments`);
-        const q = query(commentsRef, orderBy("createdAt", "desc"));
+        const q = query(commentsRef, orderBy('createdAt', 'desc'));
         const snap = await getDocs(q);
         const list: CommentData[] = [];
         snap.forEach((docSnap) => {
           const data = docSnap.data();
           // Filter ONLY approved comments for public view
-          if (data.status === "approved") {
+          if (data.status === 'approved') {
             list.push({
               id: docSnap.id,
               text: data.text,
               rating: data.rating,
-              userName: data.userName || t("reader"),
+              userName: data.userName || t('reader'),
               status: data.status,
-              createdAt: data.createdAt
+              createdAt: data.createdAt,
             });
           }
         });
         setApprovedComments(list);
       } catch (err) {
-        console.error("Error loading comments:", err);
+        console.error('Error loading comments:', err);
       }
     }
 
@@ -386,25 +616,28 @@ export function Reader() {
   // Save Progress as user turns pages
   useEffect(() => {
     if (!story || !id || !isInitialProgressLoaded.current) return;
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
     // 1. Save local progress
     localStorage.setItem(`progress_${id}`, currentPage.toString());
-    
+
     // 2. Save reading history
     try {
       const historyStr = localStorage.getItem('reading_history');
       let history: any[] = historyStr ? JSON.parse(historyStr) : [];
-      history = history.filter(h => h.id !== id);
+      history = history.filter((h) => h.id !== id);
       history.unshift({
         id,
-        title: story.title || "Sem título",
-        coverImage: story.coverImage || "",
+        title: story.title || 'Sem título',
+        coverImage: story.coverImage || '',
         page: currentPage || 0,
         totalPages: story.totalPages || 0,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-      localStorage.setItem('reading_history', JSON.stringify(history.slice(0, 50)));
+      localStorage.setItem(
+        'reading_history',
+        JSON.stringify(history.slice(0, 50)),
+      );
     } catch (e) {
       console.error(e);
     }
@@ -412,33 +645,39 @@ export function Reader() {
     // 3. Save progress to Firestore if logged in
     if (user && story) {
       const progRef = doc(db, `users/${user.uid}/progress`, id);
-      setDoc(progRef, {
-        storyId: id,
-        storyTitle: story.title || "Sem título",
-        coverImage: story.coverImage || "",
-        page: currentPage || 0,
-        totalPages: story.totalPages ?? 0,
-        updatedAt: new Date().toISOString()
-      }, { merge: true }).then(() => {
-        // Log start of reading once per story session/user
-        const localReadLogKey = `has_logged_read_${user.uid}_${id}`;
-        if (!localStorage.getItem(localReadLogKey) && profile) {
-          logUserActivity({
-            uid: user.uid,
-            userName: profile.displayName || profile.email.split("@")[0],
-            userUsername: profile.username || "",
-            userPhoto: profile.photoURL || "",
-            type: "read",
-            title: `Começou a ler a história "${story.title}"`,
-            targetId: id,
-            targetTitle: story.title,
-            createdAt: new Date().toISOString()
-          });
-          localStorage.setItem(localReadLogKey, "true");
-        }
-      }).catch(err => {
-        console.error("Error saving progress to Firestore:", err);
-      });
+      setDoc(
+        progRef,
+        {
+          storyId: id,
+          storyTitle: story.title || 'Sem título',
+          coverImage: story.coverImage || '',
+          page: currentPage || 0,
+          totalPages: story.totalPages ?? 0,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true },
+      )
+        .then(() => {
+          // Log start of reading once per story session/user
+          const localReadLogKey = `has_logged_read_${user.uid}_${id}`;
+          if (!localStorage.getItem(localReadLogKey) && profile) {
+            logUserActivity({
+              uid: user.uid,
+              userName: profile.displayName || profile.email.split('@')[0],
+              userUsername: profile.username || '',
+              userPhoto: profile.photoURL || '',
+              type: 'read',
+              title: `Começou a ler a história "${story.title}"`,
+              targetId: id,
+              targetTitle: story.title,
+              createdAt: new Date().toISOString(),
+            });
+            localStorage.setItem(localReadLogKey, 'true');
+          }
+        })
+        .catch((err) => {
+          console.error('Error saving progress to Firestore:', err);
+        });
     }
   }, [currentPage, story, id, user]);
 
@@ -447,45 +686,47 @@ export function Reader() {
     if (!id || rating === 0) return;
     setIsSubmitting(true);
     try {
-      const userName = profile?.username ? `@${profile.username}` : (profile?.displayName || user?.email?.split("@")[0] || t("reader"));
-      
+      const userName = profile?.username
+        ? `@${profile.username}`
+        : profile?.displayName || user?.email?.split('@')[0] || t('reader');
+
       // Save comment with pending approval status
       await addDoc(collection(db, `stories/${id}/comments`), {
         text: comment.trim(),
         rating,
-        userId: user?.uid || "guest",
+        userId: user?.uid || 'guest',
         userName,
-        userEmail: user?.email || "",
-        status: "pending", // MUST BE APPROVED BY ADMIN
-        createdAt: Timestamp.now()
+        userEmail: user?.email || '',
+        status: 'pending', // MUST BE APPROVED BY ADMIN
+        createdAt: Timestamp.now(),
       });
 
       // Update story rating totals
-      const storyRef = doc(db, "stories", id);
+      const storyRef = doc(db, 'stories', id);
       await updateDoc(storyRef, {
         rating: increment(rating),
-        ratingsCount: increment(1)
+        ratingsCount: increment(1),
       });
-      
+
       if (user && profile && story) {
         await logUserActivity({
           uid: user.uid,
-          userName: profile.displayName || profile.email.split("@")[0],
-          userUsername: profile.username || "",
-          userPhoto: profile.photoURL || "",
-          type: "comment",
+          userName: profile.displayName || profile.email.split('@')[0],
+          userUsername: profile.username || '',
+          userPhoto: profile.photoURL || '',
+          type: 'comment',
           title: `Avaliou a história "${story.title}" com ${rating} estrelas`,
           targetId: id,
           targetTitle: story.title,
           details: comment.trim() || undefined,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
         });
       }
 
       setSubmitted(true);
     } catch (err) {
       console.error(err);
-      alert(t("errorSubmitReview"));
+      alert(t('errorSubmitReview'));
     } finally {
       setIsSubmitting(false);
     }
@@ -495,7 +736,7 @@ export function Reader() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
         <div className="w-10 h-10 border-4 border-[#1A1A1A] dark:border-[#F5F5F0] border-t-transparent rounded-full animate-spin"></div>
-        <div className="font-serif text-sm opacity-60">{t("loadingStory")}</div>
+        <div className="font-serif text-sm opacity-60">{t('loadingStory')}</div>
       </div>
     );
   }
@@ -503,17 +744,24 @@ export function Reader() {
   if (!story) {
     return (
       <div className="text-center py-20 font-serif space-y-4">
-        <p className="text-xl">{t("storyNotFound")}</p>
-        <Link to="/" className="inline-block font-bold text-xs uppercase tracking-widest border-b border-current pb-1">
-          {t("backToLibrary")}
+        <p className="text-xl">{t('storyNotFound')}</p>
+        <Link
+          to="/"
+          className="inline-block font-bold text-xs uppercase tracking-widest border-b border-current pb-1"
+        >
+          {t('backToLibrary')}
         </Link>
       </div>
     );
   }
 
   // Check scheduled release constraints
-  const isScheduledFuture = story.scheduledReleaseAt && new Date(story.scheduledReleaseAt).getTime() > Date.now();
-  const isAdmin = profile?.role === "admin" || (user?.email || "").toLowerCase().trim() === ADMIN_EMAIL;
+  const isScheduledFuture =
+    story.scheduledReleaseAt &&
+    new Date(story.scheduledReleaseAt).getTime() > Date.now();
+  const isAdmin =
+    profile?.role === 'admin' ||
+    (user?.email || '').toLowerCase().trim() === ADMIN_EMAIL;
   const isAuthor = story.authorUid === user?.uid;
 
   if (isScheduledFuture && !isAdmin && !isAuthor) {
@@ -528,19 +776,23 @@ export function Reader() {
         </h2>
         {story.author && (
           <p className="text-xs uppercase font-bold tracking-widest opacity-60">
-            {t("by")} {story.author}
+            {t('by')} {story.author}
           </p>
         )}
         <div className="h-[1px] w-12 bg-[#1A1A1A]/10 dark:bg-white/10 mx-auto my-4"></div>
         <p className="text-sm text-[#1A1A1A]/70 dark:text-[#F5F5F0]/70 leading-relaxed max-w-md mx-auto">
-          Esta obra está agendada e será lançada em breve! Prepare-se para embarcar nesta leitura no dia:
+          Esta obra está agendada e será lançada em breve! Prepare-se para
+          embarcar nesta leitura no dia:
         </p>
         <div className="inline-block px-4 py-2 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-xl font-mono text-sm font-bold">
           {releaseDate.toLocaleString()}
         </div>
         <div className="pt-6">
-          <Link to="/" className="inline-flex items-center gap-2 text-xs uppercase font-bold tracking-widest border-b border-current pb-1 hover:opacity-80 transition-opacity">
-            <ArrowLeft className="w-3.5 h-3.5" /> {t("backToLibrary")}
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-xs uppercase font-bold tracking-widest border-b border-current pb-1 hover:opacity-80 transition-opacity"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> {t('backToLibrary')}
           </Link>
         </div>
       </div>
@@ -551,41 +803,217 @@ export function Reader() {
   const hasPrev = currentPage > 0;
 
   return (
-    <div className="max-w-[800px] mx-auto pb-20 pt-4">
+    <div className="max-w-[800px] mx-auto pb-20 pt-4 relative">
+      {/* Floating TOC Sidebar Trigger Button (when closed on desktop) */}
+      {!showTocSidebar && (
+        <button
+          onClick={() => setShowTocSidebar(true)}
+          className="fixed left-4 top-32 z-40 hidden xl:flex items-center gap-2 px-3.5 py-2.5 rounded-2xl paper-card shadow-lg hover:scale-105 transition-all text-xs font-bold uppercase tracking-wider"
+          title={t('tableOfContents')}
+        >
+          <List className="w-4 h-4 text-amber-500" />
+          <span>{t('tableOfContents')}</span>
+        </button>
+      )}
+
+      {/* Floating Side Index Menu (Table of Contents) */}
+      <AnimatePresence>
+        {showTocSidebar && (
+          <motion.aside
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="fixed left-4 xl:left-8 top-28 w-72 max-h-[72vh] overflow-y-auto z-40 p-5 rounded-2xl paper-card shadow-2xl hidden md:block custom-scrollbar"
+          >
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-black/5 dark:border-white/5">
+              <div className="flex items-center gap-2">
+                <List className="w-4 h-4 text-amber-500 shrink-0" />
+                <h3 className="font-serif font-bold text-xs uppercase tracking-wider">
+                  {t('tableOfContents')}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowTocSidebar(false)}
+                className="p-1 rounded-lg opacity-60 hover:opacity-100"
+                title={t('close')}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {structuredToc.length === 0 ? (
+                <p className="text-[11px] opacity-50 font-serif italic text-center py-6">
+                  {t('noHeadings')}
+                </p>
+              ) : (
+                structuredToc.map((section, sIdx) => (
+                  <div
+                    key={sIdx}
+                    className="space-y-1.5"
+                    onMouseEnter={() => setExpandedTocSection(sIdx)}
+                    onMouseLeave={() => setExpandedTocSection(null)}
+                  >
+                    {/* H1 Title */}
+                    <button
+                      onClick={() => {
+                        setExpandedTocSection(sIdx);
+                        handleTocClick(section.h1);
+                      }}
+                      onFocus={() => setExpandedTocSection(sIdx)}
+                      onBlur={() => setExpandedTocSection(null)}
+                      className="w-full text-left font-serif font-bold text-xs hover:text-amber-600 dark:hover:text-amber-400 transition-colors flex items-start gap-1.5 py-1 px-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5"
+                    >
+                      <span className="flex-1 leading-snug">
+                        {section.h1.text}
+                      </span>
+                      <span className="text-[9px] font-mono opacity-50 px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 shrink-0">
+                        Pág. {section.h1.pageIndex + 1}
+                      </span>
+                    </button>
+
+                    {/* H2 Subtitles indented underneath */}
+                    {section.h2s.length > 0 && (
+                      <div
+                        className={cn(
+                          'mt-1 ml-3 flex flex-col gap-1 border-l border-amber-500/50 pl-3 overflow-hidden transition-all duration-200',
+                          expandedTocSection === sIdx
+                            ? 'max-h-[20rem] opacity-100'
+                            : 'max-h-0 opacity-0',
+                        )}
+                      >
+                        {section.h2s.map((h2, h2Idx) => (
+                          <button
+                            key={h2Idx}
+                            onClick={() => handleTocClick(h2)}
+                            className="block w-full text-left font-serif text-[11px] opacity-80 hover:opacity-100 hover:text-amber-600 dark:hover:text-amber-400 transition-colors flex items-start gap-1.5 py-0.5 pr-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 break-words"
+                          >
+                            <span className="flex-1 leading-snug">
+                              {h2.text}
+                            </span>
+                            <span className="text-[8px] font-mono opacity-40 px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 shrink-0">
+                              Pág. {h2.pageIndex + 1}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile / Tablet Floating Index Drawer / Modal */}
+      <AnimatePresence>
+        {showTocSidebar && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm md:hidden animate-fade-in">
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 50 }}
+              className="bg-white dark:bg-[#1A1A1A] w-full max-w-lg rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl border border-black/10 dark:border-white/10 space-y-4 max-h-[80vh] flex flex-col"
+            >
+              <div className="flex justify-between items-center pb-3 border-b border-black/5 dark:border-white/5 shrink-0">
+                <div className="flex items-center gap-2">
+                  <List className="w-5 h-5 text-amber-500" />
+                  <h3 className="font-serif font-bold text-base">
+                    {t('tableOfContents')}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowTocSidebar(false)}
+                  className="p-1.5 rounded-full opacity-60 hover:opacity-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+                {structuredToc.length === 0 ? (
+                  <p className="text-xs opacity-50 font-serif italic text-center py-10">
+                    {t('noHeadings')}
+                  </p>
+                ) : (
+                  structuredToc.map((section, sIdx) => (
+                    <div key={sIdx} className="space-y-2">
+                      <button
+                        onClick={() => handleTocClick(section.h1)}
+                        className="w-full text-left font-serif font-bold text-sm hover:text-amber-500 transition-colors flex items-start gap-2 py-1.5 px-3 rounded-xl bg-black/5 dark:bg-white/5"
+                      >
+                        <span className="flex-1">{section.h1.text}</span>
+                        <span className="text-[10px] font-mono opacity-50 px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 shrink-0">
+                          Pág. {section.h1.pageIndex + 1}
+                        </span>
+                      </button>
+
+                      {section.h2s.length > 0 && (
+                        <div className="mt-1 ml-3 flex flex-col gap-1.5 border-l border-amber-500/50 pl-3">
+                          {section.h2s.map((h2, h2Idx) => (
+                            <button
+                              key={h2Idx}
+                              onClick={() => handleTocClick(h2)}
+                              className="block w-full text-left font-serif text-xs opacity-80 hover:opacity-100 hover:text-amber-500 transition-colors flex items-start gap-2 py-1 pr-2 rounded-lg break-words"
+                            >
+                              <span className="flex-1">{h2.text}</span>
+                              <span className="text-[9px] font-mono opacity-40 px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 shrink-0">
+                                Pág. {h2.pageIndex + 1}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       {/* Sticky Progress Bar */}
       <div className="fixed top-0 left-0 right-0 h-1.5 bg-[#1A1A1A]/10 dark:bg-white/10 z-50">
-        <div 
-          className="h-full bg-[#1A1A1A] dark:bg-[#F5F5F0] transition-all duration-150 ease-out" 
+        <div
+          className="h-full bg-[#1A1A1A] dark:bg-[#F5F5F0] transition-all duration-150 ease-out"
           style={{ width: `${scrollProgress}%` }}
         />
       </div>
 
-      <Link 
-        to="/" 
+      <Link
+        to="/"
         className="inline-flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest opacity-60 hover:opacity-100 mb-8 transition-opacity"
       >
-        <ArrowLeft className="w-4 h-4" /> {t("backToLibrary")}
+        <ArrowLeft className="w-4 h-4" /> {t('backToLibrary')}
       </Link>
-      
+
       {/* Resume Progress Prompt */}
       {promptProgress && (
         <div className="rounded-2xl p-4 sm:p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in duration-300 paper-card">
           <div className="space-y-1 text-center sm:text-left">
-            <p className="text-sm font-bold font-serif">{t("readingResumed")}</p>
-            <p className="text-xs opacity-60">{t("readingRestored", { page: promptProgress.page + 1 })}</p>
+            <p className="text-sm font-bold font-serif">
+              {t('readingResumed')}
+            </p>
+            <p className="text-xs opacity-60">
+              {t('readingRestored', { page: promptProgress.page + 1 })}
+            </p>
           </div>
           <div className="flex gap-2 w-full sm:w-auto justify-end">
-            <button 
-              onClick={() => { setCurrentPage(0); setPromptProgress(null); }} 
+            <button
+              onClick={() => {
+                setCurrentPage(0);
+                setPromptProgress(null);
+              }}
               className="text-xs uppercase tracking-wider px-4 py-2 opacity-60 hover:opacity-100 font-bold rounded-full paper-btn-light"
             >
-              {t("restartPage1")}
+              {t('restartPage1')}
             </button>
-            <button 
-              onClick={() => setPromptProgress(null)} 
+            <button
+              onClick={() => setPromptProgress(null)}
               className="px-5 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest paper-btn-dark"
             >
-              {t("continueReading")}
+              {t('continueReading')}
             </button>
           </div>
         </div>
@@ -597,26 +1025,37 @@ export function Reader() {
         </h1>
         {story.author && (
           <div className="flex flex-col items-center gap-2 mb-6 opacity-60">
-            <Link 
-              to={story.authorUid ? `/profile/${story.authorUid}` : `/user/${story.author}`}
+            <Link
+              to={
+                story.authorUid
+                  ? `/profile/${story.authorUid}`
+                  : `/user/${story.author}`
+              }
               className="text-xs sm:text-sm font-bold uppercase tracking-widest hover:underline hover:opacity-100 transition-opacity"
             >
-              {t("by")} {story.author}
+              {t('by')} {story.author}
             </Link>
             <p className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" />
-              {Math.ceil((story.wordCount || (story.totalPages * 250)) / 250)} {t("readTime")}
+              {Math.ceil(
+                (story.wordCount || story.totalPages * 250) / 250,
+              )}{' '}
+              {t('readTime')}
             </p>
           </div>
         )}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
           <div className="flex items-center justify-center gap-4 text-[10px] font-bold uppercase tracking-widest opacity-40">
             <span className="w-12 h-[1px] bg-current"></span>
-            <span>{t("pageOf", { page: currentPage + 1, total: story.totalPages })}</span>
+            <span>
+              {t('pageOf', { page: currentPage + 1, total: story.totalPages })}
+            </span>
             <span className="w-12 h-[1px] bg-current"></span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{t("goTo")}</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+              {t('goTo')}
+            </span>
             <select
               value={currentPage}
               onChange={(e) => setCurrentPage(parseInt(e.target.value, 10))}
@@ -624,7 +1063,12 @@ export function Reader() {
             >
               {Array.from({ length: story.totalPages }, (_, i) => (
                 <option key={i} value={i}>
-                  {t("pageOf", { page: i + 1, total: story.totalPages }).split(" de ")[0].split(" of ")[0].split(" dari ")[0]}
+                  {
+                    t('pageOf', { page: i + 1, total: story.totalPages })
+                      .split(' de ')[0]
+                      .split(' of ')[0]
+                      .split(' dari ')[0]
+                  }
                 </option>
               ))}
             </select>
@@ -639,33 +1083,41 @@ export function Reader() {
           {/* Font Family Selector */}
           <div className="flex items-center gap-2 w-full lg:w-auto">
             <Type className="w-4 h-4 opacity-60 shrink-0 hidden sm:inline" />
-            <span className="text-xs font-bold uppercase tracking-wider opacity-70 hidden sm:inline">{t("fontFamily")}:</span>
+            <span className="text-xs font-bold uppercase tracking-wider opacity-70 hidden sm:inline">
+              {t('fontFamily')}:
+            </span>
             <div className="flex items-center gap-1 p-1 rounded-xl w-full lg:w-auto paper-card">
               <button
-                onClick={() => setFontFamily("serif")}
+                onClick={() => setFontFamily('serif')}
                 className={cn(
-                  "flex-1 lg:flex-none px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-serif font-bold transition-all text-center",
-                  fontFamily === "serif" ? "paper-btn-dark shadow-sm" : "opacity-60 hover:opacity-100"
+                  'flex-1 lg:flex-none px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-serif font-bold transition-all text-center',
+                  fontFamily === 'serif'
+                    ? 'paper-btn-dark shadow-sm'
+                    : 'opacity-60 hover:opacity-100',
                 )}
               >
                 Serif
               </button>
               <button
-                onClick={() => setFontFamily("sans")}
+                onClick={() => setFontFamily('sans')}
                 className={cn(
-                  "flex-1 lg:flex-none px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-sans font-bold transition-all text-center",
-                  fontFamily === "sans" ? "paper-btn-dark shadow-sm" : "opacity-60 hover:opacity-100"
+                  'flex-1 lg:flex-none px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-sans font-bold transition-all text-center',
+                  fontFamily === 'sans'
+                    ? 'paper-btn-dark shadow-sm'
+                    : 'opacity-60 hover:opacity-100',
                 )}
               >
                 Sans
               </button>
               <button
-                onClick={() => setFontFamily("opendyslexic")}
+                onClick={() => setFontFamily('opendyslexic')}
                 className={cn(
-                  "flex-1 lg:flex-none px-2 py-1.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-bold transition-all font-opendyslexic text-center truncate",
-                  fontFamily === "opendyslexic" ? "paper-btn-amber font-extrabold shadow-sm" : "opacity-70 hover:opacity-100"
+                  'flex-1 lg:flex-none px-2 py-1.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-bold transition-all font-opendyslexic text-center truncate',
+                  fontFamily === 'opendyslexic'
+                    ? 'paper-btn-amber font-extrabold shadow-sm'
+                    : 'opacity-70 hover:opacity-100',
                 )}
-                title={t("openDyslexic")}
+                title={t('openDyslexic')}
               >
                 OpenDyslexic
               </button>
@@ -686,39 +1138,50 @@ export function Reader() {
                   // Load all pages into story object
                   const pagesMap: { [pageIndex: number]: string } = {};
                   try {
-                     const pSnap = await getDocs(query(collection(db, `stories/${id}/pages`), orderBy("index", "asc")));
-                     pSnap.docs.forEach((d) => {
-                       const data = d.data();
-                       pagesMap[data.index || 0] = data.content || "";
-                     });
-                     await saveStoryOffline({
-                       id,
-                       title: story.title,
-                       author: story.author,
-                       coverImage: story.coverImage,
-                       totalPages: story.totalPages,
-                       wordCount: story.wordCount,
-                       pages: pagesMap,
-                       downloadedAt: new Date().toISOString()
-                     });
-                     setIsDownloaded(true);
+                    const pSnap = await getDocs(
+                      query(
+                        collection(db, `stories/${id}/pages`),
+                        orderBy('index', 'asc'),
+                      ),
+                    );
+                    pSnap.docs.forEach((d) => {
+                      const data = d.data();
+                      pagesMap[data.index || 0] = data.content || '';
+                    });
+                    await saveStoryOffline({
+                      id,
+                      title: story.title,
+                      author: story.author,
+                      coverImage: story.coverImage,
+                      totalPages: story.totalPages,
+                      wordCount: story.wordCount,
+                      pages: pagesMap,
+                      downloadedAt: new Date().toISOString(),
+                    });
+                    setIsDownloaded(true);
                   } catch (e) {
-                     console.error("Error saving offline:", e);
+                    console.error('Error saving offline:', e);
                   } finally {
-                     setIsDownloading(false);
+                    setIsDownloading(false);
                   }
                 }
               }}
               disabled={isDownloading}
               className={cn(
-                "px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5",
-                isDownloaded 
-                  ? "paper-btn-emerald" 
-                  : "paper-btn-light opacity-70 hover:opacity-100"
+                'px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5',
+                isDownloaded
+                  ? 'paper-btn-emerald'
+                  : 'paper-btn-light opacity-70 hover:opacity-100',
               )}
             >
               <Download className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">{isDownloading ? "..." : isDownloaded ? t("downloadedOffline") : t("downloadForOffline")}</span>
+              <span className="truncate">
+                {isDownloading
+                  ? '...'
+                  : isDownloaded
+                    ? t('downloadedOffline')
+                    : t('downloadForOffline')}
+              </span>
             </button>
 
             {/* Private Notes & Bookmarks Drawer Button */}
@@ -727,7 +1190,9 @@ export function Reader() {
               className="px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider opacity-80 hover:opacity-100 flex items-center justify-center gap-1.5 paper-btn-light"
             >
               <Bookmark className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              <span>{t("bookmarks")} ({notesList.length})</span>
+              <span>
+                {t('bookmarks')} ({notesList.length})
+              </span>
             </button>
 
             {/* Add to Playlist Button */}
@@ -739,24 +1204,41 @@ export function Reader() {
               className="px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider opacity-80 hover:opacity-100 flex items-center justify-center gap-1.5 col-span-2 sm:col-span-1 paper-btn-light"
             >
               <ListPlus className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-              <span>{t("addToPlaylist")}</span>
+              <span>{t('addToPlaylist')}</span>
+            </button>
+
+            {/* Table of Contents (Index) Button */}
+            <button
+              onClick={() => setShowTocSidebar(!showTocSidebar)}
+              className={cn(
+                'px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5',
+                showTocSidebar
+                  ? 'paper-btn-dark font-extrabold shadow-sm'
+                  : 'paper-btn-light opacity-80 hover:opacity-100',
+              )}
+              title={t('tableOfContents')}
+            >
+              <List className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <span>{t('tableOfContents')}</span>
             </button>
 
             {/* Translation Toggle Button (Shown when site language is not Portuguese) */}
-            {language !== "pt" && (
+            {language !== 'pt' && (
               <button
                 onClick={() => setIsTranslationEnabled(!isTranslationEnabled)}
                 className={cn(
-                  "px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 col-span-2 sm:col-span-1",
-                  isTranslationEnabled 
-                    ? "paper-btn-amber font-extrabold shadow-sm" 
-                    : "paper-btn-light opacity-80 hover:opacity-100"
+                  'px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 col-span-2 sm:col-span-1',
+                  isTranslationEnabled
+                    ? 'paper-btn-amber font-extrabold shadow-sm'
+                    : 'paper-btn-light opacity-80 hover:opacity-100',
                 )}
-                title={t("enableStoryTranslation")}
+                title={t('enableStoryTranslation')}
               >
                 <Languages className="w-3.5 h-3.5 shrink-0 text-amber-500" />
                 <span className="truncate">
-                  {isTranslationEnabled ? t("showOriginalText") : t("translateStory")}
+                  {isTranslationEnabled
+                    ? t('showOriginalText')
+                    : t('translateStory')}
                 </span>
               </button>
             )}
@@ -767,28 +1249,34 @@ export function Reader() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Label and Info */}
           <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className={cn(
-              "p-2.5 rounded-xl transition-colors shrink-0 flex items-center justify-center",
-              eyeComfortIntensity > 0 
-                ? "bg-amber-400/20 text-amber-700 dark:text-amber-300" 
-                : "bg-[#1A1A1A]/5 dark:bg-white/5 opacity-60"
-            )}>
+            <div
+              className={cn(
+                'p-2.5 rounded-xl transition-colors shrink-0 flex items-center justify-center',
+                eyeComfortIntensity > 0
+                  ? 'bg-amber-400/20 text-amber-700 dark:text-amber-300'
+                  : 'bg-[#1A1A1A]/5 dark:bg-white/5 opacity-60',
+              )}
+            >
               <Eye className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-xs font-bold font-serif uppercase tracking-wider">{t("eyeComfort")}</h3>
+                <h3 className="text-xs font-bold font-serif uppercase tracking-wider">
+                  {t('eyeComfort')}
+                </h3>
                 {eyeComfortIntensity > 0 ? (
                   <span className="text-[9px] bg-amber-400/25 text-amber-900 dark:text-amber-200 font-mono font-bold px-2 py-0.5 rounded-full">
-                    {t("yellowFilter")} {eyeComfortIntensity}%
+                    {t('yellowFilter')} {eyeComfortIntensity}%
                   </span>
                 ) : (
                   <span className="text-[9px] bg-[#1A1A1A]/5 dark:bg-white/5 opacity-50 font-mono font-bold px-2 py-0.5 rounded-full">
-                    {t("off")}
+                    {t('off')}
                   </span>
                 )}
               </div>
-              <p className="text-[10px] opacity-60 font-serif mt-0.5">{t("eyeComfortDescription")}</p>
+              <p className="text-[10px] opacity-60 font-serif mt-0.5">
+                {t('eyeComfortDescription')}
+              </p>
             </div>
           </div>
 
@@ -797,16 +1285,16 @@ export function Reader() {
             {/* Slider */}
             <div className="flex items-center gap-2.5 w-full sm:w-56 px-3.5 py-2 rounded-xl paper-card">
               <Sun className="w-3.5 h-3.5 opacity-50 shrink-0 text-amber-500" />
-              <input 
-                type="range" 
-                min="0" 
-                max="100" 
+              <input
+                type="range"
+                min="0"
+                max="100"
                 step="5"
-                value={eyeComfortIntensity} 
+                value={eyeComfortIntensity}
                 onChange={(e) => setEyeComfortIntensity(Number(e.target.value))}
                 className="w-full h-1.5 bg-[#1A1A1A]/10 dark:bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-500"
-                title={t("filterIntensity")}
-                aria-label={t("filterIntensity")}
+                title={t('filterIntensity')}
+                aria-label={t('filterIntensity')}
               />
               <span className="text-[10px] font-mono font-bold w-9 text-right shrink-0">
                 {eyeComfortIntensity}%
@@ -816,19 +1304,19 @@ export function Reader() {
             {/* Quick Presets */}
             <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end">
               {[
-                { label: t("off"), val: 0 },
-                { label: "25%", val: 25 },
-                { label: "50%", val: 50 },
-                { label: "75%", val: 75 }
+                { label: t('off'), val: 0 },
+                { label: '25%', val: 25 },
+                { label: '50%', val: 50 },
+                { label: '75%', val: 75 },
               ].map((preset) => (
                 <button
                   key={preset.val}
                   onClick={() => setEyeComfortIntensity(preset.val)}
                   className={cn(
-                    "text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all",
+                    'text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all',
                     eyeComfortIntensity === preset.val
-                      ? "paper-btn-amber font-extrabold shadow-sm"
-                      : "opacity-70 hover:opacity-100 paper-btn-light"
+                      ? 'paper-btn-amber font-extrabold shadow-sm'
+                      : 'opacity-70 hover:opacity-100 paper-btn-light',
                   )}
                 >
                   {preset.label}
@@ -842,32 +1330,36 @@ export function Reader() {
       {/* Reader Page Frame */}
       <div className="relative min-h-[50vh] p-6 sm:p-10 rounded-2xl transition-all overflow-hidden paper-card">
         {/* Active Translation Indicator */}
-        {language !== "pt" && isTranslationEnabled && (
+        {language !== 'pt' && isTranslationEnabled && (
           <div className="mb-6 px-3.5 py-2 rounded-xl bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/20 flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider">
             <div className="flex items-center gap-2">
               <Languages className="w-4 h-4 text-amber-500 shrink-0" />
-              <span>{t("storyTranslationActive", { lang: language.toUpperCase() })}</span>
+              <span>
+                {t('storyTranslationActive', { lang: language.toUpperCase() })}
+              </span>
             </div>
             {isTranslating ? (
               <span className="opacity-80 animate-pulse flex items-center gap-1.5 font-mono text-amber-600 dark:text-amber-400">
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping inline-block" />
-                {t("translatingStoryPage")}
+                {t('translatingStoryPage')}
               </span>
             ) : (
-              <span className="opacity-70 font-mono text-[9px]">{t("naturalTranslationNotice")}</span>
+              <span className="opacity-70 font-mono text-[9px]">
+                {t('naturalTranslationNotice')}
+              </span>
             )}
           </div>
         )}
 
         {/* Eye Comfort Warm Yellow Filter Overlay */}
         {eyeComfortIntensity > 0 && (
-          <div 
+          <div
             className="absolute inset-0 rounded-2xl pointer-events-none z-20 transition-colors duration-200"
             style={{
-              backgroundColor: isDark 
-                ? `rgba(251, 191, 36, ${(eyeComfortIntensity / 100) * 0.22})` 
+              backgroundColor: isDark
+                ? `rgba(251, 191, 36, ${(eyeComfortIntensity / 100) * 0.22})`
                 : `rgba(245, 180, 0, ${(eyeComfortIntensity / 100) * 0.36})`,
-              mixBlendMode: isDark ? 'screen' : 'multiply'
+              mixBlendMode: isDark ? 'screen' : 'multiply',
             }}
           />
         )}
@@ -880,7 +1372,9 @@ export function Reader() {
               exit={{ opacity: 0 }}
               className="flex justify-center py-20"
             >
-              <div className="animate-pulse text-sm font-serif opacity-50">{t("loadingPage")}</div>
+              <div className="animate-pulse text-sm font-serif opacity-50">
+                {t('loadingPage')}
+              </div>
             </motion.div>
           ) : (
             <motion.div
@@ -891,9 +1385,17 @@ export function Reader() {
               transition={{ duration: 0.3 }}
               ref={containerRef}
               className={cn(
-                "prose prose-lg dark:prose-invert prose-neutral mx-auto prose-p:mb-6 prose-p:text-base sm:prose-p:text-lg prose-headings:tracking-tight",
-                fontFamily === "opendyslexic" ? "font-opendyslexic" : fontFamily === "sans" ? "font-sans" : "font-serif",
-                lineSpacing === "compact" ? "prose-p:leading-[1.4]" : lineSpacing === "loose" ? "prose-p:leading-[2.2]" : "prose-p:leading-[1.8]"
+                'prose prose-lg dark:prose-invert prose-neutral mx-auto prose-p:mb-6 prose-p:text-base sm:prose-p:text-lg prose-headings:tracking-tight',
+                fontFamily === 'opendyslexic'
+                  ? 'font-opendyslexic'
+                  : fontFamily === 'sans'
+                    ? 'font-sans'
+                    : 'font-serif',
+                lineSpacing === 'compact'
+                  ? 'prose-p:leading-[1.4]'
+                  : lineSpacing === 'loose'
+                    ? 'prose-p:leading-[2.2]'
+                    : 'prose-p:leading-[1.8]',
               )}
               dangerouslySetInnerHTML={{ __html: displayContent }}
             />
@@ -904,17 +1406,19 @@ export function Reader() {
       {/* Reader Controls */}
       <div className="mt-8 flex flex-col sm:flex-row items-center justify-between border-t border-[#1A1A1A]/10 dark:border-white/10 pt-6 gap-4">
         <button
-          onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+          onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
           disabled={!hasPrev}
           className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed paper-btn-light"
         >
-          <ChevronLeft className="w-4 h-4" /> {t("previous")}
+          <ChevronLeft className="w-4 h-4" /> {t('previous')}
         </button>
-        
+
         {(() => {
-          const parts = t("pageOf", { total: story.totalPages }).split("{page}");
-          const prefix = parts[0]?.trim() || "";
-          const suffix = parts[1]?.trim() || "";
+          const parts = t('pageOf', { total: story.totalPages }).split(
+            '{page}',
+          );
+          const prefix = parts[0]?.trim() || '';
+          const suffix = parts[1]?.trim() || '';
           return (
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
@@ -937,13 +1441,15 @@ export function Reader() {
             </div>
           );
         })()}
-        
+
         <button
-          onClick={() => setCurrentPage(p => Math.min(story.totalPages - 1, p + 1))}
+          onClick={() =>
+            setCurrentPage((p) => Math.min(story.totalPages - 1, p + 1))
+          }
           disabled={!hasNext}
           className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed paper-btn-dark"
         >
-          {t("next")} <ChevronRight className="w-4 h-4" />
+          {t('next')} <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
@@ -952,7 +1458,9 @@ export function Reader() {
         <div className="mt-16 pt-12 border-t border-[#1A1A1A]/10 dark:border-white/10 space-y-6">
           <div className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4 opacity-60" />
-            <h3 className="font-serif font-bold text-xl">{t("approvedComments")}</h3>
+            <h3 className="font-serif font-bold text-xl">
+              {t('approvedComments')}
+            </h3>
           </div>
 
           <div className="space-y-4">
@@ -967,11 +1475,23 @@ export function Reader() {
                   </div>
                   <div className="flex items-center gap-1">
                     {[...Array(5)].map((_, i) => (
-                      <Star key={i} className={cn("w-3.5 h-3.5", i < c.rating ? "fill-amber-400 text-amber-400" : "opacity-20")} />
+                      <Star
+                        key={i}
+                        className={cn(
+                          'w-3.5 h-3.5',
+                          i < c.rating
+                            ? 'fill-amber-400 text-amber-400'
+                            : 'opacity-20',
+                        )}
+                      />
                     ))}
                   </div>
                 </div>
-                {c.text && <p className="text-xs font-serif leading-relaxed opacity-90 pt-1">{c.text}</p>}
+                {c.text && (
+                  <p className="text-xs font-serif leading-relaxed opacity-90 pt-1">
+                    {c.text}
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -980,7 +1500,7 @@ export function Reader() {
 
       {/* RATING & COMMENT FORM AT THE END */}
       {!hasNext && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mt-16 border-t border-[#1A1A1A]/10 dark:border-white/10 pt-12"
@@ -988,11 +1508,12 @@ export function Reader() {
           {/* Supporters and Contributors Area */}
           {(() => {
             if (!story.supporters) return null;
-            const supportersList = (Array.isArray(story.supporters) 
-              ? story.supporters 
-              : (story.supporters as string).split(",").map(s => s.trim())
+            const supportersList = (
+              Array.isArray(story.supporters)
+                ? story.supporters
+                : (story.supporters as string).split(',').map((s) => s.trim())
             ).filter(Boolean);
-            
+
             if (supportersList.length === 0) return null;
 
             return (
@@ -1000,16 +1521,16 @@ export function Reader() {
                 <div className="flex items-center justify-center gap-2">
                   <Heart className="w-5 h-5 text-amber-500 fill-amber-500/20 animate-pulse" />
                   <h3 className="font-serif font-bold text-lg sm:text-xl text-[#1A1A1A] dark:text-white">
-                    {t("storySupporters")}
+                    {t('storySupporters')}
                   </h3>
                 </div>
                 <p className="text-xs opacity-70 font-serif italic max-w-md mx-auto">
-                  {t("specialThanks")}
+                  {t('specialThanks')}
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
                   {supportersList.map((supporter, idx) => (
-                    <span 
-                      key={idx} 
+                    <span
+                      key={idx}
                       className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#1A1A1A]/5 dark:bg-white/5 border border-black/5 dark:border-white/5 tracking-wide text-[#1A1A1A] dark:text-white/90"
                     >
                       {supporter}
@@ -1021,22 +1542,33 @@ export function Reader() {
           })()}
 
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-serif font-bold mb-2">{t("endOfStory")}</h2>
-            <p className="opacity-60 text-xs sm:text-sm font-serif">{t("enjoyedReading")}</p>
+            <h2 className="text-2xl font-serif font-bold mb-2">
+              {t('endOfStory')}
+            </h2>
+            <p className="opacity-60 text-xs sm:text-sm font-serif">
+              {t('enjoyedReading')}
+            </p>
           </div>
-          
+
           {submitted ? (
             <div className="rounded-2xl p-8 text-center space-y-3 paper-card">
               <CheckCircle className="w-10 h-10 mx-auto text-emerald-500 mb-2" />
-              <p className="font-bold uppercase tracking-widest text-xs">{t("reviewSent")}</p>
+              <p className="font-bold uppercase tracking-widest text-xs">
+                {t('reviewSent')}
+              </p>
               <p className="opacity-60 text-xs max-w-sm mx-auto">
-                {t("reviewSavedPending")}
+                {t('reviewSavedPending')}
               </p>
             </div>
           ) : (
-            <form onSubmit={handleReviewSubmit} className="rounded-2xl p-6 sm:p-8 max-w-lg mx-auto space-y-6 paper-card">
+            <form
+              onSubmit={handleReviewSubmit}
+              className="rounded-2xl p-6 sm:p-8 max-w-lg mx-auto space-y-6 paper-card"
+            >
               <div className="text-center">
-                <label className="block text-[10px] font-bold uppercase tracking-widest opacity-60 mb-4">{t("yourRating")}</label>
+                <label className="block text-[10px] font-bold uppercase tracking-widest opacity-60 mb-4">
+                  {t('yourRating')}
+                </label>
                 <div className="flex justify-center gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -1046,32 +1578,41 @@ export function Reader() {
                       className="focus:outline-none transition-transform hover:scale-125"
                       title={`${star} / 5`}
                     >
-                      <Star className={cn("w-8 h-8", rating >= star ? "fill-amber-400 text-amber-400" : "text-black/20 dark:text-white/20")} />
+                      <Star
+                        className={cn(
+                          'w-8 h-8',
+                          rating >= star
+                            ? 'fill-amber-400 text-amber-400'
+                            : 'text-black/20 dark:text-white/20',
+                        )}
+                      />
                     </button>
                   ))}
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2 flex items-center gap-1.5">
-                  <MessageSquare className="w-3.5 h-3.5" /> {t("commentLabel")}
+                  <MessageSquare className="w-3.5 h-3.5" /> {t('commentLabel')}
                 </label>
                 <textarea
-                  value={comment || ""}
+                  value={comment || ''}
                   onChange={(e) => setComment(e.target.value)}
                   className="w-full rounded-xl p-4 focus:outline-none resize-none text-xs sm:text-sm paper-card"
                   rows={4}
-                  placeholder={t("commentPlaceholder")}
+                  placeholder={t('commentPlaceholder')}
                 />
-                <p className="text-[10px] opacity-50 mt-1">{t("moderationNotice")}</p>
+                <p className="text-[10px] opacity-50 mt-1">
+                  {t('moderationNotice')}
+                </p>
               </div>
-              
-              <button 
+
+              <button
                 type="submit"
                 disabled={rating === 0 || isSubmitting}
                 className="w-full py-4 rounded-full font-bold text-[10px] uppercase tracking-widest disabled:opacity-50 paper-btn-dark"
               >
-                {isSubmitting ? t("sending") : t("submitReview")}
+                {isSubmitting ? t('sending') : t('submitReview')}
               </button>
             </form>
           )}
@@ -1101,25 +1642,27 @@ export function Reader() {
             <div className="flex justify-between items-center pb-3 border-b border-black/5 dark:border-white/5 shrink-0">
               <div className="flex items-center gap-2">
                 <Bookmark className="w-5 h-5 text-amber-500" />
-                <h3 className="font-serif font-bold text-lg">{t("bookmarks")}</h3>
+                <h3 className="font-serif font-bold text-lg">
+                  {t('bookmarks')}
+                </h3>
               </div>
-              <button 
+              <button
                 onClick={() => setShowNotesDrawer(false)}
                 className="text-xs uppercase font-bold tracking-widest opacity-60 hover:opacity-100"
               >
-                {t("close")}
+                {t('close')}
               </button>
             </div>
 
             {/* Add new Note for current page */}
             <div className="space-y-2 shrink-0">
               <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60">
-                {t("addNoteForPage", { page: currentPage + 1 })}
+                {t('addNoteForPage', { page: currentPage + 1 })}
               </label>
               <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={newNoteInput || ""}
+                <input
+                  type="text"
+                  value={newNoteInput || ''}
                   onChange={(e) => setNewNoteInput(e.target.value)}
                   placeholder="Anotação ou citação privada..."
                   className="flex-1 p-2.5 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-black/10 dark:border-white/10 rounded-xl focus:outline-none"
@@ -1132,14 +1675,14 @@ export function Reader() {
                       storyId: id,
                       pageIndex: currentPage,
                       noteText: newNoteInput,
-                      createdAt: new Date().toISOString()
+                      createdAt: new Date().toISOString(),
                     });
-                    setNewNoteInput("");
+                    setNewNoteInput('');
                     setNotesList(getBookmarksAndNotes(id));
                   }}
                   className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest shrink-0"
                 >
-                  {t("save")}
+                  {t('save')}
                 </button>
               </div>
             </div>
@@ -1148,24 +1691,35 @@ export function Reader() {
             <div className="flex-1 overflow-y-auto space-y-3 pt-2 pr-1 custom-scrollbar">
               {notesList.length === 0 ? (
                 <div className="text-center py-10 opacity-50 font-serif text-xs">
-                  Nenhuma anotação criada para esta história.
+                  {t('noNotesFound')}
                 </div>
               ) : (
                 notesList.map((n) => (
-                  <div key={n.id} className="p-3.5 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl border border-black/5 dark:border-white/5 space-y-2">
+                  <div
+                    key={n.id}
+                    className="p-3.5 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl border border-black/5 dark:border-white/5 space-y-2"
+                  >
                     <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider opacity-60">
-                      <span>Página {n.pageIndex + 1}</span>
+                      <span>
+                        {t('pageSingular').charAt(0).toUpperCase() +
+                          t('pageSingular').slice(1)}{' '}
+                        {n.pageIndex + 1}
+                      </span>
                       <span>{new Date(n.createdAt).toLocaleDateString()}</span>
                     </div>
-                    {n.noteText && <p className="text-xs font-serif leading-relaxed opacity-90">{n.noteText}</p>}
+                    {n.noteText && (
+                      <p className="text-xs font-serif leading-relaxed opacity-90">
+                        {n.noteText}
+                      </p>
+                    )}
                     <div className="flex justify-end gap-2 pt-1">
-                      <button 
+                      <button
                         onClick={() => setCurrentPage(n.pageIndex)}
                         className="text-[9px] bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold uppercase tracking-wider px-2 py-1 rounded-md"
                       >
-                        Ir para página
+                        {t('goToPage')}
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
                           if (!id) return;
                           deleteBookmarkNote(id, n.id);
@@ -1191,11 +1745,13 @@ export function Reader() {
               <div>
                 <h3 className="font-serif font-bold text-lg flex items-center gap-2">
                   <ListPlus className="w-5 h-5 text-blue-500" />
-                  <span>{t("addToPlaylist")}</span>
+                  <span>{t('addToPlaylist')}</span>
                 </h3>
-                <p className="text-[11px] opacity-60 truncate max-w-[280px]">{story?.title || "História"}</p>
+                <p className="text-[11px] opacity-60 truncate max-w-[280px]">
+                  {story?.title || t('storyTableHead')}
+                </p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowPlaylistModal(false)}
                 className="p-1.5 rounded-full opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
               >
@@ -1206,40 +1762,50 @@ export function Reader() {
             {/* List of Playlists */}
             <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
               {playlists.length === 0 ? (
-                <p className="text-xs opacity-60 italic text-center py-4">{t("emptyPlaylist")}</p>
+                <p className="text-xs opacity-60 italic text-center py-4">
+                  {t('emptyPlaylist')}
+                </p>
               ) : (
                 playlists.map((pl) => {
                   const inPlaylist = pl.storyIds.includes(id);
                   return (
-                    <div 
-                      key={pl.id} 
+                    <div
+                      key={pl.id}
                       className="p-3 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl flex items-center justify-between border border-black/5 dark:border-white/5"
                     >
                       <div className="min-w-0 flex-1 pr-2">
-                        <h4 className="font-serif font-bold text-xs truncate">{pl.title}</h4>
-                        <p className="text-[10px] opacity-50 uppercase font-mono">{pl.storyIds.length} histórias</p>
+                        <h4 className="font-serif font-bold text-xs truncate">
+                          {pl.title}
+                        </h4>
+                        <p className="text-[10px] opacity-50 uppercase font-mono">
+                          {t('storiesCount', { count: pl.storyIds.length })}
+                        </p>
                       </div>
                       <button
                         onClick={async () => {
                           const updated = await toggleStoryInPlaylist(pl, id);
-                          setPlaylists(prev => prev.map(p => p.id === updated.id ? updated : p));
+                          setPlaylists((prev) =>
+                            prev.map((p) =>
+                              p.id === updated.id ? updated : p,
+                            ),
+                          );
                         }}
                         className={cn(
-                          "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 shrink-0",
-                          inPlaylist 
-                            ? "bg-emerald-500 text-white shadow-sm" 
-                            : "bg-black/10 dark:bg-white/10 hover:bg-black/20 text-black dark:text-white"
+                          'px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 shrink-0',
+                          inPlaylist
+                            ? 'bg-emerald-500 text-white shadow-sm'
+                            : 'bg-black/10 dark:bg-white/10 hover:bg-black/20 text-black dark:text-white',
                         )}
                       >
                         {inPlaylist ? (
                           <>
                             <Check className="w-3 h-3" />
-                            <span>Remover</span>
+                            <span>{t('remove')}</span>
                           </>
                         ) : (
                           <>
                             <Plus className="w-3 h-3" />
-                            <span>Adicionar</span>
+                            <span>{t('add')}</span>
                           </>
                         )}
                       </button>
@@ -1251,11 +1817,13 @@ export function Reader() {
 
             {/* Inline Quick Create Playlist */}
             <div className="pt-2 border-t border-black/5 dark:border-white/5 space-y-2">
-              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60">{t("createPlaylist")}</label>
+              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60">
+                {t('createPlaylist')}
+              </label>
               <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={newPlaylistTitle || ""}
+                <input
+                  type="text"
+                  value={newPlaylistTitle || ''}
                   onChange={(e) => setNewPlaylistTitle(e.target.value)}
                   placeholder="Nome da nova playlist..."
                   className="flex-1 p-2 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-black/10 dark:border-white/10 rounded-xl focus:outline-none"
@@ -1266,29 +1834,32 @@ export function Reader() {
                     const newPl: ReadingList = {
                       id: `pl_${Date.now()}`,
                       title: newPlaylistTitle,
-                      description: "Coleção de leituras",
-                      userId: user?.uid || "guest",
-                      userName: profile?.username ? `@${profile.username}` : (profile?.displayName || "Leitor"),
+                      description: 'Coleção de leituras',
+                      userId: user?.uid || 'guest',
+                      userName: profile?.username
+                        ? `@${profile.username}`
+                        : profile?.displayName || 'Leitor',
                       isPublic: true,
                       storyIds: [id],
                       createdAt: new Date().toISOString(),
-                      updatedAt: new Date().toISOString()
+                      updatedAt: new Date().toISOString(),
                     };
                     await createOrUpdatePlaylist(newPl);
                     if (user && profile) {
                       await logUserActivity({
                         uid: user.uid,
-                        userName: profile.displayName || profile.email.split("@")[0],
-                        userUsername: profile.username || "",
-                        userPhoto: profile.photoURL || "",
-                        type: "published",
+                        userName:
+                          profile.displayName || profile.email.split('@')[0],
+                        userUsername: profile.username || '',
+                        userPhoto: profile.photoURL || '',
+                        type: 'published',
                         title: `Criou a playlist pública "${newPl.title}"`,
                         targetId: newPl.id,
                         targetTitle: newPl.title,
-                        createdAt: new Date().toISOString()
+                        createdAt: new Date().toISOString(),
                       });
                     }
-                    setNewPlaylistTitle("");
+                    setNewPlaylistTitle('');
                     await loadPlaylists();
                   }}
                   className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider shrink-0"
@@ -1299,7 +1870,7 @@ export function Reader() {
             </div>
 
             <div className="flex justify-end pt-2">
-              <button 
+              <button
                 onClick={() => setShowPlaylistModal(false)}
                 className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest"
               >
