@@ -1053,7 +1053,7 @@ export function Admin() {
               )}
             >
               <Lock className="w-3.5 h-3.5" />
-              <span>SUPERADMIN</span>
+              <span>{t("superadmin")}</span>
             </button>
           )}
         </div>
@@ -1525,7 +1525,7 @@ export function Admin() {
                       onClick={() => setAuthor(profile.displayName!)}
                       className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all active:scale-95 paper-btn-amber"
                     >
-                      Usar meu Nome: {profile.displayName}
+                      {t("useMyName", { name: profile.displayName })}
                     </button>
                   )}
                   {profile.username && (
@@ -1535,14 +1535,14 @@ export function Admin() {
                         onClick={() => setAuthor(`@${profile.username}`)}
                         className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all active:scale-95 paper-btn-amber"
                       >
-                        Usar meu @Usuário: @{profile.username}
+                        {t("useMyUsername", { username: profile.username })}
                       </button>
                       <button
                         type="button"
                         onClick={() => setAuthor(profile.username!)}
                         className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all active:scale-95 paper-btn-amber"
                       >
-                        Usar meu Usuário: {profile.username}
+                        {t("useUsernameOnly", { username: profile.username })}
                       </button>
                     </>
                   )}
@@ -1604,7 +1604,7 @@ export function Admin() {
             <div className="pt-2 border-t border-[#1A1A1A]/10 dark:border-white/10 space-y-3">
               <label className="block text-xs uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
                 <PenTool className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                <span>O editor abrirá em uma nova página em tela cheia para maior conforto.</span>
+                <span>{t("writerNoticeFullScreen")}</span>
               </label>
             </div>
           )}
@@ -1719,13 +1719,13 @@ export function Admin() {
                   onClick={() => setStatusFilter("published")}
                   className={cn("px-2.5 py-1 rounded-lg transition-colors", statusFilter === "published" ? "paper-btn-dark" : "opacity-60 paper-btn-light")}
                 >
-                  {t("isPublishedBadge")}
+                  {t("published")}
                 </button>
                 <button
                   onClick={() => setStatusFilter("drafts")}
                   className={cn("px-2.5 py-1 rounded-lg transition-colors", statusFilter === "drafts" ? "paper-btn-dark" : "opacity-60 paper-btn-light")}
                 >
-                  {t("isDraftBadge")} ({storiesList.filter(s => s.isDraft).length})
+                  {t("drafts")} ({storiesList.filter(s => s.isDraft).length})
                 </button>
               </div>
             </div>
@@ -1815,7 +1815,7 @@ export function Admin() {
                                       onClick={() => setEditAuthor(profile.displayName!)}
                                       className="text-[8px] font-bold uppercase tracking-wider px-2 py-1 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
                                     >
-                                      Usar: {profile.displayName}
+                                      {t("useShortName", { name: profile.displayName })}
                                     </button>
                                   )}
                                   {profile.username && (
@@ -1825,14 +1825,14 @@ export function Admin() {
                                         onClick={() => setEditAuthor(`@${profile.username}`)}
                                         className="text-[8px] font-bold uppercase tracking-wider px-2 py-1 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
                                       >
-                                        Usar: @{profile.username}
+                                        {t("useShortName", { name: `@${profile.username}` })}
                                       </button>
                                       <button
                                         type="button"
                                         onClick={() => setEditAuthor(profile.username!)}
                                         className="text-[8px] font-bold uppercase tracking-wider px-2 py-1 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all active:scale-95"
                                       >
-                                        Usar: {profile.username}
+                                        {t("useShortName", { name: profile.username })}
                                       </button>
                                     </>
                                   )}
@@ -1863,7 +1863,7 @@ export function Admin() {
                             </div>
 
                             <div className="md:col-span-3 flex flex-col">
-                              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1.5">{t("coverImageLabel")} (Nova)</label>
+                              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1.5">{t("coverImageLabel")} {t("newCoverOptional")}</label>
                               <label className={cn(
                                 "flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer transition-colors",
                                 editCoverFile ? "border-[#1A1A1A] dark:border-white bg-[#1A1A1A]/5 dark:bg-white/5" : "border-[#1A1A1A]/20 dark:border-white/20 hover:bg-[#F5F5F0] dark:hover:bg-[#0A0A0A]"
@@ -1960,7 +1960,7 @@ export function Admin() {
 
                               <div className="text-[10px] font-mono opacity-40 pt-1 flex flex-wrap gap-x-3 gap-y-1">
                                 <span>{story.totalPages} {t("pages")}</span>
-                                {story.wordCount ? <span>• {story.wordCount} palavras</span> : null}
+                                {story.wordCount ? <span>• {t("wordsCount", { count: story.wordCount })}</span> : null}
                                 {(() => {
                                   let pubDateStr = story.publicationDate;
                                   if (!pubDateStr && story.createdAt) {
