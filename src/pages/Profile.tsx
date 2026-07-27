@@ -730,13 +730,13 @@ export function ProfilePage() {
             onChange={(e) => setActiveTab(e.target.value as any)}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           >
-            <option value="activities">✨ Atividades Recentes</option>
-            {isAuthorRole && <option value="stories">🪶 Histórias Publicadas ({publishedStories.length})</option>}
-            <option value="history">📖 Histórico de Leitura</option>
-            <option value="badges">🏅 Medalhas ({unlockedAchievementIds.length}/{ACHIEVEMENTS.length})</option>
-            <option value="network">👥 Rede Social</option>
-            <option value="search">🔍 Buscar Usuários</option>
-            {isSelf && <option value="notifications">🔔 Notificações {unreadCount > 0 ? `(${unreadCount})` : ""}</option>}
+            <option value="activities">Atividades Recentes</option>
+            {isAuthorRole && <option value="stories">Histórias Publicadas ({publishedStories.length})</option>}
+            <option value="history">Histórico de Leitura</option>
+            <option value="badges">Medalhas ({unlockedAchievementIds.length}/{ACHIEVEMENTS.length})</option>
+            <option value="network">Rede Social</option>
+            <option value="search">Buscar Usuários</option>
+            {isSelf && <option value="notifications">Notificações {unreadCount > 0 ? `(${unreadCount})` : ""}</option>}
           </select>
         </div>
 

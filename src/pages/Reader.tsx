@@ -15,7 +15,7 @@ import {
   setDoc,
   where 
 } from "../lib/firebase";
-import { ChevronLeft, ChevronRight, ArrowLeft, Star, MessageSquare, CheckCircle, ShieldAlert, User as UserIcon, ArrowUp, Clock, Eye, Sun, Type, Download, Bookmark, FileText, Check, ListPlus, Plus, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Star, MessageSquare, CheckCircle, ShieldAlert, User as UserIcon, ArrowUp, Clock, Eye, Sun, Type, Download, Bookmark, FileText, Check, ListPlus, Plus, X, Languages, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth, ADMIN_EMAIL } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -23,6 +23,7 @@ import { saveStoryOffline, isStoryDownloaded, removeOfflineStory } from "../lib/
 import { getBookmarksAndNotes, saveBookmarkNote, deleteBookmarkNote, BookmarkNote } from "../lib/bookmarks";
 import { fetchPublicPlaylists, ReadingList, toggleStoryInPlaylist, createOrUpdatePlaylist } from "../lib/playlists";
 import { unlockAchievement } from "../lib/achievements";
+import { translateStoryPageHtml } from "../lib/storyTranslator";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -52,7 +53,7 @@ interface CommentData {
 export function Reader() {
   const { id } = useParams<{ id: string }>();
   const { user, profile } = useAuth();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
 
   const [story, setStory] = useState<StoryData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,6 +61,54 @@ export function Reader() {
   const [pageContent, setPageContent] = useState<string>("");
   const [loadingPage, setLoadingPage] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Story Translation State
+  const [isTranslationEnabled, setIsTranslationEnabled] = useState<boolean>(() => {
+    return localStorage.getItem("inkora_translate_story") === "true";
+  });
+  const [displayContent, setDisplayContent] = useState<string>("");
+  const [isTranslating, setIsTranslating] = useState<boolean>(false);
+
+  useEffect(() => {
+    localStorage.setItem("inkora_translate_story", isTranslationEnabled ? "true" : "false");
+  }, [isTranslationEnabled]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function processPageTranslation() {
+      if (language !== "pt" && isTranslationEnabled && pageContent) {
+        setIsTranslating(true);
+        try {
+          const translated = await translateStoryPageHtml(
+            pageContent, 
+            language as "es" | "en" | "id", 
+            id || "story", 
+            currentPage
+          );
+          if (!isCancelled) {
+            setDisplayContent(translated);
+          }
+        } catch (e) {
+          console.error("Translation processing error:", e);
+          if (!isCancelled) {
+            setDisplayContent(pageContent);
+          }
+        } finally {
+          if (!isCancelled) {
+            setIsTranslating(false);
+          }
+        }
+      } else {
+        setDisplayContent(pageContent);
+        setIsTranslating(false);
+      }
+    }
+
+    processPageTranslation();
+
+    return () => { isCancelled = true; };
+  }, [pageContent, isTranslationEnabled, language, id, currentPage]);
   
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -268,6 +317,8 @@ export function Reader() {
         setPageContent(cachedPage);
         setLoadingPage(false);
       } else {
+        setPageContent("");
+        setDisplayContent("");
         setLoadingPage(true);
       }
 
@@ -654,6 +705,25 @@ export function Reader() {
               <ListPlus className="w-3.5 h-3.5 text-blue-500 shrink-0" />
               <span>{t("addToPlaylist")}</span>
             </button>
+
+            {/* Translation Toggle Button (Shown when site language is not Portuguese) */}
+            {language !== "pt" && (
+              <button
+                onClick={() => setIsTranslationEnabled(!isTranslationEnabled)}
+                className={cn(
+                  "px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 col-span-2 sm:col-span-1",
+                  isTranslationEnabled 
+                    ? "paper-btn-amber font-extrabold shadow-sm" 
+                    : "paper-btn-light opacity-80 hover:opacity-100"
+                )}
+                title={t("enableStoryTranslation")}
+              >
+                <Languages className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+                <span className="truncate">
+                  {isTranslationEnabled ? t("showOriginalText") : t("translateStory")}
+                </span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -735,6 +805,24 @@ export function Reader() {
 
       {/* Reader Page Frame */}
       <div className="relative min-h-[50vh] p-6 sm:p-10 rounded-2xl transition-all overflow-hidden paper-card">
+        {/* Active Translation Indicator */}
+        {language !== "pt" && isTranslationEnabled && (
+          <div className="mb-6 px-3.5 py-2 rounded-xl bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/20 flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider">
+            <div className="flex items-center gap-2">
+              <Languages className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>{t("storyTranslationActive", { lang: language.toUpperCase() })}</span>
+            </div>
+            {isTranslating ? (
+              <span className="opacity-80 animate-pulse flex items-center gap-1.5 font-mono text-amber-600 dark:text-amber-400">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping inline-block" />
+                {t("translatingStoryPage")}
+              </span>
+            ) : (
+              <span className="opacity-70 font-mono text-[9px]">{t("naturalTranslationNotice")}</span>
+            )}
+          </div>
+        )}
+
         {/* Eye Comfort Warm Yellow Filter Overlay */}
         {eyeComfortIntensity > 0 && (
           <div 
@@ -771,7 +859,7 @@ export function Reader() {
                 fontFamily === "opendyslexic" ? "font-opendyslexic" : fontFamily === "sans" ? "font-sans" : "font-serif",
                 lineSpacing === "compact" ? "prose-p:leading-[1.4]" : lineSpacing === "loose" ? "prose-p:leading-[2.2]" : "prose-p:leading-[1.8]"
               )}
-              dangerouslySetInnerHTML={{ __html: pageContent }}
+              dangerouslySetInnerHTML={{ __html: displayContent }}
             />
           )}
         </AnimatePresence>

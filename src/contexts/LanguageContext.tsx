@@ -69,6 +69,15 @@ export const translations = {
     pageNotFound: "Página não encontrada.",
     errorLoadingPage: "Erro ao carregar página.",
     
+    // Story Translation
+    translateStory: "Tradução da História",
+    enableStoryTranslation: "Ativar Tradução da História",
+    storyTranslationActive: "Tradução Ativa ({lang})",
+    translatingStoryPage: "Traduzindo página com precisão...",
+    showOriginalText: "Ver Original (PT)",
+    showTranslatedText: "Ver Traduzido",
+    naturalTranslationNotice: "Tradução nativa contínua ativa para o idioma do site.",
+    
     // Eye Comfort
     eyeComfort: "Conforto Ocular",
     yellowFilter: "Filtro Amarelo",
@@ -481,6 +490,15 @@ export const translations = {
     errorSubmitReview: "Error al enviar la reseña.",
     pageNotFound: "Página no encontrada.",
     errorLoadingPage: "Error al cargar la página.",
+    
+    // Story Translation
+    translateStory: "Traducción de la Historia",
+    enableStoryTranslation: "Activar Traducción de la Historia",
+    storyTranslationActive: "Traducción Activa ({lang})",
+    translatingStoryPage: "Traduciendo página con precisión...",
+    showOriginalText: "Ver Original (PT)",
+    showTranslatedText: "Ver Traducido",
+    naturalTranslationNotice: "Traducción nativa continua activa para el idioma del sitio.",
     
     // Eye Comfort
     eyeComfort: "Confort Ocular",
@@ -895,6 +913,15 @@ export const translations = {
     pageNotFound: "Page not found.",
     errorLoadingPage: "Error loading page.",
     
+    // Story Translation
+    translateStory: "Story Translation",
+    enableStoryTranslation: "Enable Story Translation",
+    storyTranslationActive: "Translation Active ({lang})",
+    translatingStoryPage: "Translating page accurately...",
+    showOriginalText: "Show Original (PT)",
+    showTranslatedText: "Show Translated",
+    naturalTranslationNotice: "Fluent native translation active for site language.",
+    
     // Eye Comfort
     eyeComfort: "Eye Comfort",
     yellowFilter: "Yellow Filter",
@@ -1307,6 +1334,15 @@ export const translations = {
     errorSubmitReview: "Gagal mengirim ulasan.",
     pageNotFound: "Halaman tidak ditemukan.",
     errorLoadingPage: "Gagal memuat halaman.",
+    
+    // Story Translation
+    translateStory: "Terjemahan Cerita",
+    enableStoryTranslation: "Aktifkan Terjemahan Cerita",
+    storyTranslationActive: "Terjemahan Aktif ({lang})",
+    translatingStoryPage: "Menerjemahkan halaman dengan akurat...",
+    showOriginalText: "Lihat Teks Asli (PT)",
+    showTranslatedText: "Lihat Terjemahan",
+    naturalTranslationNotice: "Terjemahan lancar aktif untuk bahasa situs.",
     
     // Eye Comfort
     eyeComfort: "Kenyamanan Mata",
