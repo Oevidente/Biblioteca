@@ -137,7 +137,7 @@ export function Writer() {
     loadStory();
   }, [id, user, navigate]);
 
-  // Periodic Auto-Save every 30 seconds
+  // Periodic Auto-Save every 60 seconds (only if unsaved changes exist)
   useEffect(() => {
     const timer = setInterval(async () => {
       const state = autoSaveRef.current;
@@ -145,6 +145,7 @@ export function Writer() {
         return;
       }
 
+      setHasUnsavedChanges(false);
       setIsAutoSaving(true);
       try {
         const storyRef = doc(db, "stories", state.id);
@@ -182,13 +183,12 @@ export function Writer() {
         setStory(prev => prev ? { ...prev, title: state.editTitle || state.story.title, author: state.editAuthor || state.story.author, tags, supporters: supportersArray } : prev);
 
         setLastAutoSaveTime(new Date());
-        setHasUnsavedChanges(false);
       } catch (err) {
-        console.warn("Auto-save failed silently:", err);
+        console.warn("Auto-save failed (network/quota):", err);
       } finally {
         setIsAutoSaving(false);
       }
-    }, 30000);
+    }, 60000);
 
     return () => clearInterval(timer);
   }, []);

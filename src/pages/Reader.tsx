@@ -15,6 +15,7 @@ import {
   setDoc,
   where,
 } from '../lib/firebase';
+import { updateMetaTags } from '../utils/metaUtils';
 import {
   ChevronLeft,
   ChevronRight,
@@ -583,6 +584,23 @@ export function Reader() {
 
     loadStory();
   }, [id, user]);
+
+  // Update Document & Social Meta Tags when Story loads
+  useEffect(() => {
+    if (story) {
+      updateMetaTags({
+        title: story.title,
+        description: `Leia "${story.title}" ${story.author ? `por ${story.author}` : ''} no INKORA.`,
+        image: story.coverImage || 'https://oevidente.github.io/Biblioteca/favicon.png',
+        url: window.location.href,
+      });
+    } else {
+      updateMetaTags({});
+    }
+    return () => {
+      updateMetaTags({});
+    };
+  }, [story]);
 
   // Load Page Content
   useEffect(() => {

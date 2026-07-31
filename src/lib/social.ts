@@ -402,27 +402,25 @@ export async function logUserActivity(activity: ActivityItem): Promise<void> {
       ...activity,
       createdAt: activity.createdAt || new Date().toISOString()
     };
-    // 1. Log to user's personal activities
-    await addDoc(collection(db, `users/${activity.uid}/activities`), activityData);
-    // 2. Log to global activities
+    // Log once to global activities collection to save 50% write quota
     await addDoc(collection(db, "activities"), activityData);
   } catch (error) {
-    console.warn("Could not log user activity:", error);
+    console.warn("Could not log user activity (quota or network):", error);
   }
 }
 
 export async function fetchUserActivities(uid: string): Promise<ActivityItem[]> {
   try {
     const q = query(
-      collection(db, `users/${uid}/activities`),
-      orderBy("createdAt", "desc")
+      collection(db, "activities"),
+      where("uid", "==", uid)
     );
     const snap = await getDocs(q);
     const items: ActivityItem[] = [];
     snap.forEach((docSnap) => {
       items.push({ id: docSnap.id, ...docSnap.data() } as ActivityItem);
     });
-    return items;
+    return items.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
   } catch (error) {
     console.warn("Error fetching user activities:", error);
     return [];
