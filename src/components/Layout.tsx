@@ -44,6 +44,18 @@ function FlagIcon({ lang, className = "w-5 h-3.5 shadow-sm rounded-sm overflow-h
       </svg>
     );
   }
+  if (lang === "zh") {
+    return (
+      <svg className={className} viewBox="0 0 30 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="30" height="20" fill="#DE2910" />
+        <polygon points="5,2 6.2,5.7 2.5,3.4 7.5,3.4 3.8,5.7" fill="#FFDE00" />
+        <polygon points="10,1.5 10.4,2.5 9.5,1.9 10.8,1.9 9.9,2.5" fill="#FFDE00" />
+        <polygon points="12,3.5 12.4,4.5 11.5,3.9 12.8,3.9 11.9,4.5" fill="#FFDE00" />
+        <polygon points="12,6.5 12.4,7.5 11.5,6.9 12.8,6.9 11.9,7.5" fill="#FFDE00" />
+        <polygon points="10,8.5 10.4,9.5 9.5,8.9 10.8,8.9 9.9,9.5" fill="#FFDE00" />
+      </svg>
+    );
+  }
   return null;
 }
 
@@ -139,6 +151,7 @@ export function Layout() {
               <option value="es" className="bg-white dark:bg-[#1A1A1A]">Español</option>
               <option value="en" className="bg-white dark:bg-[#1A1A1A]">English</option>
               <option value="id" className="bg-white dark:bg-[#1A1A1A]">Indonesia</option>
+              <option value="zh" className="bg-white dark:bg-[#1A1A1A]">中文 (Chinese)</option>
             </select>
           </div>
 
@@ -222,6 +235,7 @@ export function Layout() {
               <option value="es" className="bg-white dark:bg-[#1A1A1A]">ES</option>
               <option value="en" className="bg-white dark:bg-[#1A1A1A]">EN</option>
               <option value="id" className="bg-white dark:bg-[#1A1A1A]">ID</option>
+              <option value="zh" className="bg-white dark:bg-[#1A1A1A]">ZH</option>
             </select>
           </div>
 

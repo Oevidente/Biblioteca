@@ -12,7 +12,7 @@ export function TranslatedText({ text, className }: TranslatedTextProps) {
   const [displayedText, setDisplayedText] = useState<string>(() => {
     if (!text) return "";
     if (language === "pt") return text;
-    const cached = getCachedTranslation(text, language as 'es' | 'en' | 'id');
+    const cached = getCachedTranslation(text, language as Exclude<typeof language, "pt">);
     return cached || text; // default to original text if not cached
   });
   const [isTranslating, setIsTranslating] = useState(false);
@@ -29,7 +29,7 @@ export function TranslatedText({ text, className }: TranslatedTextProps) {
       return;
     }
 
-    const cached = getCachedTranslation(text, language as 'es' | 'en' | 'id');
+    const cached = getCachedTranslation(text, language as Exclude<typeof language, "pt">);
     if (cached) {
       setDisplayedText(cached);
       setIsTranslating(false);
@@ -42,7 +42,7 @@ export function TranslatedText({ text, className }: TranslatedTextProps) {
 
     async function performTranslation() {
       try {
-        const result = await translateTextBlock(text, language as 'es' | 'en' | 'id');
+        const result = await translateTextBlock(text, language as Exclude<typeof language, "pt">);
         if (!isCancelled) {
           setDisplayedText(result);
           setIsTranslating(false);

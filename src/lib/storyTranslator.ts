@@ -12,13 +12,13 @@ const memoryCache: Record<string, string> = {};
 /**
  * High-quality literary vocabulary and phrase fallback map for common literary expressions.
  */
-const literaryFallbackPT: Record<string, { es: string; en: string; id: string }> = {
-  "Era uma vez": { es: "Había una vez", en: "Once upon a time", id: "Pada suatu ketika" },
-  "Fim": { es: "Fin", en: "The End", id: "Tamat" },
-  "Capítulo": { es: "Capítulo", en: "Chapter", id: "Bab" },
-  "Numa noite escura": { es: "En una noche oscura", en: "On a dark night", id: "Di malam yang gelap" },
-  "Com um suspiro": { es: "Con un suspiro", en: "With a sigh", id: "Dengan helaan napas" },
-  "Eles viveram felizes para sempre": { es: "Vivieron felices para siempre", en: "They lived happily ever after", id: "Mereka hidup bahagia selamanya" },
+const literaryFallbackPT: Record<string, { es: string; en: string; id: string; zh: string }> = {
+  "Era uma vez": { es: "Había una vez", en: "Once upon a time", zh: "从前", id: "Pada suatu ketika" },
+  "Fim": { es: "Fin", en: "The End", id: "Tamat", zh: "终" },
+  "Capítulo": { es: "Capítulo", en: "Chapter", id: "Bab", zh: "章" },
+  "Numa noite escura": { es: "En una noche oscura", en: "On a dark night", id: "Di malam yang gelap", zh: "在一个黑暗的夜晚" },
+  "Com um suspiro": { es: "Con un suspiro", en: "With a sigh", id: "Dengan helaan napas", zh: "叹了一口气" },
+  "Eles viveram felizes para sempre": { es: "Vivieron felices para siempre", en: "They lived happily ever after", id: "Mereka hidup bahagia selamanya", zh: "他们从此幸福地生活在一起" },
 };
 
 /**
@@ -42,7 +42,8 @@ function cleanTranslatedText(text: string): string {
  */
 async function translateViaGoogleGTX(text: string, targetLang: string): Promise<string | null> {
   try {
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=pt&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+    const langCode = targetLang === 'zh' ? 'zh-CN' : targetLang;
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=pt&tl=${langCode}&dt=t&q=${encodeURIComponent(text)}`;
     const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
@@ -69,9 +70,10 @@ async function translateViaGoogleGTX(text: string, targetLang: string): Promise<
  * Secondary Engine: Lingva Translate (Free Open-Source Proxy for Google Translate)
  */
 async function translateViaLingva(text: string, targetLang: string): Promise<string | null> {
+  const langCode = targetLang === 'zh' ? 'zh' : targetLang;
   const instances = [
-    `https://lingva.ml/api/v1/pt/${targetLang}/${encodeURIComponent(text)}`,
-    `https://lingva.lunar.icu/api/v1/pt/${targetLang}/${encodeURIComponent(text)}`
+    `https://lingva.ml/api/v1/pt/${langCode}/${encodeURIComponent(text)}`,
+    `https://lingva.lunar.icu/api/v1/pt/${langCode}/${encodeURIComponent(text)}`
   ];
 
   for (const url of instances) {
@@ -96,7 +98,8 @@ async function translateViaLingva(text: string, targetLang: string): Promise<str
 async function translateViaMyMemory(text: string, targetLang: string): Promise<string | null> {
   if (text.length > 350) return null; // Avoid MyMemory length warnings
   try {
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=pt|${targetLang}`;
+    const langCode = targetLang === 'zh' ? 'zh-CN' : targetLang;
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=pt|${langCode}`;
     const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
@@ -145,7 +148,7 @@ function splitIntoSmartChunks(text: string, maxLength: number = 1000): string[] 
 /**
  * Translates a plain text block with caching, chunking, and multi-provider fallbacks.
  */
-export function getCachedTranslation(text: string, targetLang: 'es' | 'en' | 'id'): string | null {
+export function getCachedTranslation(text: string, targetLang: 'es' | 'en' | 'id' | 'zh'): string | null {
   const trimmed = text.trim();
   if (!trimmed) return text;
 
@@ -169,7 +172,7 @@ export function getCachedTranslation(text: string, targetLang: 'es' | 'en' | 'id
   return null;
 }
 
-export async function translateTextBlock(text: string, targetLang: 'es' | 'en' | 'id'): Promise<string> {
+export async function translateTextBlock(text: string, targetLang: 'es' | 'en' | 'id' | 'zh'): Promise<string> {
   const trimmed = text.trim();
   if (!trimmed) return text;
 
@@ -228,7 +231,7 @@ function getContentFingerprint(text: string): string {
  */
 export async function translateStoryPageHtml(
   htmlContent: string, 
-  targetLang: 'es' | 'en' | 'id', 
+  targetLang: 'es' | 'en' | 'id' | 'zh', 
   storyId: string, 
   pageIndex: number
 ): Promise<string> {
