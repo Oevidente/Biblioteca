@@ -488,7 +488,19 @@ export const translations = {
     network: "Rede Social",
     notifications: "Notificações",
     follow: "Seguir",
-    recentActivities: "Atividades Recentes"
+    recentActivities: "Atividades Recentes",
+    noOfflineStories: "Nenhuma história salva offline. Abra qualquer história no leitor e clique em \"Baixar para Ler Offline\".",
+    readOffline: "Ler Offline",
+    noBioProvided: "Este usuário ainda não adicionou uma biografia.",
+    addPersonalBio: "Adicione uma biografia pessoal no seu perfil para outros leitores te conhecerem melhor.",
+    activeSection: "Seção Ativa",
+    works: "Obras",
+    reading: "Leitura",
+    activity: "Atividade",
+    announcements: "Avisos",
+    requested: "Solicitada",
+    respondRequest: "Responder Solicitação",
+    addFriend: "Adicionar Amigo"
   },
   es: {
     // Navigation / Header / Footer
@@ -975,7 +987,19 @@ export const translations = {
     network: "Red Social",
     notifications: "Notificaciones",
     follow: "Seguir",
-    recentActivities: "Actividades Recientes"
+    recentActivities: "Actividades Recientes",
+    noOfflineStories: "No hay historias guardadas sin conexión. Abra cualquier historia en el lector y haga clic en \"Descargar para leer sin conexión\".",
+    readOffline: "Leer sin conexión",
+    noBioProvided: "Este usuario aún no ha añadido una biografía.",
+    addPersonalBio: "Añade una biografía personal en tu perfil para que otros lectores te conozcan mejor.",
+    activeSection: "Sección Activa",
+    works: "Obras",
+    reading: "Lectura",
+    activity: "Actividad",
+    announcements: "Avisos",
+    requested: "Solicitada",
+    respondRequest: "Responder Solicitud",
+    addFriend: "Añadir Amigo"
   },
   en: {
     // Navigation / Header / Footer
@@ -1462,7 +1486,19 @@ export const translations = {
     network: "Network",
     notifications: "Notifications",
     follow: "Follow",
-    recentActivities: "Recent Activities"
+    recentActivities: "Recent Activities",
+    noOfflineStories: "No stories saved offline. Open any story in the reader and click \"Download for Offline Reading\".",
+    readOffline: "Read Offline",
+    noBioProvided: "This user has not added a bio yet.",
+    addPersonalBio: "Add a personal bio to your profile so other readers can get to know you better.",
+    activeSection: "Active Section",
+    works: "Works",
+    reading: "Reading",
+    activity: "Activity",
+    announcements: "Notices",
+    requested: "Requested",
+    respondRequest: "Respond Request",
+    addFriend: "Add Friend"
   },
   id: {
     // Navigation / Header / Footer
@@ -1949,7 +1985,19 @@ export const translations = {
     network: "Jaringan",
     notifications: "Notifikasi",
     follow: "Ikuti",
-    recentActivities: "Aktivitas Terbaru"
+    recentActivities: "Aktivitas Terbaru",
+    noOfflineStories: "Tidak ada cerita yang disimpan offline. Buka cerita apa pun di pembaca dan klik \"Unduh untuk Membaca Offline\".",
+    readOffline: "Baca Offline",
+    noBioProvided: "Pengguna ini belum menambahkan biografi.",
+    addPersonalBio: "Tambahkan biografi pribadi di profil Anda agar pembaca lain dapat mengenal Anda lebih baik.",
+    activeSection: "Bagian Aktif",
+    works: "Karya",
+    reading: "Membaca",
+    activity: "Aktivitas",
+    announcements: "Pemberitahuan",
+    requested: "Diminta",
+    respondRequest: "Tanggapi Permintaan",
+    addFriend: "Tambah Teman"
   },
   zh: {
     // Navigation / Header / Footer
@@ -2436,7 +2484,19 @@ export const translations = {
     network: "社交圈",
     notifications: "通知",
     follow: "关注",
-    recentActivities: "近期动态"
+    recentActivities: "近期动态",
+    noOfflineStories: "暂无离线保存的故事。请在阅读器中打开任意故事并点击“下载以供离线阅读”。",
+    readOffline: "离线阅读",
+    noBioProvided: "该用户尚未添加个人简介。",
+    addPersonalBio: "在个人主页中添加自我介绍，让更多读者了解您。",
+    activeSection: "当前页面",
+    works: "作品",
+    reading: "阅读",
+    activity: "动态",
+    announcements: "通知",
+    requested: "已申请",
+    respondRequest: "回应申请",
+    addFriend: "添加好友"
   }
 } as const;
 

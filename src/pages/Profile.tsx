@@ -605,13 +605,13 @@ export function ProfilePage() {
                   ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
                   : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
               }`}>
-                {targetProfile.role === "admin" ? "Admin Master" : targetProfile.role === "author" ? "Autor" : "Leitor"}
+                {targetProfile.role === "admin" ? "Admin Master" : targetProfile.role === "author" ? t("authorRole") : t("readerRole")}
               </span>
             </div>
 
             {/* Bio */}
             <p className="text-xs sm:text-sm opacity-80 max-w-2xl leading-relaxed">
-              {targetProfile.bio || (isSelf ? "Adicione uma bibliografia pessoal no seu perfil para outros leitores te conhecerem melhor." : "Este usuário ainda não adicionou uma biografia.")}
+              {targetProfile.bio || (isSelf ? t("addPersonalBio") : t("noBioProvided"))}
             </p>
           </div>
 
@@ -660,7 +660,7 @@ export function ProfilePage() {
                 ) : friendshipStatus === "pending_sent" ? (
                   <span className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                     <Clock className="w-4 h-4" />
-                    <span>Solicitada</span>
+                    <span>{t("requested")}</span>
                   </span>
                 ) : friendshipStatus === "pending_received" ? (
                   <button
@@ -668,7 +668,7 @@ export function ProfilePage() {
                     className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 hover:scale-105 transition-transform"
                   >
                     <Bell className="w-4 h-4 animate-bounce" />
-                    <span>Responder Solicitação</span>
+                    <span>{t("respondRequest")}</span>
                   </button>
                 ) : (
                   <button
@@ -677,7 +677,7 @@ export function ProfilePage() {
                     className="flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest paper-btn-light"
                   >
                     <UserPlus className="w-4 h-4" />
-                    <span>Adicionar Amigo</span>
+                    <span>{t("addFriend")}</span>
                   </button>
                 )}
               </div>
@@ -760,7 +760,7 @@ export function ProfilePage() {
                 {activeTab === "notifications" && <Bell className="w-4 h-4" />}
               </div>
               <div className="min-w-0">
-                <p className="text-[9px] uppercase font-bold tracking-widest opacity-50">Seção Ativa</p>
+                <p className="text-[9px] uppercase font-bold tracking-widest opacity-50">{t("activeSection")}</p>
                 <p className="text-xs font-bold uppercase tracking-wider truncate">
                   {activeTab === "activities" && t("recentActivities")}
                   {activeTab === "stories" && `${t("stories")} (${publishedStories.length})`}
@@ -798,7 +798,7 @@ export function ProfilePage() {
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span className="truncate text-[8px]">Atividade</span>
+            <span className="truncate text-[8px]">{t("activity")}</span>
           </button>
 
           {isAuthorRole && (
@@ -809,7 +809,7 @@ export function ProfilePage() {
               }`}
             >
               <Feather className="w-3.5 h-3.5" />
-              <span className="truncate text-[8px]">Obras</span>
+              <span className="truncate text-[8px]">{t("works")}</span>
             </button>
           )}
 
@@ -820,7 +820,7 @@ export function ProfilePage() {
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
-            <span className="truncate text-[8px]">Leitura</span>
+            <span className="truncate text-[8px]">{t("reading")}</span>
           </button>
 
           <button
@@ -840,7 +840,7 @@ export function ProfilePage() {
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span className="truncate text-[8px]">Rede</span>
+            <span className="truncate text-[8px]">{t("network")}</span>
           </button>
 
 
@@ -853,7 +853,7 @@ export function ProfilePage() {
               }`}
             >
               <Bell className="w-3.5 h-3.5" />
-              <span className="truncate text-[8px]">Avisos</span>
+              <span className="truncate text-[8px]">{t("announcements")}</span>
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-500 text-white font-mono text-[8px] flex items-center justify-center font-bold">
                   {unreadCount}

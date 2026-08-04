@@ -857,8 +857,8 @@ export function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {offlineStories.length === 0 ? (
-              <div className="col-span-full text-center py-16 opacity-50 font-serif border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl">
-                Nenhuma história salva offline. Abra qualquer história no leitor e clique em "Baixar para Ler Offline".
+              <div className="col-span-full text-center py-16 opacity-50 font-serif border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl px-4">
+                {t("noOfflineStories")}
               </div>
             ) : (
               offlineStories.map((item) => (
@@ -876,7 +876,7 @@ export function Home() {
                         to={`/story/${item.id}`} 
                         className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest paper-btn-dark"
                       >
-                        Ler Offline
+                        {t("readOffline")}
                       </Link>
                       <button 
                         onClick={async () => {
