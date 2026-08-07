@@ -188,6 +188,9 @@ export function Admin() {
   const [loadingSuperadmin, setLoadingSuperadmin] = useState(false);
   const [authorRequests, setAuthorRequests] = useState<any[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
+  const [superadminUsers, setSuperadminUsers] = useState<any[]>([]);
+  const [showUsersList, setShowUsersList] = useState(false);
+  const [searchUserQuery, setSearchUserQuery] = useState("");
 
   // Analytics State
   const [analyticsStories, setAnalyticsStories] = useState<any[]>([]);
@@ -237,9 +240,11 @@ export function Admin() {
       let userCount = 0;
       let favCount = 0;
       const requests: any[] = [];
+      const loadedUsers: any[] = [];
       snap.forEach((d) => {
         userCount++;
         const data = d.data();
+        loadedUsers.push({ id: d.id, ...data });
         if (data.favorites && Array.isArray(data.favorites)) {
           favCount += data.favorites.length;
         }
@@ -250,6 +255,7 @@ export function Admin() {
       setTotalUsers(userCount);
       setTotalFavorites(favCount);
       setAuthorRequests(requests);
+      setSuperadminUsers(loadedUsers);
     } catch (err) {
       console.error("Error loading superadmin metrics:", err);
     } finally {
@@ -293,14 +299,29 @@ export function Admin() {
     }
   };
 
+  const changeUserRole = async (userId: string, newRole: string) => {
+    try {
+      await updateDoc(doc(db, "users", userId), { role: newRole });
+      setSuperadminUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      if (newRole === "author") {
+        setAuthorRequests(prev => prev.filter(r => r.id !== userId));
+      }
+      alert(t("roleUpdatedSuccess"));
+    } catch (err) {
+      console.error("Erro ao alterar função do usuário:", err);
+      alert(t("errorUpdatingRole"));
+    }
+  };
+
   const approveAuthor = async (userId: string) => {
     try {
       await updateDoc(doc(db, "users", userId), { role: "author" });
       setAuthorRequests(prev => prev.filter(r => r.id !== userId));
-      alert(t("authorApprovedSuccess", "Autorizado com sucesso!"));
+      setSuperadminUsers(prev => prev.map(u => u.id === userId ? { ...u, role: "author" } : u));
+      alert(t("authorApprovedSuccess"));
     } catch (err) {
       console.error("Erro ao autorizar autor", err);
-      alert(t("errorApprovingAuthor", "Erro ao autorizar autor."));
+      alert(t("errorApprovingAuthor"));
     }
   };
 
@@ -1003,6 +1024,15 @@ export function Admin() {
     };
   });
 
+  const filteredUsers = superadminUsers.filter((u) => {
+    const q = searchUserQuery.toLowerCase().trim();
+    if (!q) return true;
+    const name = (u.displayName || "").toLowerCase();
+    const email = (u.email || "").toLowerCase();
+    const username = (u.username || "").toLowerCase();
+    return name.includes(q) || email.includes(q) || username.includes(q);
+  });
+
   return (
     <div className="max-w-3xl mx-auto pb-12">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
@@ -1481,6 +1511,111 @@ export function Admin() {
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          <div className="p-6 rounded-2xl space-y-6 paper-card">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className="text-xl font-serif font-bold mb-1">{t("userManagementTitle")}</h2>
+                <p className="text-xs opacity-60 leading-relaxed">
+                  {t("userManagementDesc")}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowUsersList(!showUsersList)}
+                className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all whitespace-nowrap paper-btn-dark"
+              >
+                {showUsersList ? t("hideUsers") : t("showUsers")}
+              </button>
+            </div>
+
+            {showUsersList && (
+              <div className="space-y-4 pt-4 border-t border-[#1A1A1A]/10 dark:border-white/10 animate-in fade-in duration-300">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchUserQuery}
+                    onChange={(e) => setSearchUserQuery(e.target.value)}
+                    placeholder={t("searchUsers")}
+                    className="w-full px-4 py-2.5 text-xs rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 bg-transparent focus:outline-none focus:ring-1 focus:ring-amber-500 font-sans"
+                  />
+                  {searchUserQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchUserQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs opacity-60 hover:opacity-100 font-sans"
+                    >
+                      {t("clear")}
+                    </button>
+                  )}
+                </div>
+
+                {loadingSuperadmin ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin opacity-40" />
+                  </div>
+                ) : filteredUsers.length === 0 ? (
+                  <div className="text-center py-10 opacity-50 font-serif border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl">
+                    {t("noUsersFound")}
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-[#1A1A1A]/10 dark:border-white/10 opacity-60 font-bold">
+                          <th className="py-3 px-2 font-serif">{t("userLabel")}</th>
+                          <th className="py-3 px-2 font-serif">{t("email")}</th>
+                          <th className="py-3 px-2 font-serif">{t("roleLabel")}</th>
+                          <th className="py-3 px-2 text-center font-serif">{t("favoritesLabel")}</th>
+                          <th className="py-3 px-2 text-right font-serif">{t("actionsLabel")}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#1A1A1A]/5 dark:divide-white/5">
+                        {filteredUsers.map((u) => (
+                          <tr key={u.id} className="hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 transition-colors">
+                            <td className="py-3 px-2">
+                              <div>
+                                <span className="font-bold block">{u.displayName || t("noName")}</span>
+                                {u.username && (
+                                  <span className="block text-[10px] opacity-60 font-mono">@{u.username}</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-2 font-mono opacity-80">{u.email}</td>
+                            <td className="py-3 px-2">
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide inline-block ${
+                                u.role === "admin" 
+                                  ? "bg-red-500/10 text-red-600 dark:text-red-400" 
+                                  : u.role === "author"
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                  : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                              }`}>
+                                {u.role === "admin" ? t("roleAdmin") : u.role === "author" ? t("roleAuthor") : t("roleReader")}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 text-center font-bold font-mono">
+                              {u.favorites?.length || 0}
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              <select
+                                value={u.role || "user"}
+                                onChange={(e) => changeUserRole(u.id, e.target.value)}
+                                className="text-[10px] bg-transparent border border-[#1A1A1A]/20 dark:border-white/20 rounded-lg px-2 py-1 font-bold uppercase tracking-wider focus:outline-none focus:ring-1 focus:ring-amber-500"
+                              >
+                                <option value="user" className="bg-white dark:bg-[#121212]">{t("roleReader")}</option>
+                                <option value="author" className="bg-white dark:bg-[#121212]">{t("roleAuthor")}</option>
+                                <option value="admin" className="bg-white dark:bg-[#121212]">{t("roleAdmin")}</option>
+                              </select>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
           </div>

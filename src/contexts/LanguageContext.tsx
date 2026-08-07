@@ -502,7 +502,19 @@ export const translations = {
     announcements: "Avisos",
     requested: "Solicitada",
     respondRequest: "Responder Solicitação",
-    addFriend: "Adicionar Amigo"
+    addFriend: "Adicionar Amigo",
+    userManagementTitle: "Diretório de Usuários",
+    userManagementDesc: "Consulte a lista completa de leitores e autores registrados, pesquise por dados básicos e gerencie as funções de acesso da plataforma.",
+    showUsers: "Visualizar Lista de Usuários",
+    hideUsers: "Ocultar Lista de Usuários",
+    searchUsers: "Buscar por nome, e-mail ou @usuario...",
+    noUsersFound: "Nenhum usuário correspondente foi encontrado.",
+    roleUpdatedSuccess: "Função de acesso atualizada com sucesso!",
+    errorUpdatingRole: "Falha ao atualizar a função do usuário no banco de dados.",
+    roleLabel: "Função",
+    favoritesLabel: "Favoritos",
+    authorApprovedSuccess: "Autorizado com sucesso!",
+    errorApprovingAuthor: "Erro ao autorizar autor."
   },
   es: {
     // Navigation / Header / Footer
@@ -1001,7 +1013,19 @@ export const translations = {
     announcements: "Avisos",
     requested: "Solicitada",
     respondRequest: "Responder Solicitud",
-    addFriend: "Añadir Amigo"
+    addFriend: "Añadir Amigo",
+    userManagementTitle: "Directorio de Usuarios",
+    userManagementDesc: "Consulte la lista completa de lectores y autores registrados, busque por datos básicos y gestione los roles de acceso de la plataforma.",
+    showUsers: "Ver Lista de Usuarios",
+    hideUsers: "Ocultar Lista de Usuarios",
+    searchUsers: "Buscar por nombre, correo o @usuario...",
+    noUsersFound: "No se encontraron usuarios coincidentes.",
+    roleUpdatedSuccess: "¡Rol de acceso actualizado con éxito!",
+    errorUpdatingRole: "Error al actualizar el rol del usuario en la base de datos.",
+    roleLabel: "Rol",
+    favoritesLabel: "Favoritos",
+    authorApprovedSuccess: "¡Autorizado con éxito!",
+    errorApprovingAuthor: "Error al autorizar al autor."
   },
   en: {
     // Navigation / Header / Footer
@@ -1500,7 +1524,19 @@ export const translations = {
     announcements: "Notices",
     requested: "Requested",
     respondRequest: "Respond Request",
-    addFriend: "Add Friend"
+    addFriend: "Add Friend",
+    userManagementTitle: "User Directory",
+    userManagementDesc: "View the complete list of registered readers and authors, search by basic details, and manage platform access roles.",
+    showUsers: "View User List",
+    hideUsers: "Hide User List",
+    searchUsers: "Search by name, email, or @username...",
+    noUsersFound: "No matching users found.",
+    roleUpdatedSuccess: "Access role updated successfully!",
+    errorUpdatingRole: "Failed to update user role in the database.",
+    roleLabel: "Role",
+    favoritesLabel: "Favorites",
+    authorApprovedSuccess: "Authorized successfully!",
+    errorApprovingAuthor: "Error authorizing author."
   },
   id: {
     // Navigation / Header / Footer
@@ -1999,7 +2035,19 @@ export const translations = {
     announcements: "Pemberitahuan",
     requested: "Diminta",
     respondRequest: "Tanggapi Permintaan",
-    addFriend: "Tambah Teman"
+    addFriend: "Tambah Teman",
+    userManagementTitle: "Direktori Pengguna",
+    userManagementDesc: "Lihat daftar lengkap pembaca dan penulis yang terdaftar, cari berdasarkan data dasar, dan kelola peran akses platform.",
+    showUsers: "Lihat Daftar Pengguna",
+    hideUsers: "Sembunyikan Daftar Pengguna",
+    searchUsers: "Cari berdasarkan nama, email, atau @username...",
+    noUsersFound: "Tidak ada pengguna yang cocok ditemukan.",
+    roleUpdatedSuccess: "Peran akses berhasil diperbarui!",
+    errorUpdatingRole: "Gagal memperbarui peran pengguna di database.",
+    roleLabel: "Peran",
+    favoritesLabel: "Favorit",
+    authorApprovedSuccess: "Berhasil diotorisasi!",
+    errorApprovingAuthor: "Gagal mengotorisasi penulis."
   },
   zh: {
     // Navigation / Header / Footer
@@ -2498,7 +2546,19 @@ export const translations = {
     announcements: "通知",
     requested: "已申请",
     respondRequest: "回应申请",
-    addFriend: "添加好友"
+    addFriend: "添加好友",
+    userManagementTitle: "用户目录",
+    userManagementDesc: "查看已注册读者和作者的完整列表，按基本信息搜索，并管理平台访问角色。",
+    showUsers: "查看用户列表",
+    hideUsers: "隐藏用户列表",
+    searchUsers: "按姓名、邮箱或 @用户名 搜索...",
+    noUsersFound: "未找到匹配的用户。",
+    roleUpdatedSuccess: "访问角色更新成功！",
+    errorUpdatingRole: "在数据库中更新用户角色失败。",
+    roleLabel: "角色",
+    favoritesLabel: "收藏夹",
+    authorApprovedSuccess: "授权成功！",
+    errorApprovingAuthor: "授权作者时出错。"
   }
 } as const;
 
