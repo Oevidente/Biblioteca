@@ -67,6 +67,7 @@ import { unlockAchievement } from '../lib/achievements';
 import { logUserActivity } from '../lib/social';
 import { translateStoryPageHtml } from '../lib/storyTranslator';
 import { TranslatedText } from '../components/TranslatedText';
+import { extractStoryId } from '../utils/urlUtils';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -94,13 +95,16 @@ interface CommentData {
 }
 
 export function Reader() {
-  const { id } = useParams<{ id: string }>();
+  const { id: urlId } = useParams<{ id: string }>();
+  const id = extractStoryId(urlId);
+  
   const { user, profile } = useAuth();
   const { language, t } = useLanguage();
 
   const [story, setStory] = useState<StoryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
+  const [maxPage, setMaxPage] = useState(0);
   const [pageContent, setPageContent] = useState<string>('');
   const [loadingPage, setLoadingPage] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -433,9 +437,6 @@ export function Reader() {
 
   useEffect(() => {
     localStorage.setItem('inkora_font_family', fontFamily);
-    if (fontFamily === 'opendyslexic') {
-      unlockAchievement('polyglot', user?.uid);
-    }
   }, [fontFamily, user]);
 
   useEffect(() => {
@@ -548,6 +549,7 @@ export function Reader() {
 
           // Check progress in Firestore if user is logged in
           let savedPage = 0;
+          let savedMaxPage = 0;
           if (user) {
             try {
               const progRef = doc(db, `users/${user.uid}/progress`, id);
@@ -557,10 +559,18 @@ export function Reader() {
                 if (typeof pData.page === 'number') {
                   savedPage = pData.page;
                 }
+                if (typeof pData.maxPage === 'number') {
+                  savedMaxPage = pData.maxPage;
+                } else {
+                  savedMaxPage = savedPage;
+                }
               }
             } catch (e) {
               console.error('Error loading user progress from Firestore:', e);
             }
+          }
+          if (savedMaxPage > 0) {
+            setMaxPage(savedMaxPage);
           }
 
           if (savedPage === 0) {
@@ -679,6 +689,8 @@ export function Reader() {
 
   // Save Progress as user turns pages
   useEffect(() => {
+    setMaxPage(prev => Math.max(prev, currentPage));
+    
     if (!story || !id || !isInitialProgressLoaded.current) return;
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -716,6 +728,7 @@ export function Reader() {
           storyTitle: story.title || 'Sem título',
           coverImage: story.coverImage || '',
           page: currentPage || 0,
+          maxPage: Math.max(maxPage, currentPage),
           totalPages: story.totalPages ?? 0,
           updatedAt: new Date().toISOString(),
         },
@@ -747,6 +760,10 @@ export function Reader() {
 
   const handleReviewSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
+      return;
+    }
     if (!id || rating === 0) return;
     setIsSubmitting(true);
     try {
@@ -758,7 +775,7 @@ export function Reader() {
       await addDoc(collection(db, `stories/${id}/comments`), {
         text: comment.trim(),
         rating,
-        userId: user?.uid || 'guest',
+        userId: user.uid,
         userName,
         userEmail: user?.email || '',
         status: 'pending', // MUST BE APPROVED BY ADMIN
@@ -786,6 +803,8 @@ export function Reader() {
           createdAt: new Date().toISOString(),
         });
       }
+
+      unlockAchievement('first_review', user?.uid);
 
       setSubmitted(true);
     } catch (err) {
@@ -1193,6 +1212,10 @@ export function Reader() {
             {/* Offline Download Button */}
             <button
               onClick={async () => {
+                if (!user) {
+                  window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
+                  return;
+                }
                 if (!id || !story) return;
                 if (isDownloaded) {
                   await removeOfflineStory(id);
@@ -1262,6 +1285,10 @@ export function Reader() {
             {/* Add to Playlist Button */}
             <button
               onClick={() => {
+                if (!user) {
+                  window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
+                  return;
+                }
                 loadPlaylists();
                 setShowPlaylistModal(true);
               }}

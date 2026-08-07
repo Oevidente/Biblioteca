@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
+import { unlockAchievement } from "../lib/achievements";
+import { auth } from "../lib/firebase";
 
 export type Language = "pt" | "es" | "en" | "id" | "zh";
 
@@ -2522,6 +2524,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem("site_language", lang);
+    if (lang !== 'pt') {
+      unlockAchievement('polyglot', auth.currentUser?.uid);
+    }
   };
 
   const t = (key: TranslationKey, replace?: Record<string, string | number>): string => {

@@ -301,6 +301,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     localStorage.removeItem("luminary_user_uid");
+    
+    // Clear user-specific data from localStorage to prevent state leakage
+    const keysToRemove = [
+      "reading_history",
+      "favorites",
+      "inkora_unlocked_achievements",
+      "site_language",
+      "inkora_font_family",
+      "inkora_margin_size",
+      "inkora_line_spacing",
+      "inkora_translate_story",
+      "inkora_eye_comfort_intensity",
+      "theme"
+    ];
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    const allKeys = Object.keys(localStorage);
+    allKeys.forEach(key => {
+      if (key.startsWith("progress_") || key.startsWith("inkora_read_story_") || key.startsWith("inkora_bookmarks_")) {
+        localStorage.removeItem(key);
+      }
+    });
+
     await signOut(auth).catch(() => {});
     setUser(null);
     setProfile(null);

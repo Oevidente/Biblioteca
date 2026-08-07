@@ -954,7 +954,7 @@ export function Admin() {
   let avgCompRate = 0;
   if (filteredProgress.length > 0) {
     const totalPercentage = filteredProgress.reduce((acc, curr) => {
-      const page = curr.page || 0;
+      const page = curr.maxPage !== undefined ? curr.maxPage : (curr.page || 0);
       const totalPages = curr.totalPages || 1;
       const pct = Math.min(100, ((page + 1) / totalPages) * 100);
       return acc + pct;
@@ -965,7 +965,7 @@ export function Admin() {
   let finishedCount = 0;
   if (filteredProgress.length > 0) {
     finishedCount = filteredProgress.filter(curr => {
-      const page = curr.page || 0;
+      const page = curr.maxPage !== undefined ? curr.maxPage : (curr.page || 0);
       const totalPages = curr.totalPages || 1;
       return page === totalPages - 1;
     }).length;
@@ -979,7 +979,7 @@ export function Admin() {
     const totalWordsRead = filteredProgress.reduce((acc, curr) => {
       const storyObj = analyticsStories.find(s => s.id === curr.storyId);
       const totalWords = storyObj?.wordCount || (curr.totalPages * 250);
-      const page = curr.page || 0;
+      const page = curr.maxPage !== undefined ? curr.maxPage : (curr.page || 0);
       const totalPages = curr.totalPages || 1;
       const wordsRead = (Math.min(totalPages, page + 1) / totalPages) * totalWords;
       return acc + wordsRead;
@@ -991,7 +991,10 @@ export function Admin() {
   const selectedStory = analyticsStories.find(s => s.id === selectedStoryId);
   const totalPagesForFunnel = selectedStory?.totalPages || 1;
   const pageFunnelData = Array.from({ length: totalPagesForFunnel }).map((_, idx) => {
-    const readersOnOrPastPage = filteredProgress.filter(p => (p.page || 0) >= idx).length;
+    const readersOnOrPastPage = filteredProgress.filter(p => {
+      const page = p.maxPage !== undefined ? p.maxPage : (p.page || 0);
+      return page >= idx;
+    }).length;
     const pct = totalStartsCount > 0 ? (readersOnOrPastPage / totalStartsCount) * 100 : 0;
     return {
       pageIndex: idx,

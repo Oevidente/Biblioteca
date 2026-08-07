@@ -1,6 +1,7 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from "react";
 import { useParams, Link, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth, UserProfile } from "../contexts/AuthContext";
+import { getStoryLink } from "../utils/urlUtils";
 import { useLanguage } from "../contexts/LanguageContext";
 import { formatCoverUrl } from "../utils/imageUtils";
 import { getLocalizedActivity } from "../utils/activityTranslator";
@@ -248,6 +249,13 @@ export function ProfilePage() {
     let isMounted = true;
     const loadProfileData = async () => {
       setLoadingProfile(true);
+
+      if (!user) {
+        // Must be logged in to view profiles
+        window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
+        navigate('/');
+        return;
+      }
 
       let p: UserProfile | null = null;
       if (usernameParam) {
@@ -980,7 +988,7 @@ export function ProfilePage() {
               {publishedStories.map((story) => (
                 <Link
                   key={story.id}
-                  to={`/story/${story.id}`}
+                  to={`${getStoryLink(story.id, story.title)}`}
                   className="paper-card rounded-2xl p-4 flex gap-4 group hover:scale-[1.02] transition-all"
                 >
                   <img
@@ -1054,7 +1062,7 @@ export function ProfilePage() {
                     </div>
 
                     <Link
-                      to={`/story/${item.storyId}`}
+                      to={`${getStoryLink(item.storyId, item.storyTitle)}`}
                       className="px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 paper-btn-dark"
                     >
                       Continuar

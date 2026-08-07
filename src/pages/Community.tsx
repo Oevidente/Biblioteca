@@ -1,6 +1,7 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
+import { getStoryLink } from "../utils/urlUtils";
  */
 
 import { useState, useEffect, FormEvent } from "react";
@@ -9,6 +10,7 @@ import { useAuth, UserProfile } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { formatCoverUrl } from "../utils/imageUtils";
 import { getLocalizedActivity } from "../utils/activityTranslator";
+import { getStoryLink } from "../utils/urlUtils";
 import { 
   searchUsers, 
   fetchGlobalActivities, 
@@ -334,7 +336,7 @@ export function Community() {
                           </button>
                         ) : (
                           <button 
-                            onClick={() => { navigate(`/story/${act.targetId}`); }}
+                            onClick={() => { navigate(`${getStoryLink(act.targetId, act.targetTitle)}`); }}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 hover:scale-[1.02] active:scale-95 transition-all"
                           >
                             <BookOpen className="w-3.5 h-3.5" />

@@ -1,6 +1,7 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BookCoverImage } from "../components/BookCoverImage";
+import { getStoryLink } from "../utils/urlUtils";
 import { TranslatedText } from "../components/TranslatedText";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { db, collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, updateDoc, getDocs, deleteDoc, writeBatch } from "../lib/firebase";
@@ -10,6 +11,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { getCanonicalTag, getLocalizedTag } from "../lib/tagger";
 import { getAllOfflineStories, OfflineStory, removeOfflineStory } from "../lib/offlineStorage";
 import { fetchPublicPlaylists, fetchUserPlaylists, ReadingList, createOrUpdatePlaylist, deletePlaylist, toggleStoryInPlaylist } from "../lib/playlists";
+import { unlockAchievement } from "../lib/achievements";
 import { Check, Edit3, FolderPlus, X, ExternalLink } from "lucide-react";
 import { logUserActivity } from "../lib/social";
 import { clsx, type ClassValue } from "clsx";
@@ -108,6 +110,10 @@ export function Home() {
 
   // Load offline stories
   const loadOfflineData = async () => {
+    if (!user) {
+      setOfflineStories([]);
+      return;
+    }
     try {
       const list = await getAllOfflineStories();
       setOfflineStories(list);
@@ -120,7 +126,11 @@ export function Home() {
   const loadPlaylistsData = async () => {
     try {
       if (playlistFilter === "mine") {
-        const myLists = await fetchUserPlaylists(user?.uid || "guest");
+        if (!user) {
+          setPlaylists([]);
+          return;
+        }
+        const myLists = await fetchUserPlaylists(user.uid);
         setPlaylists(myLists);
       } else {
         const publicLists = await fetchPublicPlaylists();
@@ -133,7 +143,7 @@ export function Home() {
 
   useEffect(() => {
     loadOfflineData();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     loadPlaylistsData();
@@ -194,11 +204,19 @@ export function Home() {
             const data = userSnap.data();
             if (Array.isArray(data.favorites)) {
               setFavorites(data.favorites);
-              localStorage.setItem("favorites", JSON.stringify(data.favorites));
+              localStorage.setItem(`favorites_${user.uid}`, JSON.stringify(data.favorites));
+            } else {
+              const cachedFavs = localStorage.getItem(`favorites_${user.uid}`);
+              if (cachedFavs) setFavorites(JSON.parse(cachedFavs));
             }
+          } else {
+            const cachedFavs = localStorage.getItem(`favorites_${user.uid}`);
+            if (cachedFavs) setFavorites(JSON.parse(cachedFavs));
           }
         } catch (e) {
           console.error("Error loading user favorites from Firestore:", e);
+          const cachedFavs = localStorage.getItem(`favorites_${user.uid}`);
+          if (cachedFavs) setFavorites(JSON.parse(cachedFavs));
         }
 
         // Load progress history from Firestore
@@ -220,23 +238,19 @@ export function Home() {
           if (firestoreHistory.length > 0) {
             firestoreHistory.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
             setHistory(firestoreHistory);
-            localStorage.setItem("reading_history", JSON.stringify(firestoreHistory));
-            return;
+            localStorage.setItem(`reading_history_${user.uid}`, JSON.stringify(firestoreHistory));
+          } else {
+            const cachedHist = localStorage.getItem(`reading_history_${user.uid}`);
+            if (cachedHist) setHistory(JSON.parse(cachedHist));
           }
         } catch (e) {
           console.error("Error loading user reading history from Firestore:", e);
+          const cachedHist = localStorage.getItem(`reading_history_${user.uid}`);
+          if (cachedHist) setHistory(JSON.parse(cachedHist));
         }
-      }
-
-      // Fallback to local storage if guest or no Firestore progress found
-      try {
-        const favs = localStorage.getItem("favorites");
-        if (favs) setFavorites(JSON.parse(favs));
-        
-        const hist = localStorage.getItem("reading_history");
-        if (hist) setHistory(JSON.parse(hist));
-      } catch (e) {
-        console.error(e);
+      } else {
+        setFavorites([]);
+        setHistory([]);
       }
     }
 
@@ -247,6 +261,11 @@ export function Home() {
     e.preventDefault();
     e.stopPropagation();
 
+    if (!user) {
+      window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
+      return;
+    }
+
     let newFavs: string[];
     const isAdding = !favorites.includes(id);
     if (favorites.includes(id)) {
@@ -256,7 +275,7 @@ export function Home() {
     }
 
     setFavorites(newFavs);
-    localStorage.setItem("favorites", JSON.stringify(newFavs));
+    localStorage.setItem(`favorites_${user.uid}`, JSON.stringify(newFavs));
 
     // Sync to Firestore if user is logged in
     if (user) {
@@ -295,13 +314,13 @@ export function Home() {
 
     const updated = history.filter(item => item.id !== storyId);
     setHistory(updated);
-    try {
-      localStorage.setItem("reading_history", JSON.stringify(updated));
-    } catch (err) {
-      console.error("Error updating local reading history:", err);
-    }
-
     if (user) {
+      try {
+        localStorage.setItem(`reading_history_${user.uid}`, JSON.stringify(updated));
+      } catch (err) {
+        console.error("Error updating local reading history:", err);
+      }
+
       try {
         await deleteDoc(doc(db, `users/${user.uid}/progress`, storyId));
       } catch (err) {
@@ -317,13 +336,13 @@ export function Home() {
       message: t("confirmClearHistory") || "Tem certeza que deseja limpar todo o histórico de leitura?",
       onConfirm: async () => {
         setHistory([]);
-        try {
-          localStorage.setItem("reading_history", JSON.stringify([]));
-        } catch (err) {
-          console.error("Error clearing local reading history:", err);
-        }
-
         if (user) {
+          try {
+            localStorage.setItem(`reading_history_${user.uid}`, JSON.stringify([]));
+          } catch (err) {
+            console.error("Error clearing local reading history:", err);
+          }
+
           try {
             const progSnap = await getDocs(collection(db, `users/${user.uid}/progress`));
             const batch = writeBatch(db);
@@ -397,7 +416,7 @@ export function Home() {
     return (
       <div 
         key={story.id} 
-        onClick={() => navigate(`/story/${story.id}`)} 
+        onClick={() => navigate(`${getStoryLink(story.id, story.title)}`)} 
         className="group flex flex-col h-full cursor-pointer"
       >
         {/* Cover Image Container */}
@@ -414,6 +433,10 @@ export function Home() {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                if (!user) {
+                  window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
+                  return;
+                }
                 setStoryForPlaylistModal(story);
               }}
               className="p-2 rounded-full text-white paper-glass"
@@ -674,7 +697,7 @@ export function Home() {
                     className="flex items-center justify-between gap-3 sm:gap-6 p-4 rounded-2xl hover:-translate-y-0.5 transition-all group paper-card"
                   >
                     <Link 
-                      to={`/story/${item.id}`} 
+                      to={`${getStoryLink(item.id, item.title)}`} 
                       className="flex items-center gap-3 sm:gap-5 flex-1 min-w-0"
                     >
                       <div className="w-14 sm:w-16 aspect-[2/3] h-auto bg-[#EAE8E2] dark:bg-[#2A2A2A] rounded-lg overflow-hidden shrink-0">
@@ -702,7 +725,7 @@ export function Home() {
 
                     <div className="flex items-center gap-2 shrink-0">
                       <Link 
-                        to={`/story/${item.id}`}
+                        to={`${getStoryLink(item.id, item.title)}`}
                         className="px-3 sm:px-4 py-2 rounded-full font-bold text-[9px] sm:text-[10px] uppercase tracking-widest paper-btn-dark shrink-0"
                       >
                         {t("continueReading")}
@@ -754,7 +777,13 @@ export function Home() {
               </div>
             </div>
             <button
-              onClick={() => setShowCreatePlaylistModal(true)}
+              onClick={() => {
+                if (!user) {
+                  window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
+                  return;
+                }
+                setShowCreatePlaylistModal(true);
+              }}
               className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest paper-btn-dark"
             >
               <Plus className="w-4 h-4" />
@@ -873,7 +902,7 @@ export function Home() {
                     <p className="text-[10px] opacity-60 uppercase font-bold tracking-widest mt-1">{item.totalPages} {t("pagesSaved")}</p>
                     <div className="flex items-center gap-2 mt-3">
                       <Link 
-                        to={`/story/${item.id}`} 
+                        to={`${getStoryLink(item.id, item.title)}`} 
                         className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest paper-btn-dark"
                       >
                         {t("readOffline")}
@@ -959,6 +988,9 @@ export function Home() {
                     updatedAt: new Date().toISOString()
                   };
                   await createOrUpdatePlaylist(newPl);
+                  if (user) {
+                    unlockAchievement("playlist_curator", user.uid);
+                  }
                   if (newPl.isPublic && user && profile) {
                     await logUserActivity({
                       uid: user.uid,
@@ -1063,7 +1095,7 @@ export function Home() {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <Link 
-                          to={`/story/${s.id}`} 
+                          to={`${getStoryLink(s.id, s.title)}`} 
                           className="p-2 bg-black/10 dark:bg-white/10 hover:bg-black/20 rounded-lg text-xs font-bold flex items-center gap-1"
                           title="Ler História"
                         >
@@ -1305,6 +1337,9 @@ export function Home() {
                       updatedAt: new Date().toISOString()
                     };
                     await createOrUpdatePlaylist(newPl);
+                    if (user) {
+                      unlockAchievement("playlist_curator", user.uid);
+                    }
                     if (user && profile) {
                       await logUserActivity({
                         uid: user.uid,

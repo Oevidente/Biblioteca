@@ -538,7 +538,7 @@ export async function fetchUserReadingProgress(uid: string): Promise<ReadingHist
     // If Firestore returned no items, check local storage cache
     if (items.length === 0) {
       try {
-        const localHistStr = localStorage.getItem("reading_history");
+        const localHistStr = localStorage.getItem(`reading_history_${uid}`);
         if (localHistStr) {
           const localHist = JSON.parse(localHistStr);
           if (Array.isArray(localHist)) {
