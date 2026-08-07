@@ -250,7 +250,17 @@ export function Home() {
         }
       } else {
         setFavorites([]);
-        setHistory([]);
+        try {
+          const cachedHist = localStorage.getItem("reading_history");
+          if (cachedHist) {
+            setHistory(JSON.parse(cachedHist));
+          } else {
+            setHistory([]);
+          }
+        } catch (e) {
+          console.error("Error loading guest reading history:", e);
+          setHistory([]);
+        }
       }
     }
 
@@ -609,7 +619,7 @@ export function Home() {
                 placeholder={t("searchPlaceholder")} 
                 value={searchQuery || ""}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-full focus:outline-none text-xs sm:text-sm paper-card"
+                className="w-full pl-10 pr-4 py-3 rounded-full focus:outline-none text-xs sm:text-sm paper-card placeholder:text-stone-500/80 dark:placeholder:text-stone-400/80 placeholder:opacity-100"
               />
             </div>
             

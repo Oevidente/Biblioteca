@@ -29,6 +29,7 @@ import {
   Clock,
   Eye,
   Sun,
+  Moon,
   Type,
   Download,
   Bookmark,
@@ -41,6 +42,7 @@ import {
   Globe,
   Heart,
   List,
+  MoreHorizontal,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth, ADMIN_EMAIL } from '../contexts/AuthContext';
@@ -75,6 +77,19 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+function getOrCreateGuestId(): string {
+  let guestId = localStorage.getItem('inkora_guest_id');
+  if (!guestId) {
+    guestId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+    try {
+      localStorage.setItem('inkora_guest_id', guestId);
+    } catch (e) {
+      console.error('Failed to store guest_id in localStorage', e);
+    }
+  }
+  return guestId;
+}
+
 interface StoryData {
   title: string;
   author?: string;
@@ -105,8 +120,11 @@ export function Reader() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const [maxPage, setMaxPage] = useState(0);
+  const maxPageRef = useRef<number>(0);
   const [pageContent, setPageContent] = useState<string>('');
   const [loadingPage, setLoadingPage] = useState(false);
+  const [showFormattingPanel, setShowFormattingPanel] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Story Translation State
@@ -425,6 +443,24 @@ export function Reader() {
   const [characterRating, setCharacterRating] = useState(0);
   const [writingRating, setWritingRating] = useState(0);
 
+  // Reader-specific reading theme mode (light or dark)
+  const [readerMode, setReaderMode] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('inkora_reader_mode');
+      return saved === 'light' ? 'light' : 'dark';
+    } catch (e) {
+      return 'dark';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('inkora_reader_mode', readerMode);
+    } catch (e) {
+      console.error('Error saving reader mode:', e);
+    }
+  }, [readerMode]);
+
   // Eye Comfort yellow filter intensity state (0 to 100)
   const [eyeComfortIntensity, setEyeComfortIntensity] = useState<number>(() => {
     try {
@@ -547,12 +583,13 @@ export function Reader() {
           const data = docSnap.data() as StoryData;
           setStory(data);
 
-          // Check progress in Firestore if user is logged in
+          // Check progress in Firestore if user is logged in or is a visitor
           let savedPage = 0;
           let savedMaxPage = 0;
-          if (user) {
+          const targetUid = user ? user.uid : getOrCreateGuestId();
+          if (targetUid) {
             try {
-              const progRef = doc(db, `users/${user.uid}/progress`, id);
+              const progRef = doc(db, `users/${targetUid}/progress`, id);
               const progSnap = await getDoc(progRef);
               if (progSnap.exists()) {
                 const pData = progSnap.data();
@@ -566,16 +603,40 @@ export function Reader() {
                 }
               }
             } catch (e) {
-              console.error('Error loading user progress from Firestore:', e);
+              console.error('Error loading progress from Firestore:', e);
             }
           }
+
+          // Fallback to localStorage for guests if Firestore load yielded nothing
+          if (!user && savedPage === 0) {
+            try {
+              const localMaxStr = localStorage.getItem(`max_page_${id}`);
+              if (localMaxStr) {
+                savedMaxPage = parseInt(localMaxStr, 10) || 0;
+              }
+            } catch (e) {
+              console.error(e);
+            }
+          }
+
+          if (savedPage > savedMaxPage) {
+            savedMaxPage = savedPage;
+          }
+
           if (savedMaxPage > 0) {
             setMaxPage(savedMaxPage);
+            maxPageRef.current = savedMaxPage;
           }
 
           if (savedPage === 0) {
             const savedStr = localStorage.getItem(`progress_${id}`);
-            if (savedStr) savedPage = parseInt(savedStr, 10) || 0;
+            if (savedStr) {
+              savedPage = parseInt(savedStr, 10) || 0;
+              if (savedPage > maxPageRef.current) {
+                maxPageRef.current = savedPage;
+                setMaxPage(savedPage);
+              }
+            }
           }
 
           const totalP = data.totalPages || cachedTotalPages || 1;
@@ -689,13 +750,16 @@ export function Reader() {
 
   // Save Progress as user turns pages
   useEffect(() => {
-    setMaxPage(prev => Math.max(prev, currentPage));
+    const currentMax = Math.max(maxPageRef.current, currentPage);
+    maxPageRef.current = currentMax;
+    setMaxPage(currentMax);
     
     if (!story || !id || !isInitialProgressLoaded.current) return;
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     // 1. Save local progress
     localStorage.setItem(`progress_${id}`, currentPage.toString());
+    localStorage.setItem(`max_page_${id}`, currentMax.toString());
 
     // 2. Save reading history
     try {
@@ -718,45 +782,52 @@ export function Reader() {
       console.error(e);
     }
 
-    // 3. Save progress to Firestore if logged in
-    if (user && story) {
-      const progRef = doc(db, `users/${user.uid}/progress`, id);
-      setDoc(
-        progRef,
-        {
-          storyId: id,
-          storyTitle: story.title || 'Sem título',
-          coverImage: story.coverImage || '',
-          page: currentPage || 0,
-          maxPage: Math.max(maxPage, currentPage),
-          totalPages: story.totalPages ?? 0,
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true },
-      )
-        .then(() => {
-          // Log start of reading once per story session/user
-          const localReadLogKey = `has_logged_read_${user.uid}_${id}`;
-          if (!localStorage.getItem(localReadLogKey) && profile) {
-            logUserActivity({
-              uid: user.uid,
-              userName: profile.displayName || profile.email.split('@')[0],
-              userUsername: profile.username || '',
-              userPhoto: profile.photoURL || '',
-              type: 'read',
-              title: `Começou a ler a história "${story.title}"`,
-              targetId: id,
-              targetTitle: story.title,
-              createdAt: new Date().toISOString(),
-            });
-            localStorage.setItem(localReadLogKey, 'true');
-          }
-        })
-        .catch((err) => {
-          console.error('Error saving progress to Firestore:', err);
-        });
-    }
-  }, [currentPage, story, id, user]);
+    // 3. Save progress to Firestore with 1.5s debounce to save on database writes (to avoid quota exhaustion)
+    const targetUid = user ? user.uid : getOrCreateGuestId();
+    const timer = setTimeout(() => {
+      if (targetUid && story) {
+        const progRef = doc(db, `users/${targetUid}/progress`, id);
+        setDoc(
+          progRef,
+          {
+            storyId: id,
+            storyTitle: story.title || 'Sem título',
+            coverImage: story.coverImage || '',
+            page: currentPage || 0,
+            maxPage: currentMax,
+            totalPages: story.totalPages ?? 0,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true },
+        )
+          .then(() => {
+            // Log start of reading activity once per story session for logged in user
+            if (user) {
+              const localReadLogKey = `has_logged_read_${user.uid}_${id}`;
+              if (!localStorage.getItem(localReadLogKey) && profile) {
+                logUserActivity({
+                  uid: user.uid,
+                  userName: profile.displayName || profile.email.split('@')[0],
+                  userUsername: profile.username || '',
+                  userPhoto: profile.photoURL || '',
+                  type: 'read',
+                  title: `Começou a ler a história "${story.title}"`,
+                  targetId: id,
+                  targetTitle: story.title,
+                  createdAt: new Date().toISOString(),
+                });
+                localStorage.setItem(localReadLogKey, 'true');
+              }
+            }
+          })
+          .catch((err) => {
+            console.error('Error saving progress to Firestore:', err);
+          });
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [currentPage, story, id, user, profile]);
 
   const handleReviewSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -1159,270 +1230,471 @@ export function Reader() {
         </div>
       </header>
 
-      {/* Customization Toolbar (Typography, Theme, Offline & Bookmarks) */}
-      <div className="mb-6 rounded-2xl p-3.5 sm:p-5 space-y-3 sm:space-y-4 paper-card">
-        {/* Row 1: Font Family & Tools Grid */}
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pb-3 border-b border-black/5 dark:border-white/5">
-          {/* Font Family Selector */}
-          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto min-w-0">
-            <Type className="w-4 h-4 opacity-60 shrink-0 hidden sm:inline" />
-            <span className="text-xs font-bold uppercase tracking-wider opacity-70 hidden sm:inline">
-              {t('fontFamily')}:
-            </span>
-            <div className="flex flex-wrap items-center gap-1 p-1 rounded-xl w-full lg:w-auto min-w-0 paper-card">
-              <button
-                onClick={() => setFontFamily('serif')}
-                className={cn(
-                  'flex-1 min-w-[88px] lg:flex-none px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-serif font-bold transition-all text-center',
-                  fontFamily === 'serif'
-                    ? 'paper-btn-dark shadow-sm'
-                    : 'opacity-60 hover:opacity-100',
-                )}
-              >
-                Serif
-              </button>
-              <button
-                onClick={() => setFontFamily('sans')}
-                className={cn(
-                  'flex-1 min-w-[88px] lg:flex-none px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-sans font-bold transition-all text-center',
-                  fontFamily === 'sans'
-                    ? 'paper-btn-dark shadow-sm'
-                    : 'opacity-60 hover:opacity-100',
-                )}
-              >
-                Sans
-              </button>
-              <button
-                onClick={() => setFontFamily('opendyslexic')}
-                className={cn(
-                  'flex-1 min-w-[112px] lg:flex-none px-2 py-1.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-bold transition-all font-opendyslexic text-center truncate',
-                  fontFamily === 'opendyslexic'
-                    ? 'paper-btn-amber font-extrabold shadow-sm'
-                    : 'opacity-70 hover:opacity-100',
-                )}
-                title={t('openDyslexic')}
-              >
-                OpenDyslexic
-              </button>
-            </div>
-          </div>
-
-          {/* Tools Buttons */}
-          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto min-w-0">
-            {/* Offline Download Button */}
-            <button
-              onClick={async () => {
-                if (!user) {
-                  window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
-                  return;
-                }
-                if (!id || !story) return;
-                if (isDownloaded) {
-                  await removeOfflineStory(id);
-                  setIsDownloaded(false);
-                } else {
-                  setIsDownloading(true);
-                  // Load all pages into story object
-                  const pagesMap: { [pageIndex: number]: string } = {};
-                  try {
-                    const pSnap = await getDocs(
-                      query(
-                        collection(db, `stories/${id}/pages`),
-                        orderBy('index', 'asc'),
-                      ),
-                    );
-                    pSnap.docs.forEach((d) => {
-                      const data = d.data();
-                      pagesMap[data.index || 0] = data.content || '';
-                    });
-                    await saveStoryOffline({
-                      id,
-                      title: story.title,
-                      author: story.author,
-                      coverImage: story.coverImage,
-                      totalPages: story.totalPages,
-                      wordCount: story.wordCount,
-                      pages: pagesMap,
-                      downloadedAt: new Date().toISOString(),
-                    });
-                    setIsDownloaded(true);
-                  } catch (e) {
-                    console.error('Error saving offline:', e);
-                  } finally {
-                    setIsDownloading(false);
-                  }
-                }
-              }}
-              disabled={isDownloading}
-              className={cn(
-                'flex-1 min-w-[140px] px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5',
-                isDownloaded
-                  ? 'paper-btn-emerald'
-                  : 'paper-btn-light opacity-70 hover:opacity-100',
-              )}
-            >
-              <Download className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">
-                {isDownloading
-                  ? '...'
-                  : isDownloaded
-                    ? t('downloadedOffline')
-                    : t('downloadForOffline')}
-              </span>
-            </button>
-
-            {/* Private Notes & Bookmarks Drawer Button */}
-            <button
-              onClick={() => setShowNotesDrawer(true)}
-              className="flex-1 min-w-[140px] px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider opacity-80 hover:opacity-100 flex items-center justify-center gap-1.5 paper-btn-light"
-            >
-              <Bookmark className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              <span>
-                {t('bookmarks')} ({notesList.length})
-              </span>
-            </button>
-
-            {/* Add to Playlist Button */}
-            <button
-              onClick={() => {
-                if (!user) {
-                  window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
-                  return;
-                }
-                loadPlaylists();
-                setShowPlaylistModal(true);
-              }}
-              className="w-full sm:flex-1 sm:min-w-[140px] px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider opacity-80 hover:opacity-100 flex items-center justify-center gap-1.5 paper-btn-light"
-            >
-              <ListPlus className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-              <span>{t('addToPlaylist')}</span>
-            </button>
-
-            {/* Table of Contents (Index) Button */}
-            <button
-              onClick={() => setShowTocSidebar(!showTocSidebar)}
-              className={cn(
-                'flex-1 min-w-[140px] px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5',
-                showTocSidebar
-                  ? 'paper-btn-dark font-extrabold shadow-sm'
-                  : 'paper-btn-light opacity-80 hover:opacity-100',
-              )}
-              title={t('tableOfContents')}
-            >
-              <List className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              <span>{t('tableOfContents')}</span>
-            </button>
-
-            {/* Translation Toggle Button (Shown when site language is not Portuguese) */}
-            {language !== 'pt' && (
-              <button
-                onClick={() => setIsTranslationEnabled(!isTranslationEnabled)}
-                className={cn(
-                  'w-full sm:flex-1 sm:min-w-[140px] px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5',
-                  isTranslationEnabled
-                    ? 'paper-btn-amber font-extrabold shadow-sm'
-                    : 'paper-btn-light opacity-80 hover:opacity-100',
-                )}
-                title={t('enableStoryTranslation')}
-              >
-                <Languages className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-                <span className="truncate">
-                  {isTranslationEnabled
-                    ? t('showOriginalText')
-                    : t('translateStory')}
-                </span>
-              </button>
-            )}
-          </div>
+      {/* Compact Apple-style Customization Toolbar */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between p-2 rounded-2xl paper-card shadow-sm select-none gap-2 relative z-30">
+        {/* Left: Reading stats / progress status badge */}
+        <div className="flex items-center gap-2 px-3 py-1.5 opacity-80">
+          <FileText className="w-4 h-4 text-amber-500 shrink-0" />
+          <span className="text-[10px] font-bold uppercase tracking-wider font-mono">
+            {t('pageOf', { page: currentPage + 1, total: story.totalPages })}
+          </span>
         </div>
 
-        {/* Row 2: Eye Comfort Yellow Filter */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          {/* Label and Info */}
-          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto min-w-0">
-            <div
-              className={cn(
-                'p-2.5 rounded-xl transition-colors shrink-0 flex items-center justify-center',
-                eyeComfortIntensity > 0
-                  ? 'bg-amber-400/20 text-amber-700 dark:text-amber-300'
-                  : 'bg-[#1A1A1A]/5 dark:bg-white/5 opacity-60',
+        {/* Right: Compact control buttons */}
+        <div className="flex items-center gap-1.5 justify-end w-full sm:w-auto">
+          {/* Table of Contents Button */}
+          <button
+            onClick={() => {
+              setShowTocSidebar(!showTocSidebar);
+              setShowFormattingPanel(false);
+              setShowMoreMenu(false);
+            }}
+            className={cn(
+              "w-11 h-11 flex items-center justify-center rounded-xl transition-all relative group shadow-sm border border-black/5 dark:border-white/5",
+              showTocSidebar 
+                ? "paper-btn-dark font-extrabold" 
+                : "paper-btn-light opacity-80 hover:opacity-100"
+            )}
+            title={t('tableOfContents')}
+            aria-label={t('tableOfContents')}
+          >
+            <List className="w-5 h-5" />
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[#1a1a1a] dark:bg-[#f5f5f0] text-white dark:text-[#1a1a1a] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 shadow-md whitespace-nowrap z-50 font-sans">
+              {t('tableOfContents')}
+            </span>
+          </button>
+
+          {/* Typography & Design Formatting Panel Button (AA) */}
+          <button
+            onClick={() => {
+              setShowFormattingPanel(!showFormattingPanel);
+              setShowMoreMenu(false);
+            }}
+            className={cn(
+              "w-11 h-11 flex items-center justify-center rounded-xl transition-all relative group shadow-sm border border-black/5 dark:border-white/5",
+              showFormattingPanel 
+                ? "paper-btn-dark font-extrabold" 
+                : "paper-btn-light opacity-80 hover:opacity-100"
+            )}
+            title={t('fontFamily')}
+            aria-label={t('fontFamily')}
+          >
+            <Type className="w-5 h-5" />
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[#1a1a1a] dark:bg-[#f5f5f0] text-white dark:text-[#1a1a1a] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 shadow-md whitespace-nowrap z-50 font-sans">
+              {t('fontFamily')}
+            </span>
+          </button>
+
+          {/* Bookmarks & Private Notes Button */}
+          <button
+            onClick={() => {
+              setShowNotesDrawer(true);
+              setShowFormattingPanel(false);
+              setShowMoreMenu(false);
+            }}
+            className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-all relative group shadow-sm border border-black/5 dark:border-white/5 paper-btn-light opacity-80 hover:opacity-100"
+            title={t('bookmarks')}
+            aria-label={t('bookmarks')}
+          >
+            <div className="relative">
+              <Bookmark className="w-5 h-5 text-amber-500" />
+              {notesList.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white dark:text-black font-mono text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-[#1A1A1A]">
+                  {notesList.length}
+                </span>
               )}
+            </div>
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[#1a1a1a] dark:bg-[#f5f5f0] text-white dark:text-[#1a1a1a] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 shadow-md whitespace-nowrap z-50 font-sans">
+              {t('bookmarks')} ({notesList.length})
+            </span>
+          </button>
+
+          {/* More Actions Context Menu (Three Dots) */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowMoreMenu(!showMoreMenu);
+                setShowFormattingPanel(false);
+              }}
+              className={cn(
+                "w-11 h-11 flex items-center justify-center rounded-xl transition-all relative group shadow-sm border border-black/5 dark:border-white/5",
+                showMoreMenu 
+                  ? "paper-btn-dark font-extrabold" 
+                  : "paper-btn-light opacity-80 hover:opacity-100"
+              )}
+              title="Mais Opções"
+              aria-label="Mais opções"
             >
-              <Eye className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-xs font-bold font-serif uppercase tracking-wider">
-                  {t('eyeComfort')}
-                </h3>
-                {eyeComfortIntensity > 0 ? (
-                  <span className="text-[9px] bg-amber-400/25 text-amber-900 dark:text-amber-200 font-mono font-bold px-2 py-0.5 rounded-full">
-                    {t('yellowFilter')} {eyeComfortIntensity}%
-                  </span>
-                ) : (
-                  <span className="text-[9px] bg-[#1A1A1A]/5 dark:bg-white/5 opacity-50 font-mono font-bold px-2 py-0.5 rounded-full">
-                    {t('off')}
-                  </span>
-                )}
-              </div>
-              <p className="text-[10px] opacity-60 font-serif mt-0.5 break-words">
-                {t('eyeComfortDescription')}
-              </p>
-            </div>
-          </div>
-
-          {/* Controls */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto min-w-0">
-            {/* Slider */}
-            <div className="flex items-center gap-2.5 w-full sm:flex-1 sm:min-w-[220px] px-3.5 py-2 rounded-xl paper-card">
-              <Sun className="w-3.5 h-3.5 opacity-50 shrink-0 text-amber-500" />
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={eyeComfortIntensity}
-                onChange={(e) => setEyeComfortIntensity(Number(e.target.value))}
-                className="w-full h-1.5 bg-[#1A1A1A]/10 dark:bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-500"
-                title={t('filterIntensity')}
-                aria-label={t('filterIntensity')}
-              />
-              <span className="text-[10px] font-mono font-bold w-9 text-right shrink-0">
-                {eyeComfortIntensity}%
+              <MoreHorizontal className="w-5 h-5" />
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[#1a1a1a] dark:bg-[#f5f5f0] text-white dark:text-[#1a1a1a] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 shadow-md whitespace-nowrap z-50 font-sans">
+                Mais Opções
               </span>
-            </div>
+            </button>
 
-            {/* Quick Presets */}
-            <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto justify-start sm:justify-end">
-              {[
-                { label: t('off'), val: 0 },
-                { label: '25%', val: 25 },
-                { label: '50%', val: 50 },
-                { label: '75%', val: 75 },
-              ].map((preset) => (
-                <button
-                  key={preset.val}
-                  onClick={() => setEyeComfortIntensity(preset.val)}
-                  className={cn(
-                    'text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all',
-                    eyeComfortIntensity === preset.val
-                      ? 'paper-btn-amber font-extrabold shadow-sm'
-                      : 'opacity-70 hover:opacity-100 paper-btn-light',
-                  )}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
+            {/* Dropdown Menu */}
+            <AnimatePresence>
+              {showMoreMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowMoreMenu(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-56 p-1.5 rounded-2xl paper-card shadow-2xl border border-black/10 dark:border-white/10 z-50 flex flex-col gap-1"
+                  >
+                    {/* Offline Download Option */}
+                    <button
+                      onClick={async () => {
+                        setShowMoreMenu(false);
+                        if (!user) {
+                          window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
+                          return;
+                        }
+                        if (!id || !story) return;
+                        if (isDownloaded) {
+                          await removeOfflineStory(id);
+                          setIsDownloaded(false);
+                        } else {
+                          setIsDownloading(true);
+                          const pagesMap: { [pageIndex: number]: string } = {};
+                          try {
+                            const pSnap = await getDocs(
+                              query(
+                                collection(db, `stories/${id}/pages`),
+                                orderBy('index', 'asc'),
+                              ),
+                            );
+                            pSnap.docs.forEach((d) => {
+                              const data = d.data();
+                              pagesMap[data.index || 0] = data.content || '';
+                            });
+                            await saveStoryOffline({
+                              id,
+                              title: story.title,
+                              author: story.author,
+                              coverImage: story.coverImage,
+                              totalPages: story.totalPages,
+                              wordCount: story.wordCount,
+                              pages: pagesMap,
+                              downloadedAt: new Date().toISOString(),
+                            });
+                            setIsDownloaded(true);
+                          } catch (e) {
+                            console.error('Error saving offline:', e);
+                          } finally {
+                            setIsDownloading(false);
+                          }
+                        }
+                      }}
+                      disabled={isDownloading}
+                      className={cn(
+                        "w-full px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 text-left",
+                        isDownloaded
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          : "hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]"
+                      )}
+                    >
+                      <Download className="w-4 h-4 shrink-0 text-emerald-500" />
+                      <span className="truncate">
+                        {isDownloading
+                          ? '...'
+                          : isDownloaded
+                            ? t('downloadedOffline')
+                            : t('downloadForOffline')}
+                      </span>
+                    </button>
+
+                    {/* Add to Playlist Option */}
+                    <button
+                      onClick={() => {
+                        setShowMoreMenu(false);
+                        if (!user) {
+                          window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
+                          return;
+                        }
+                        loadPlaylists();
+                        setShowPlaylistModal(true);
+                      }}
+                      className="w-full px-3 py-2.5 rounded-xl text-xs font-bold hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 transition-all flex items-center gap-3 text-left text-[#1A1A1A] dark:text-[#F5F5F0]"
+                    >
+                      <ListPlus className="w-4 h-4 text-blue-500 shrink-0" />
+                      <span>{t('addToPlaylist')}</span>
+                    </button>
+
+                    {/* Translation Toggle Option */}
+                    {language !== 'pt' && (
+                      <button
+                        onClick={() => {
+                          setShowMoreMenu(false);
+                          setIsTranslationEnabled(!isTranslationEnabled);
+                        }}
+                        className={cn(
+                          "w-full px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 text-left",
+                          isTranslationEnabled
+                            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold"
+                            : "hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]"
+                        )}
+                      >
+                        <Languages className="w-4 h-4 shrink-0 text-amber-500" />
+                        <span className="truncate">
+                          {isTranslationEnabled
+                            ? t('showOriginalText')
+                            : t('translateStory')}
+                        </span>
+                      </button>
+                    )}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
 
+      {/* Collapsible Apple-style Formatting Panel (AA) */}
+      <AnimatePresence>
+        {showFormattingPanel && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="mb-6 rounded-2xl p-4 sm:p-5 space-y-4 paper-card overflow-hidden shadow-md"
+          >
+            {/* 1. Font Family */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-black/5 dark:border-white/5">
+              <div className="flex items-center gap-2 shrink-0">
+                <Type className="w-4 h-4 opacity-60 text-amber-500" />
+                <span className="text-xs font-bold uppercase tracking-wider opacity-70">
+                  {t('fontFamily')}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-1 p-1 rounded-xl w-full sm:w-auto paper-card">
+                <button
+                  onClick={() => setFontFamily('serif')}
+                  className={cn(
+                    'flex-1 min-w-[80px] sm:flex-none px-3 py-1.5 rounded-lg text-xs font-serif font-bold transition-all text-center',
+                    fontFamily === 'serif'
+                      ? 'paper-btn-dark shadow-sm'
+                      : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
+                  )}
+                >
+                  Serif
+                </button>
+                <button
+                  onClick={() => setFontFamily('sans')}
+                  className={cn(
+                    'flex-1 min-w-[80px] sm:flex-none px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition-all text-center',
+                    fontFamily === 'sans'
+                      ? 'paper-btn-dark shadow-sm'
+                      : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
+                  )}
+                >
+                  Sans
+                </button>
+                <button
+                  onClick={() => setFontFamily('opendyslexic')}
+                  className={cn(
+                    'flex-1 min-w-[100px] sm:flex-none px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all font-opendyslexic text-center truncate',
+                    fontFamily === 'opendyslexic'
+                      ? 'paper-btn-amber font-extrabold shadow-sm'
+                      : 'opacity-70 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
+                  )}
+                  title={t('openDyslexic')}
+                >
+                  Dyslexic
+                </button>
+              </div>
+            </div>
+
+            {/* 2. Reading Theme */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-black/5 dark:border-white/5">
+              <div className="flex items-center gap-2 shrink-0">
+                {readerMode === 'dark' ? <Moon className="w-4 h-4 opacity-60 text-indigo-400" /> : <Sun className="w-4 h-4 opacity-60 text-amber-500" />}
+                <span className="text-xs font-bold uppercase tracking-wider opacity-70">
+                  {t('readingTheme')}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 p-1 rounded-xl w-full sm:w-auto paper-card">
+                <button
+                  onClick={() => setReaderMode('light')}
+                  className={cn(
+                    'flex-1 min-w-[100px] sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5',
+                    readerMode === 'light'
+                      ? 'bg-amber-100 text-amber-900 border border-amber-200 shadow-sm'
+                      : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
+                  )}
+                >
+                  <Sun className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
+                  <span>{t('lightTheme').split(' ')[0]}</span>
+                </button>
+                <button
+                  onClick={() => setReaderMode('dark')}
+                  className={cn(
+                    'flex-1 min-w-[100px] sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5',
+                    readerMode === 'dark'
+                      ? 'paper-btn-dark shadow-sm'
+                      : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
+                  )}
+                >
+                  <Moon className="w-3.5 h-3.5 text-indigo-300 fill-indigo-300/20" />
+                  <span>{t('darkTheme').split(' ')[0]}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 3. Margins & Line Spacing */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-black/5 dark:border-white/5 font-sans">
+              {/* Margins */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 flex-1">
+                <span className="text-xs font-bold uppercase tracking-wider opacity-70">
+                  {t('marginSize')}
+                </span>
+                <div className="flex items-center gap-1 p-1 rounded-xl paper-card w-full sm:w-auto">
+                  {[
+                    { label: t('narrowMargin'), val: 'narrow' },
+                    { label: t('normalMargin'), val: 'normal' },
+                    { label: t('wideMargin'), val: 'wide' }
+                  ].map((m) => (
+                    <button
+                      key={m.val}
+                      onClick={() => setMarginSize(m.val as any)}
+                      className={cn(
+                        'flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all',
+                        marginSize === m.val
+                          ? 'paper-btn-dark shadow-sm'
+                          : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
+                      )}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Line Spacing */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 flex-1 font-sans">
+                <span className="text-xs font-bold uppercase tracking-wider opacity-70">
+                  {t('lineSpacing')}
+                </span>
+                <div className="flex items-center gap-1 p-1 rounded-xl paper-card w-full sm:w-auto">
+                  {[
+                    { label: '1.4', val: 'compact' },
+                    { label: '1.8', val: 'relaxed' },
+                    { label: '2.2', val: 'loose' }
+                  ].map((ls) => (
+                    <button
+                      key={ls.val}
+                      onClick={() => setLineSpacing(ls.val as any)}
+                      className={cn(
+                        'flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all',
+                        lineSpacing === ls.val
+                          ? 'paper-btn-dark shadow-sm'
+                          : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
+                      )}
+                    >
+                      {ls.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Eye Comfort */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-3 font-sans">
+              <div className="flex items-center gap-2.5 w-full md:w-auto min-w-0">
+                <div
+                  className={cn(
+                    'p-2 rounded-xl transition-colors shrink-0 flex items-center justify-center',
+                    eyeComfortIntensity > 0
+                      ? 'bg-amber-400/20 text-amber-700 dark:text-amber-300'
+                      : 'bg-[#1A1A1A]/5 dark:bg-white/5 opacity-60',
+                  )}
+                >
+                  <Eye className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-bold font-serif uppercase tracking-wider">
+                      {t('eyeComfort')}
+                    </h3>
+                    {eyeComfortIntensity > 0 && (
+                      <span className="text-[9px] bg-amber-400/25 text-amber-900 dark:text-amber-200 font-mono font-bold px-2 py-0.5 rounded-full">
+                        {eyeComfortIntensity}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto min-w-0">
+                {/* Slider */}
+                <div className="flex items-center gap-2.5 w-full sm:flex-1 sm:min-w-[180px] px-3 py-1.5 rounded-xl paper-card">
+                  <Sun className="w-3.5 h-3.5 opacity-50 shrink-0 text-amber-500" />
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="5"
+                    value={eyeComfortIntensity}
+                    onChange={(e) => setEyeComfortIntensity(Number(e.target.value))}
+                    className="w-full h-1.5 bg-[#1A1A1A]/10 dark:bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                    title={t('filterIntensity')}
+                    aria-label={t('filterIntensity')}
+                  />
+                  <span className="text-[10px] font-mono font-bold w-9 text-right shrink-0">
+                    {eyeComfortIntensity}%
+                  </span>
+                </div>
+
+                {/* Quick Presets */}
+                <div className="flex items-center gap-1 w-full sm:w-auto justify-start sm:justify-end">
+                  {[
+                    { label: t('off'), val: 0 },
+                    { label: '25%', val: 25 },
+                    { label: '50%', val: 50 },
+                    { label: '75%', val: 75 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.val}
+                      onClick={() => setEyeComfortIntensity(preset.val)}
+                      className={cn(
+                        'text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all',
+                        eyeComfortIntensity === preset.val
+                          ? 'paper-btn-amber font-extrabold shadow-sm'
+                          : 'opacity-70 hover:opacity-100 paper-btn-light text-[#1A1A1A] dark:text-[#F5F5F0]',
+                      )}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Reader Page Frame */}
-      <div className="relative min-h-[50vh] p-6 sm:p-10 rounded-2xl transition-all overflow-hidden paper-card w-full break-words">
+      <div 
+        className={cn(
+          "relative min-h-[50vh] p-6 sm:p-10 rounded-2xl transition-all overflow-hidden w-full break-words shadow-lg border border-black/5",
+          readerMode === "dark" 
+            ? "paper-card text-[#F5F5F0]" 
+            : "bg-[#FDFCF9] text-[#1A1A1A]"
+        )}
+      >
         {/* Active Translation Indicator */}
         {language !== 'pt' && isTranslationEnabled && (
-          <div className="mb-6 px-3.5 py-2 rounded-xl bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/20 flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider">
+          <div 
+            className={cn(
+              "mb-6 px-3.5 py-2 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider",
+              readerMode === "dark"
+                ? "bg-amber-500/10 text-amber-300 border-amber-500/20"
+                : "bg-amber-500/5 text-amber-800 border-amber-500/15"
+            )}
+          >
             <div className="flex items-center gap-2">
               <Languages className="w-4 h-4 text-amber-500 shrink-0" />
               <span>
@@ -1447,10 +1719,10 @@ export function Reader() {
           <div
             className="absolute inset-0 rounded-2xl pointer-events-none z-20 transition-colors duration-200"
             style={{
-              backgroundColor: isDark
+              backgroundColor: readerMode === 'dark'
                 ? `rgba(251, 191, 36, ${(eyeComfortIntensity / 100) * 0.22})`
                 : `rgba(245, 180, 0, ${(eyeComfortIntensity / 100) * 0.36})`,
-              mixBlendMode: isDark ? 'screen' : 'multiply',
+              mixBlendMode: readerMode === 'dark' ? 'screen' : 'multiply',
             }}
           />
         )}
@@ -1476,7 +1748,8 @@ export function Reader() {
               transition={{ duration: 0.3 }}
               ref={containerRef}
               className={cn(
-                'prose prose-lg dark:prose-invert prose-neutral mx-auto prose-p:mb-6 prose-p:text-base sm:prose-p:text-lg prose-headings:tracking-tight break-words',
+                'prose prose-lg prose-neutral mx-auto prose-p:mb-6 prose-p:text-base sm:prose-p:text-lg prose-headings:tracking-tight break-words',
+                readerMode === 'dark' ? 'dark:prose-invert text-[#F5F5F0]' : 'text-[#1A1A1A]',
                 fontFamily === 'opendyslexic'
                   ? 'font-opendyslexic'
                   : fontFamily === 'sans'

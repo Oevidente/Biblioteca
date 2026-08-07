@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { Moon, Sun, User as UserIcon, Menu, X, LogIn, LogOut } from "lucide-react";
+import { User as UserIcon, Menu, X, LogIn, LogOut } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { AuthModal } from "./AuthModal";
@@ -64,24 +64,14 @@ export function Layout() {
   const { language, setLanguage, t } = useLanguage();
   const location = useLocation();
 
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem("theme");
-    return saved ? saved === "dark" : true;
-  });
-
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalInitialMode, setAuthModalInitialMode] = useState<"login" | "register" | "forgot" | "profile">("login");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  }, [darkMode]);
+    document.documentElement.classList.add("dark");
+    localStorage.setItem("theme", "dark");
+  }, []);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -164,29 +154,7 @@ export function Layout() {
             </select>
           </div>
 
-          {/* Theme Toggle Switch */}
-          <button 
-            onClick={() => setDarkMode(!darkMode)}
-            className={`relative inline-flex items-center h-7 w-14 rounded-full p-0.5 transition-colors duration-300 focus:outline-none border shadow-inner ${
-              darkMode 
-                ? "bg-[#0A0A0A] border-white/20 justify-end" 
-                : "bg-amber-100/90 border-amber-300 justify-start"
-            }`}
-            aria-label={t("toggleTheme")}
-            title={t("toggleTheme")}
-          >
-            <span
-              className={`flex items-center justify-center w-6 h-6 rounded-full shadow-md transition-all duration-300 ${
-                darkMode ? "bg-[#1A1A1A] text-indigo-300" : "bg-white text-amber-500"
-              }`}
-            >
-              {darkMode ? (
-                <Moon className="w-3.5 h-3.5 fill-indigo-300/30 text-indigo-300" />
-              ) : (
-                <Sun className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
-              )}
-            </span>
-          </button>
+
 
           {/* User Auth Button & Profile Nav */}
           {user ? (
@@ -248,28 +216,7 @@ export function Layout() {
             </select>
           </div>
 
-          <button 
-            onClick={() => setDarkMode(!darkMode)}
-            className={`relative inline-flex items-center h-7 w-14 rounded-full p-0.5 transition-colors duration-300 focus:outline-none border shadow-inner ${
-              darkMode 
-                ? "bg-[#0A0A0A] border-white/20 justify-end" 
-                : "bg-amber-100/90 border-amber-300 justify-start"
-            }`}
-            aria-label={t("toggleTheme")}
-            title={t("toggleTheme")}
-          >
-            <span
-              className={`flex items-center justify-center w-6 h-6 rounded-full shadow-md transition-all duration-300 ${
-                darkMode ? "bg-[#1A1A1A] text-indigo-300" : "bg-white text-amber-500"
-              }`}
-            >
-              {darkMode ? (
-                <Moon className="w-3.5 h-3.5 fill-indigo-300/30 text-indigo-300" />
-              ) : (
-                <Sun className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
-              )}
-            </span>
-          </button>
+
 
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -358,7 +305,7 @@ export function Layout() {
           <span className="text-[9px] uppercase font-bold tracking-widest opacity-60 hidden sm:inline">Firebase {t("online")}</span>
         </div>
         <div className="flex items-center space-x-4">
-          <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">{t("version")} 2.9.9-beta</span>
+          <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">{t("version")} 3.0.1-beta</span>
         </div>
       </footer>
 

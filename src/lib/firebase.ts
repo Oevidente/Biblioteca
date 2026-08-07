@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { 
-  getFirestore, 
+  initializeFirestore, 
   collection, 
   addDoc, 
   getDocs, 
@@ -33,14 +33,14 @@ import {
   User 
 } from "firebase/auth";
 import firebaseConfig from "../../firebase-applet-config.json";
-
+ 
 const app = initializeApp(firebaseConfig);
-
-// Initialize Firestore standard client
+ 
+// Initialize Firestore with long-polling to prevent WebSocket connection failures in proxied sandboxes
 const customDbId = (firebaseConfig as any).firestoreDatabaseId;
-const db = customDbId 
-  ? getFirestore(app, customDbId) 
-  : getFirestore(app);
+const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+}, customDbId || '(default)');
 
 const auth = getAuth(app);
 
