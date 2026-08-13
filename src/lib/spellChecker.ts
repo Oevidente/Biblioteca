@@ -940,7 +940,7 @@ export async function checkWithLanguageTool(
       params.append('text', group.text);
       params.append('language', ltLangCode);
 
-      const response = await fetch('https://api.languagetool.org/v2/check', {
+      const response = await fetch('/api/languagetool', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',

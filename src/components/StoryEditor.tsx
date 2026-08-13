@@ -773,9 +773,7 @@ export function StoryEditor({
   const handleIgnoreWord = (issue: ReviewIssue) => {
     ignoreWordInSession(issue.word);
     setIgnoredCount(getIgnoredWordsCount());
-    if (editorRef.current) {
-      handleContentChange();
-    }
+    setIssues((prev) => prev.filter((i) => i.id !== issue.id));
     setActivePopoverIssue(null);
     setPopoverPosition(null);
   };
@@ -793,15 +791,13 @@ export function StoryEditor({
   const handleAddToDictionary = (issue: ReviewIssue) => {
     addToPersonalDictionary(issue.word);
     setDictWords(getPersonalDictionary());
-    if (editorRef.current) {
-      handleContentChange();
-    }
+    setIssues((prev) => prev.filter((i) => i.id !== issue.id));
     setActivePopoverIssue(null);
     setPopoverPosition(null);
     showToast(t('wordAddedToDictionary'));
   };
 
-  // Scroll to and highlight issue in Editor (CT-03, CT-06, RF-05)
+  // Scroll to and highlight issue in Editor (CT-03, CT-06, RF-05, RF-18)
   const handleNavigateToIssue = (issue: ReviewIssue) => {
     setActiveTab('edit');
     if (!editorRef.current) return;
@@ -818,42 +814,66 @@ export function StoryEditor({
       textNodes.push(node);
     }
 
-    const targetNode = textNodes.find((n) =>
-      (n.textContent || '').includes(issue.word),
-    );
+    let targetNode: Node | null = null;
+    let nodeMatchIndex = -1;
+
+    for (const n of textNodes) {
+      const text = n.textContent || '';
+      const localMatchIndex = text.indexOf(issue.word);
+      if (localMatchIndex !== -1 && !targetNode) {
+        targetNode = n;
+        nodeMatchIndex = localMatchIndex;
+      }
+    }
 
     if (targetNode && targetNode.parentElement) {
       const parent = targetNode.parentElement;
+      const text = targetNode.textContent || '';
+      const matchIndex = nodeMatchIndex;
 
-      // Add temporary focus glow / highlight visual effect
-      parent.classList.add(
-        'ring-2',
-        'ring-red-500',
-        'ring-offset-2',
-        'bg-red-500/10',
-        'transition-all',
-        'duration-300',
-        'rounded-lg',
-      );
-      setTimeout(() => {
-        parent.classList.remove(
-          'ring-2',
-          'ring-red-500',
-          'ring-offset-2',
-          'bg-red-500/10',
-          'transition-all',
-          'duration-300',
-          'rounded-lg',
-        );
-      }, 2500);
+      if (matchIndex !== -1 && targetNode.parentNode) {
+        // Create a temporary highlight element for exact word (RF-18)
+        const highlightSpan = document.createElement('mark');
+        highlightSpan.textContent = issue.word;
+        highlightSpan.className = 'bg-red-500/30 text-red-700 dark:text-red-300 rounded-sm ring-2 ring-red-500 ring-offset-1 transition-all duration-300 px-0.5';
+        
+        const beforeText = document.createTextNode(text.slice(0, matchIndex));
+        const afterText = document.createTextNode(text.slice(matchIndex + issue.word.length));
+        
+        targetNode.parentNode.insertBefore(beforeText, targetNode);
+        targetNode.parentNode.insertBefore(highlightSpan, targetNode);
+        targetNode.parentNode.insertBefore(afterText, targetNode);
+        targetNode.parentNode.removeChild(targetNode);
+        
+        highlightSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        setTimeout(() => {
+          if (highlightSpan.parentNode) {
+             const newTargetNode = document.createTextNode(beforeText.textContent! + highlightSpan.textContent! + afterText.textContent!);
+             highlightSpan.parentNode.insertBefore(newTargetNode, beforeText);
+             highlightSpan.parentNode.removeChild(beforeText);
+             highlightSpan.parentNode.removeChild(highlightSpan);
+             highlightSpan.parentNode.removeChild(afterText);
+             parent.normalize();
+          }
+        }, 2500);
+        
+        // Position popover near the highlightSpan
+        const rect = highlightSpan.getBoundingClientRect();
+        setPopoverPosition({
+          top: Math.max(80, rect.top - 120),
+          left: Math.min(window.innerWidth - 300, Math.max(20, rect.left)),
+        });
+        setActivePopoverIssue(issue);
+        return;
+      }
 
-      // Smooth scroll to the exact paragraph / snippet
+      // Fallback
       parent.scrollIntoView({
         behavior: 'smooth',
         block: 'center',
       });
 
-      // Position popover near parent element
       const rect = parent.getBoundingClientRect();
       setPopoverPosition({
         top: Math.max(80, rect.top - 120),
