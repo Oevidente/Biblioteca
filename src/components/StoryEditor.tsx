@@ -38,6 +38,9 @@ import {
   Search,
   Heart,
   RotateCcw,
+  RotateCw,
+  Palette,
+  Baseline,
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -48,6 +51,7 @@ import {
   getPersonalDictionary,
   clearPersonalDictionary,
   ignoreWordInSession,
+  isWordIgnored,
   detectLanguageFromText,
   commonTypoRules,
   getCorrectionForWord,
@@ -211,11 +215,66 @@ export function StoryEditor({
   const [isFallbackMode, setIsFallbackMode] = useState<boolean>(false);
   const [isCheckingLanguageTool, setIsCheckingLanguageTool] = useState<boolean>(false);
 
+  // Resolved / processed issues tracking (RF-22)
+  const resolvedIssuesRef = useRef<Set<string>>(new Set());
+  const highlightTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const getIssueSignature = (issue: ReviewIssue): string => {
+    return `${issue.pageIndex}_${issue.paragraphIndex}_${issue.wordOffset}_${issue.word.toLowerCase()}`;
+  };
+
   useEffect(() => {
     setIgnoredCount(getIgnoredWordsCount());
   }, []);
 
   const [toastMessage, setToastMessage] = useState<string>('');
+
+  // Text Color Picker (RF-19) & Recent Colors
+  const [showColorPicker, setShowColorPicker] = useState<boolean>(false);
+  const colorPickerRef = useRef<HTMLDivElement>(null);
+  const [recentColors, setRecentColors] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('inkora_recent_colors');
+      return saved ? JSON.parse(saved) : ['#000000', '#DC2626', '#2563EB', '#16A34A', '#D97706', '#7C3AED'];
+    } catch (e) {
+      return ['#000000', '#DC2626', '#2563EB', '#16A34A', '#D97706', '#7C3AED'];
+    }
+  });
+
+  const handleApplyColor = (color: string) => {
+    executeCommand('foreColor', color);
+    setRecentColors((prev) => {
+      const filtered = prev.filter((c) => c.toLowerCase() !== color.toLowerCase());
+      const updated = [color, ...filtered].slice(0, 10);
+      try {
+        localStorage.setItem('inkora_recent_colors', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (colorPickerRef.current && !colorPickerRef.current.contains(e.target as Node)) {
+        setShowColorPicker(false);
+      }
+    };
+    if (showColorPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showColorPicker]);
+
+  const PREDEFINED_COLORS = [
+    '#000000', '#434343', '#666666', '#999999', '#B7B7B7', '#CCCCCC', '#D9D9D9', '#EFEFEF', '#F3F3F3', '#FFFFFF',
+    '#980000', '#FF0000', '#FF9900', '#FFFF00', '#00FF00', '#00FFFF', '#4A86E8', '#0000FF', '#9900FF', '#FF00FF',
+    '#E6B8AF', '#F4CCCC', '#FCE5CD', '#FFF2CC', '#D9EAD3', '#D0E0E3', '#C9DAF8', '#CFE2F3', '#D9D2E9', '#EAD1DC',
+    '#DD7E6B', '#EA9999', '#F9CB9C', '#FFE599', '#B6D7A8', '#A2C4C9', '#A4C2F4', '#9FC5E8', '#B4A7D6', '#D5A6BD',
+    '#CC4125', '#E06666', '#F6B26B', '#FFD966', '#93C47D', '#76A5AF', '#6D9EEB', '#6FA8DC', '#8E7CC3', '#C27BA0',
+    '#A61C00', '#CC0000', '#E69138', '#F1C232', '#6AA84F', '#45818E', '#3C78D8', '#3D85C6', '#674EA7', '#A64D79',
+    '#85200C', '#990000', '#B45F06', '#BF9000', '#38761D', '#134F5C', '#1155CC', '#0B5394', '#351C75', '#741B47',
+    '#5B0F00', '#660000', '#783F04', '#7F6000', '#274E13', '#0C343D', '#1C4587', '#073763', '#20124D', '#4C1130',
+  ];
 
   // Local Search Tool (Ctrl + F / Cmd + F) States (RF-12, RF-13)
   const [searchOpen, setSearchOpen] = useState<boolean>(false);
@@ -344,12 +403,26 @@ export function StoryEditor({
       spellCheckTimer.current = setTimeout(async () => {
         try {
           const result = await checkWithLanguageTool(pagesToScan, reviewLanguage);
-          setIssues(result.issues);
+          const filtered = result.issues.filter(
+            (i) =>
+              !resolvedIssuesRef.current.has(i.id) &&
+              !resolvedIssuesRef.current.has(getIssueSignature(i)) &&
+              !resolvedIssuesRef.current.has(i.word.toLowerCase()) &&
+              !isWordIgnored(i.word)
+          );
+          setIssues(filtered);
           setIsFallbackMode(result.isFallback);
         } catch (e) {
           console.warn('Spellcheck execution error, using local fallback:', e);
           const fallbackIssues = runSpellCheckOnPages(pagesToScan, reviewLanguage);
-          setIssues(fallbackIssues);
+          const filtered = fallbackIssues.filter(
+            (i) =>
+              !resolvedIssuesRef.current.has(i.id) &&
+              !resolvedIssuesRef.current.has(getIssueSignature(i)) &&
+              !resolvedIssuesRef.current.has(i.word.toLowerCase()) &&
+              !isWordIgnored(i.word)
+          );
+          setIssues(filtered);
           setIsFallbackMode(true);
         } finally {
           setIsCheckingLanguageTool(false);
@@ -543,24 +616,128 @@ export function StoryEditor({
     setTimeout(() => setToastMessage(''), 3000);
   };
 
-  // Replace misspelled word in editor content (CT-02)
+  // Helper to remove any active temporary review highlight mark from the DOM cleanly (RF-18, RF-21, RF-22)
+  const clearActiveHighlight = () => {
+    if (highlightTimerRef.current) {
+      clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = null;
+    }
+    if (!editorRef.current) return;
+    const marks = editorRef.current.querySelectorAll('mark.review-highlight-temp');
+    marks.forEach((mark) => {
+      const parent = mark.parentNode;
+      if (parent) {
+        const textNode = document.createTextNode(mark.textContent || '');
+        parent.replaceChild(textNode, mark);
+        parent.normalize();
+      }
+    });
+  };
+
+  // Perform atomic text replacement strictly at the target word's DOM range (RF-21, RF-23)
+  const applySuggestionToDom = (issue: ReviewIssue, suggestion: string): boolean => {
+    if (!editorRef.current) return false;
+
+    // 1. Clear any active temporary highlights or search marks to keep text nodes clean
+    clearActiveHighlight();
+    removeHighlights(editorRef.current);
+
+    // 2. Find all valid text nodes in the editor canvas
+    const textNodes: Text[] = [];
+    const walk = document.createTreeWalker(editorRef.current, NodeFilter.SHOW_TEXT, null);
+    let n: Node | null;
+    while ((n = walk.nextNode())) {
+      if (n.parentElement?.closest('[contenteditable="false"]')) continue;
+      textNodes.push(n as Text);
+    }
+
+    let targetNode: Text | null = null;
+    let targetStartOffset = -1;
+
+    // Exact word matching in text nodes
+    for (const tNode of textNodes) {
+      const content = tNode.textContent || '';
+      const idx = content.indexOf(issue.word);
+      if (idx !== -1) {
+        targetNode = tNode;
+        targetStartOffset = idx;
+        break;
+      }
+    }
+
+    // Fallback: case-insensitive match
+    if (!targetNode) {
+      const lowerWord = issue.word.toLowerCase();
+      for (const tNode of textNodes) {
+        const content = (tNode.textContent || '').toLowerCase();
+        const idx = content.indexOf(lowerWord);
+        if (idx !== -1) {
+          targetNode = tNode;
+          targetStartOffset = idx;
+          break;
+        }
+      }
+    }
+
+    if (targetNode && targetStartOffset !== -1) {
+      try {
+        editorRef.current.focus();
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.setStart(targetNode, targetStartOffset);
+        range.setEnd(targetNode, targetStartOffset + issue.word.length);
+
+        if (selection) {
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+
+        // Use native execCommand('insertText') to ensure the replacement is atomic
+        // and seamlessly registered in the browser's native Undo/Redo stack (Ctrl+Z)
+        const commandSucceeded = document.execCommand('insertText', false, suggestion);
+        if (!commandSucceeded) {
+          // Fallback in case execCommand is not available
+          const text = targetNode.textContent || '';
+          targetNode.textContent = text.slice(0, targetStartOffset) + suggestion + text.slice(targetStartOffset + issue.word.length);
+          targetNode.parentElement?.normalize();
+        }
+        return true;
+      } catch (err) {
+        console.warn('Atomic DOM replacement error:', err);
+      }
+    }
+
+    return false;
+  };
+
+  // Replace misspelled word in editor content atomically (RF-21, RF-22, RF-23)
   const handleApplySuggestion = (issue: ReviewIssue, suggestion: string) => {
     if (!editorRef.current) return;
 
-    const currentHtml = editorRef.current.innerHTML;
+    // 1. Perform atomic substitution directly in DOM Range
+    applySuggestionToDom(issue, suggestion);
 
-    // Use boundary-safe replacement for the exact word/phrase
-    const escapeRegex = (s: string) =>
-      s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`\\b${escapeRegex(issue.word)}\\b`, 'g');
+    // 2. Track as resolved so it never re-appears in current session or on scroll (RF-22)
+    resolvedIssuesRef.current.add(issue.id);
+    resolvedIssuesRef.current.add(getIssueSignature(issue));
+    resolvedIssuesRef.current.add(issue.word.toLowerCase());
 
-    // Replace first occurrence corresponding to issue
-    const newHtml = currentHtml.replace(regex, suggestion);
-    editorRef.current.innerHTML = newHtml;
+    // 3. Immediately remove from active issues state (RF-22)
+    setIssues((prev) =>
+      prev.filter(
+        (i) =>
+          i.id !== issue.id &&
+          !resolvedIssuesRef.current.has(i.id) &&
+          !resolvedIssuesRef.current.has(getIssueSignature(i))
+      )
+    );
 
-    handleContentChange();
+    // 4. Close floating popovers
     setActivePopoverIssue(null);
     setPopoverPosition(null);
+
+    // 5. Trigger content update and user toast
+    handleContentChange();
     showToast(t('applySuggestion') + `: ${issue.word} ➔ ${suggestion}`);
   };
 
@@ -617,6 +794,15 @@ export function StoryEditor({
   };
 
   const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // Synchronize Undo/Redo (Ctrl+Z / Ctrl+Y) with editor state (RF-23)
+    if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'z' || e.key.toLowerCase() === 'y')) {
+      clearActiveHighlight();
+      setTimeout(() => {
+        handleContentChange();
+      }, 10);
+      return;
+    }
+
     if (!autoCorrectEnabled) return;
 
     const triggerKeys = [' ', 'Enter', '.', ',', '!', '?', ';', ':'];
@@ -769,17 +955,24 @@ export function StoryEditor({
     }
   };
 
-  // Ignore word in session
+  // Ignore word in session (RF-22)
   const handleIgnoreWord = (issue: ReviewIssue) => {
+    clearActiveHighlight();
     ignoreWordInSession(issue.word);
+    resolvedIssuesRef.current.add(issue.id);
+    resolvedIssuesRef.current.add(getIssueSignature(issue));
+    resolvedIssuesRef.current.add(issue.word.toLowerCase());
     setIgnoredCount(getIgnoredWordsCount());
-    setIssues((prev) => prev.filter((i) => i.id !== issue.id));
+    setIssues((prev) => prev.filter((i) => i.id !== issue.id && i.word.toLowerCase() !== issue.word.toLowerCase()));
     setActivePopoverIssue(null);
     setPopoverPosition(null);
+    showToast(t('ignore') + `: "${issue.word}"`);
   };
 
   const handleRestoreIgnoredWords = () => {
+    clearActiveHighlight();
     clearIgnoredWords();
+    resolvedIssuesRef.current.clear();
     setIgnoredCount(0);
     if (editorRef.current) {
       handleContentChange();
@@ -787,14 +980,18 @@ export function StoryEditor({
     showToast(t('ignoredWordsCleared'));
   };
 
-  // Add word to personal dictionary
+  // Add word to personal dictionary (RF-22)
   const handleAddToDictionary = (issue: ReviewIssue) => {
+    clearActiveHighlight();
     addToPersonalDictionary(issue.word);
+    resolvedIssuesRef.current.add(issue.id);
+    resolvedIssuesRef.current.add(getIssueSignature(issue));
+    resolvedIssuesRef.current.add(issue.word.toLowerCase());
     setDictWords(getPersonalDictionary());
-    setIssues((prev) => prev.filter((i) => i.id !== issue.id));
+    setIssues((prev) => prev.filter((i) => i.id !== issue.id && i.word.toLowerCase() !== issue.word.toLowerCase()));
     setActivePopoverIssue(null);
     setPopoverPosition(null);
-    showToast(t('wordAddedToDictionary'));
+    showToast(t('wordAddedToDictionary') + `: "${issue.word}"`);
   };
 
   // Scroll to and highlight issue in Editor (CT-03, CT-06, RF-05, RF-18)
@@ -802,8 +999,10 @@ export function StoryEditor({
     setActiveTab('edit');
     if (!editorRef.current) return;
 
+    clearActiveHighlight();
+
     // Search for element containing issue word
-    const textNodes: Node[] = [];
+    const textNodes: Text[] = [];
     const walk = document.createTreeWalker(
       editorRef.current,
       NodeFilter.SHOW_TEXT,
@@ -811,80 +1010,73 @@ export function StoryEditor({
     );
     let node: Node | null;
     while ((node = walk.nextNode())) {
-      textNodes.push(node);
+      if (node.parentElement?.closest('[contenteditable="false"]')) continue;
+      textNodes.push(node as Text);
     }
 
-    let targetNode: Node | null = null;
+    let targetNode: Text | null = null;
     let nodeMatchIndex = -1;
 
     for (const n of textNodes) {
       const text = n.textContent || '';
       const localMatchIndex = text.indexOf(issue.word);
-      if (localMatchIndex !== -1 && !targetNode) {
+      if (localMatchIndex !== -1) {
         targetNode = n;
         nodeMatchIndex = localMatchIndex;
+        break;
       }
     }
 
-    if (targetNode && targetNode.parentElement) {
-      const parent = targetNode.parentElement;
+    if (!targetNode) {
+      const lowerWord = issue.word.toLowerCase();
+      for (const n of textNodes) {
+        const text = (n.textContent || '').toLowerCase();
+        const localMatchIndex = text.indexOf(lowerWord);
+        if (localMatchIndex !== -1) {
+          targetNode = n;
+          nodeMatchIndex = localMatchIndex;
+          break;
+        }
+      }
+    }
+
+    if (targetNode && targetNode.parentElement && nodeMatchIndex !== -1 && targetNode.parentNode) {
       const text = targetNode.textContent || '';
       const matchIndex = nodeMatchIndex;
 
-      if (matchIndex !== -1 && targetNode.parentNode) {
-        // Create a temporary highlight element for exact word (RF-18)
-        const highlightSpan = document.createElement('mark');
-        highlightSpan.textContent = issue.word;
-        highlightSpan.className = 'bg-red-500/30 text-red-700 dark:text-red-300 rounded-sm ring-2 ring-red-500 ring-offset-1 transition-all duration-300 px-0.5';
-        
-        const beforeText = document.createTextNode(text.slice(0, matchIndex));
-        const afterText = document.createTextNode(text.slice(matchIndex + issue.word.length));
-        
-        targetNode.parentNode.insertBefore(beforeText, targetNode);
-        targetNode.parentNode.insertBefore(highlightSpan, targetNode);
-        targetNode.parentNode.insertBefore(afterText, targetNode);
-        targetNode.parentNode.removeChild(targetNode);
-        
-        highlightSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
-        setTimeout(() => {
-          if (highlightSpan.parentNode) {
-             const newTargetNode = document.createTextNode(beforeText.textContent! + highlightSpan.textContent! + afterText.textContent!);
-             highlightSpan.parentNode.insertBefore(newTargetNode, beforeText);
-             highlightSpan.parentNode.removeChild(beforeText);
-             highlightSpan.parentNode.removeChild(highlightSpan);
-             highlightSpan.parentNode.removeChild(afterText);
-             parent.normalize();
-          }
-        }, 2500);
-        
-        // Position popover near the highlightSpan
-        const rect = highlightSpan.getBoundingClientRect();
-        setPopoverPosition({
-          top: Math.max(80, rect.top - 120),
-          left: Math.min(window.innerWidth - 300, Math.max(20, rect.left)),
-        });
-        setActivePopoverIssue(issue);
-        return;
-      }
-
-      // Fallback
-      parent.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      });
-
-      const rect = parent.getBoundingClientRect();
+      // Create a temporary highlight element for exact word (RF-18)
+      const highlightSpan = document.createElement('mark');
+      highlightSpan.textContent = text.slice(matchIndex, matchIndex + issue.word.length);
+      highlightSpan.className = 'review-highlight-temp bg-red-500/30 text-red-700 dark:text-red-300 rounded-sm ring-2 ring-red-500 ring-offset-1 transition-all duration-300 px-0.5';
+      
+      const beforeText = document.createTextNode(text.slice(0, matchIndex));
+      const afterText = document.createTextNode(text.slice(matchIndex + issue.word.length));
+      
+      const pNode = targetNode.parentNode;
+      pNode.insertBefore(beforeText, targetNode);
+      pNode.insertBefore(highlightSpan, targetNode);
+      pNode.insertBefore(afterText, targetNode);
+      pNode.removeChild(targetNode);
+      
+      highlightSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      highlightTimerRef.current = setTimeout(() => {
+        clearActiveHighlight();
+      }, 2500);
+      
+      // Position popover near the highlightSpan
+      const rect = highlightSpan.getBoundingClientRect();
       setPopoverPosition({
         top: Math.max(80, rect.top - 120),
         left: Math.min(window.innerWidth - 300, Math.max(20, rect.left)),
       });
       setActivePopoverIssue(issue);
-    } else {
-      // Fallback position
-      setPopoverPosition({ top: 150, left: 100 });
-      setActivePopoverIssue(issue);
+      return;
     }
+
+    // Fallback position
+    setPopoverPosition({ top: 150, left: 100 });
+    setActivePopoverIssue(issue);
   };
 
   // Filter issues based on active tab
@@ -908,409 +1100,270 @@ export function StoryEditor({
           <span>{toastMessage}</span>
         </div>
       )}      {/* Top Toolbar Header */}
-      <div className="bg-[#F5F5F0] dark:bg-[#0A0A0A] p-2.5 lg:p-3 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10 space-y-3 max-w-full overflow-hidden">
+      <div className="bg-[#F5F5F0] dark:bg-[#0A0A0A] p-2.5 lg:p-3 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10 space-y-3 max-w-full relative z-30">
         {!isToolbarCollapsed && (
           <>
-            {/* Format & Tools Bar - Desktop / Tablet Layout */}
-        <div className="hidden lg:flex items-center justify-between gap-2 border-b border-[#1A1A1A]/10 dark:border-white/10 pb-3 overflow-x-auto max-w-full">
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Format selector */}
-            <div className="flex items-center bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 p-0.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => handleFormatBlock('h1')}
-                className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg text-xs font-bold flex items-center gap-1"
-                title={t('formatTitle')}
-              >
-                <Heading1 className="w-4 h-4" />
-                <span className="hidden lg:inline">{t('formatTitle')}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleFormatBlock('h2')}
-                className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg text-xs font-bold flex items-center gap-1"
-                title={t('formatSubtitle')}
-              >
-                <Heading2 className="w-4 h-4" />
-                <span className="hidden lg:inline">{t('formatSubtitle')}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleFormatBlock('p')}
-                className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg text-xs font-bold flex items-center gap-1"
-                title={t('formatParagraph')}
-              >
-                <Pilcrow className="w-4 h-4" />
-                <span className="hidden lg:inline">{t('formatParagraph')}</span>
-              </button>
-            </div>
-
-            <div className="h-5 w-px bg-[#1A1A1A]/10 dark:bg-white/10 mx-1" />
-
-            {/* Inline Styles */}
-            <div className="flex items-center bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 p-0.5">
-              <button
-                type="button"
-                onClick={() => executeCommand('bold')}
-                className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
-                title={t('bold')}
-              >
-                <Bold className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => executeCommand('italic')}
-                className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
-                title={t('italic')}
-              >
-                <Italic className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => executeCommand('underline')}
-                className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
-                title={t('underline')}
-              >
-                <Underline className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => executeCommand('strikeThrough')}
-                className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
-                title={t('strikethrough')}
-              >
-                <Strikethrough className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="h-5 w-px bg-[#1A1A1A]/10 dark:bg-white/10 mx-1 hidden lg:block" />
-
-            {/* Alignments */}
-            <div className="flex items-center bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 p-0.5">
-              <button
-                type="button"
-                onClick={() => executeCommand('justifyLeft')}
-                className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
-                title={t('alignLeft')}
-              >
-                <AlignLeft className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => executeCommand('justifyCenter')}
-                className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
-                title={t('alignCenter')}
-              >
-                <AlignCenter className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => executeCommand('justifyRight')}
-                className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
-                title={t('alignRight')}
-              >
-                <AlignRight className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => executeCommand('justifyFull')}
-                className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
-                title={t('alignJustify')}
-              >
-                <AlignJustify className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="h-5 w-px bg-[#1A1A1A]/10 dark:bg-white/10 mx-1 hidden lg:block" />
-
-            {/* Lists & Quotes */}
-            <div className="flex items-center bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 p-0.5">
-              <button
-                type="button"
-                onClick={() => executeCommand('insertUnorderedList')}
-                className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
-                title={t('bulletList')}
-              >
-                <List className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => executeCommand('insertOrderedList')}
-                className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
-                title={t('numberList')}
-              >
-                <ListOrdered className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleFormatBlock('blockquote')}
-                className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
-                title={t('quote')}
-              >
-                <Quote className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Action Tools & Review Button */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Search Button */}
-            <button
-              type="button"
-              onClick={() => {
-                if (searchOpen) {
-                  handleCloseSearch();
-                } else {
-                  setSearchOpen(true);
-                  setTimeout(() => {
-                    const input = document.getElementById('editor-search-input') as HTMLInputElement;
-                    if (input) {
-                      input.focus();
-                      input.select();
-                    }
-                  }, 100);
-                }
-              }}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-2 border rounded-xl text-xs font-bold hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 transition-colors',
-                searchOpen
-                  ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/40'
-                  : 'bg-white dark:bg-[#1A1A1A] border-[#1A1A1A]/10 dark:border-white/10'
-              )}
-              title={language === 'pt' ? 'Buscar (Ctrl + F)' : language === 'es' ? 'Buscar (Ctrl + F)' : language === 'zh' ? '搜索 (Ctrl + F)' : 'Search (Ctrl + F)'}
-            >
-              <Search className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              <span className="hidden lg:inline">{language === 'pt' ? 'Buscar' : language === 'es' ? 'Buscar' : language === 'zh' ? '搜索' : 'Search'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={insertPageBreak}
-              className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-[#1A1A1A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl text-xs font-bold hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 transition-colors"
-              title={t('insertPageBreak')}
-            >
-              <Split className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              <span className="hidden lg:inline">{t('insertPageBreak')}</span>
-            </button>
-
-            {/* Review Button (RF-03, RF-04) */}
-            <button
-              type="button"
-              onClick={() => setShowReviewPanel(!showReviewPanel)}
-              className={cn(
-                'flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all relative',
-                showReviewPanel
-                  ? 'bg-red-600 text-white shadow-md'
-                  : issues.length > 0
-                  ? 'bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/20'
-                  : 'bg-white dark:bg-[#1A1A1A] border border-[#1A1A1A]/10 dark:border-white/10 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5',
-              )}
-              title={t('reviewButton')}
-            >
-              <CheckCheck className="w-4 h-4 text-red-500 dark:text-red-400" />
-              <span>{t('reviewButton')}</span>
-              {issues.length > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-black animate-pulse">
-                  {issues.length}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Format & Tools Bar - Mobile Touch Layout */}
-        <div className="block lg:hidden space-y-1.5 border-b border-[#1A1A1A]/10 dark:border-white/10 pb-2">
-          <div className="grid grid-cols-5 gap-0.5 bg-[#1A1A1A]/5 dark:bg-white/5 rounded-lg p-0.5">
-            <button
-              type="button"
-              onClick={() => setMobileTab('style')}
-              className={cn(
-                'h-8 rounded-md text-[9px] font-extrabold transition-all flex flex-col items-center justify-center gap-0',
-                mobileTab === 'style'
-                  ? 'bg-white text-[#1A1A1A] dark:bg-[#1C1C1E] dark:text-[#F5F5F0] shadow-xs'
-                  : 'text-[#1A1A1A]/60 dark:text-[#F5F5F0]/60',
-              )}
-            >
-              <Pilcrow className="w-3 h-3" />
-              <span>{t('styleTab')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMobileTab('format')}
-              className={cn(
-                'h-8 rounded-md text-[9px] font-extrabold transition-all flex flex-col items-center justify-center gap-0',
-                mobileTab === 'format'
-                  ? 'bg-white text-[#1A1A1A] dark:bg-[#1C1C1E] dark:text-[#F5F5F0] shadow-xs'
-                  : 'text-[#1A1A1A]/60 dark:text-[#F5F5F0]/60',
-              )}
-            >
-              <Bold className="w-3 h-3" />
-              <span>{t('formatTab')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMobileTab('align')}
-              className={cn(
-                'h-8 rounded-md text-[9px] font-extrabold transition-all flex flex-col items-center justify-center gap-0',
-                mobileTab === 'align'
-                  ? 'bg-white text-[#1A1A1A] dark:bg-[#1C1C1E] dark:text-[#F5F5F0] shadow-xs'
-                  : 'text-[#1A1A1A]/60 dark:text-[#F5F5F0]/60',
-              )}
-            >
-              <AlignCenter className="w-3 h-3" />
-              <span>{t('alignTab')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMobileTab('insert')}
-              className={cn(
-                'h-8 rounded-md text-[9px] font-extrabold transition-all flex flex-col items-center justify-center gap-0',
-                mobileTab === 'insert'
-                  ? 'bg-white text-[#1A1A1A] dark:bg-[#1C1C1E] dark:text-[#F5F5F0] shadow-xs'
-                  : 'text-[#1A1A1A]/60 dark:text-[#F5F5F0]/60',
-              )}
-            >
-              <Split className="w-3 h-3" />
-              <span>{t('extrasTab')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMobileTab('review');
-                setShowReviewPanel(!showReviewPanel);
-              }}
-              className={cn(
-                'h-8 rounded-md text-[9px] font-extrabold transition-all flex flex-col items-center justify-center gap-0 relative',
-                showReviewPanel
-                  ? 'bg-red-600 text-white shadow-xs'
-                  : 'text-[#1A1A1A]/60 dark:text-[#F5F5F0]/60',
-              )}
-            >
-              <CheckCheck className="w-3 h-3" />
-              <span>{t('reviewButton')}</span>
-              {issues.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center">
-                  {issues.length}
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* RF-10: Mobile Active Tab Controls with reduced padding, compact sizes and spacing */}
-          <div className="bg-white dark:bg-[#1A1A1A] rounded-lg p-1 border border-[#1A1A1A]/10 dark:border-white/10 flex items-center justify-center gap-1 min-h-[36px]">
-            {mobileTab === 'style' && (
-              <div className="flex items-center gap-1 w-full justify-around">
+            {/* RF-20: Unified Responsive Zero-Scroll Toolbar */}
+            <div className="flex flex-wrap items-center gap-2 border-b border-[#1A1A1A]/10 dark:border-white/10 pb-3 w-full">
+              
+              {/* Undo & Redo (RF-23) */}
+              <div className="flex items-center bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 p-0.5">
                 <button
                   type="button"
-                  onClick={() => handleFormatBlock('p')}
-                  className="px-2 py-1 bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 rounded-md text-[9px] font-bold flex items-center gap-1"
+                  onMouseDown={(e) => { e.preventDefault(); clearActiveHighlight(); executeCommand('undo'); }}
+                  className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg text-xs"
+                  title={t('undo')}
                 >
-                  <Pilcrow className="w-3 h-3" />
-                  <span>{t('formatParagraph')}</span>
+                  <RotateCcw className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleFormatBlock('h1')}
-                  className="px-2 py-1 bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 rounded-md text-[9px] font-bold flex items-center gap-1"
+                  onMouseDown={(e) => { e.preventDefault(); clearActiveHighlight(); executeCommand('redo'); }}
+                  className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg text-xs"
+                  title={t('redo')}
                 >
-                  <Heading1 className="w-3 h-3" />
-                  <span>{t('formatTitle')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleFormatBlock('h2')}
-                  className="px-2 py-1 bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 rounded-md text-[9px] font-bold flex items-center gap-1"
-                >
-                  <Heading2 className="w-3 h-3" />
-                  <span>{t('formatSubtitle')}</span>
+                  <RotateCw className="w-4 h-4" />
                 </button>
               </div>
-            )}
 
-            {mobileTab === 'format' && (
-              <div className="flex items-center justify-around w-full gap-1">
+              <div className="hidden sm:block h-5 w-px bg-[#1A1A1A]/10 dark:bg-white/10 mx-0.5" />
+
+              {/* Format selector */}
+              <div className="flex items-center bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 p-0.5">
                 <button
                   type="button"
-                  onClick={() => executeCommand('bold')}
-                  className="p-1 bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 rounded-md"
+                  onMouseDown={(e) => { e.preventDefault(); handleFormatBlock('h1'); }}
+                  className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg text-xs font-bold flex items-center gap-1"
+                  title={t('formatTitle')}
+                >
+                  <Heading1 className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); handleFormatBlock('h2'); }}
+                  className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg text-xs font-bold flex items-center gap-1"
+                  title={t('formatSubtitle')}
+                >
+                  <Heading2 className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); handleFormatBlock('p'); }}
+                  className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg text-xs font-bold flex items-center gap-1"
+                  title={t('formatParagraph')}
+                >
+                  <Pilcrow className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="hidden sm:block h-5 w-px bg-[#1A1A1A]/10 dark:bg-white/10 mx-0.5" />
+
+              {/* Inline Styles & Color Picker */}
+              <div className="flex flex-wrap items-center bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 p-0.5">
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('bold'); }}
+                  className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
                   title={t('bold')}
                 >
-                  <Bold className="w-3 h-3" />
+                  <Bold className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => executeCommand('italic')}
-                  className="p-1 bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 rounded-md"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('italic'); }}
+                  className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
                   title={t('italic')}
                 >
-                  <Italic className="w-3 h-3" />
+                  <Italic className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => executeCommand('underline')}
-                  className="p-1 bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 rounded-md"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('underline'); }}
+                  className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
                   title={t('underline')}
                 >
-                  <Underline className="w-3 h-3" />
+                  <Underline className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => executeCommand('strikeThrough')}
-                  className="p-1 bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 rounded-md"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('strikeThrough'); }}
+                  className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
                   title={t('strikethrough')}
                 >
-                  <Strikethrough className="w-3 h-3" />
+                  <Strikethrough className="w-4 h-4" />
                 </button>
-              </div>
-            )}
 
-            {mobileTab === 'align' && (
-              <div className="flex items-center justify-around w-full gap-1">
+                {/* Text Color Picker (RF-19) */}
+                <div className="relative" ref={colorPickerRef}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); setShowColorPicker(!showColorPicker); }}
+                    className="px-2.5 py-1.5 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg flex items-center gap-1.5 transition-colors border border-transparent hover:border-[#1A1A1A]/10 dark:hover:border-white/10"
+                    title={t('textColor')}
+                  >
+                    <Palette className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider hidden sm:inline">{t('textColor')}</span>
+                    <ChevronDown className="w-3 h-3 opacity-50" />
+                  </button>
+                  
+                  {showColorPicker && (
+                    <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-[#1C1C1E] rounded-2xl shadow-2xl border border-[#1A1A1A]/15 dark:border-white/15 z-[100] w-64 max-w-[90vw] flex flex-col gap-2.5">
+                      {/* Theme Colors */}
+                      <div>
+                        <div className="text-[10px] font-black uppercase tracking-wider opacity-60 px-1 mb-1.5">
+                          {t('themeColors')}
+                        </div>
+                        <div className="grid grid-cols-10 gap-1">
+                          {PREDEFINED_COLORS.map(c => (
+                            <button
+                              key={c}
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                handleApplyColor(c);
+                                setShowColorPicker(false);
+                              }}
+                              className="w-[18px] h-[18px] rounded-[3px] border border-black/10 dark:border-white/10 hover:scale-125 transition-transform shadow-xs cursor-pointer"
+                              style={{ backgroundColor: c }}
+                              title={c}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Recent Colors */}
+                      {recentColors.length > 0 && (
+                        <>
+                          <div className="h-px bg-[#1A1A1A]/10 dark:bg-white/10" />
+                          <div>
+                            <div className="text-[10px] font-black uppercase tracking-wider opacity-60 px-1 mb-1.5">
+                              {t('recentColors')}
+                            </div>
+                            <div className="flex flex-wrap gap-1 px-1">
+                              {recentColors.map((rc, idx) => (
+                                <button
+                                  key={`${rc}-${idx}`}
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    handleApplyColor(rc);
+                                    setShowColorPicker(false);
+                                  }}
+                                  className="w-[18px] h-[18px] rounded-[3px] border border-black/15 dark:border-white/15 hover:scale-125 transition-transform shadow-xs cursor-pointer"
+                                  style={{ backgroundColor: rc }}
+                                  title={rc}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      <div className="h-px bg-[#1A1A1A]/10 dark:bg-white/10" />
+                      
+                      {/* Custom Color & Reset */}
+                      <div className="flex flex-col gap-1">
+                        <label className="flex items-center justify-between px-2 py-1.5 cursor-pointer hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-xl transition-colors border border-[#1A1A1A]/10 dark:border-white/10">
+                          <span className="text-xs font-bold">{t('customColor')}</span>
+                          <input 
+                            type="color" 
+                            onInput={(e) => {
+                              handleApplyColor((e.target as HTMLInputElement).value);
+                            }}
+                            className="w-6 h-6 p-0 border-0 rounded cursor-pointer bg-transparent"
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleApplyColor('#000000');
+                            setShowColorPicker(false);
+                          }}
+                          className="flex items-center justify-between px-2 py-1.5 text-xs font-bold opacity-80 hover:opacity-100 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-xl transition-colors"
+                        >
+                          <span>{t('defaultColor')}</span>
+                          <div className="w-3 h-3 rounded-full bg-black dark:bg-white border border-black/20" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="hidden sm:block h-5 w-px bg-[#1A1A1A]/10 dark:bg-white/10 mx-0.5" />
+
+              {/* Alignments */}
+              <div className="flex items-center bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 p-0.5">
                 <button
                   type="button"
-                  onClick={() => executeCommand('justifyLeft')}
-                  className="p-1 bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 rounded-md"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('justifyLeft'); }}
+                  className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
                   title={t('alignLeft')}
                 >
-                  <AlignLeft className="w-3 h-3" />
+                  <AlignLeft className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => executeCommand('justifyCenter')}
-                  className="p-1 bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 rounded-md"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('justifyCenter'); }}
+                  className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
                   title={t('alignCenter')}
                 >
-                  <AlignCenter className="w-3 h-3" />
+                  <AlignCenter className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => executeCommand('justifyRight')}
-                  className="p-1 bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 rounded-md"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('justifyRight'); }}
+                  className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
                   title={t('alignRight')}
                 >
-                  <AlignRight className="w-3 h-3" />
+                  <AlignRight className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => executeCommand('justifyFull')}
-                  className="p-1 bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 rounded-md"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('justifyFull'); }}
+                  className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
                   title={t('alignJustify')}
                 >
-                  <AlignJustify className="w-3 h-3" />
+                  <AlignJustify className="w-4 h-4" />
                 </button>
               </div>
-            )}
 
-            {mobileTab === 'insert' && (
-              <div className="flex items-center justify-around w-full gap-1">
+              <div className="hidden sm:block h-5 w-px bg-[#1A1A1A]/10 dark:bg-white/10 mx-0.5" />
+
+              {/* Lists & Quotes */}
+              <div className="flex items-center bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 p-0.5">
                 <button
                   type="button"
-                  onClick={insertPageBreak}
-                  className="px-2 py-1 bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 rounded-md text-[9px] font-bold flex items-center gap-1"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('insertUnorderedList'); }}
+                  className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
+                  title={t('bulletList')}
                 >
-                  <Split className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                  <span>{t('insertPageBreak')}</span>
+                  <List className="w-4 h-4" />
                 </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('insertOrderedList'); }}
+                  className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
+                  title={t('numberList')}
+                >
+                  <ListOrdered className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); handleFormatBlock('blockquote'); }}
+                  className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg"
+                  title={t('quote')}
+                >
+                  <Quote className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="hidden sm:block h-5 w-px bg-[#1A1A1A]/10 dark:bg-white/10 mx-0.5" />
+
+              {/* Action Tools */}
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -1328,26 +1381,52 @@ export function StoryEditor({
                     }
                   }}
                   className={cn(
-                    "px-2 py-1 rounded-md text-[9px] font-bold flex items-center gap-1 transition-all",
+                    'flex items-center gap-1.5 px-3 py-2 border rounded-xl text-xs font-bold hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 transition-colors',
                     searchOpen
-                      ? "bg-amber-500/20 text-amber-800 dark:text-amber-300"
-                      : "bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 text-[#1A1A1A] dark:text-[#F8FAFC]"
+                      ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/40'
+                      : 'bg-white dark:bg-[#1A1A1A] border-[#1A1A1A]/10 dark:border-white/10'
                   )}
+                  title={language === 'pt' ? 'Buscar (Ctrl + F)' : language === 'es' ? 'Buscar (Ctrl + F)' : language === 'zh' ? '搜索 (Ctrl + F)' : 'Search (Ctrl + F)'}
                 >
-                  <Search className="w-3 h-3 text-amber-500" />
-                  <span>{language === 'pt' ? 'Buscar' : language === 'es' ? 'Buscar' : language === 'zh' ? '搜索' : 'Search'}</span>
+                  <Search className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span className="hidden md:inline">{language === 'pt' ? 'Buscar' : language === 'es' ? 'Buscar' : language === 'zh' ? '搜索' : 'Search'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={insertPageBreak}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-[#1A1A1A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl text-xs font-bold hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 transition-colors"
+                  title={t('insertPageBreak')}
+                >
+                  <Split className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span className="hidden md:inline">{t('insertPageBreak')}</span>
+                </button>
+
+                {/* Review Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowReviewPanel(!showReviewPanel)}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all relative',
+                    showReviewPanel
+                      ? 'bg-red-600 text-white shadow-md'
+                      : issues.length > 0
+                      ? 'bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/20'
+                      : 'bg-white dark:bg-[#1A1A1A] border border-[#1A1A1A]/10 dark:border-white/10 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5',
+                  )}
+                  title={t('reviewButton')}
+                >
+                  <CheckCheck className="w-4 h-4 text-red-500 dark:text-red-400" />
+                  <span className="hidden sm:inline">{t('reviewButton')}</span>
+                  {issues.length > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-black animate-pulse">
+                      {issues.length}
+                    </span>
+                  )}
                 </button>
               </div>
-            )}
 
-            {mobileTab === 'review' && (
-              <div className="text-[9px] font-bold text-[#1A1A1A]/70 dark:text-[#F8FAFC]/70 flex items-center gap-1">
-                <CheckCheck className="w-3.5 h-3.5 text-red-500" />
-                <span>{issues.length > 0 ? `${t('reviewButton')} (${issues.length})` : t('noErrorsFound')}</span>
-              </div>
-            )}
-          </div>
-        </div>
+            </div>
           </>
         )}
 
