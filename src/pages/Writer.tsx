@@ -271,21 +271,21 @@ export function Writer() {
   if (!story) return null;
 
   return (
-    <div className="max-w-5xl mx-auto py-4 sm:py-8 px-3 sm:px-8 animate-in fade-in duration-500 overflow-x-hidden">
+    <div className="max-w-5xl mx-auto py-4 lg:py-8 px-3 lg:px-8 animate-in fade-in duration-500 overflow-x-hidden">
       {/* Top Header & Actions Bar */}
       <div className="flex flex-row items-center justify-between gap-3 mb-6 p-4 rounded-2xl paper-card">
         <div className="flex items-center gap-2.5">
           <button 
             onClick={() => navigate("/admin")}
-            className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity paper-btn-light h-10 w-10 sm:w-auto sm:px-3 sm:py-1.5 rounded-xl shrink-0"
+            className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity paper-btn-light h-10 w-10 lg:w-auto lg:px-3 lg:py-1.5 rounded-xl shrink-0"
             title={t("backToAdmin")}
           >
             <ArrowLeft className="w-4 h-4 shrink-0" />
-            <span className="hidden sm:inline">{t("backToAdmin")}</span>
+            <span className="hidden lg:inline">{t("backToAdmin")}</span>
           </button>
 
           {/* Mobile Auto-Save Status Badge */}
-          <div className="sm:hidden flex items-center gap-1.5 text-[10px] font-mono px-2.5 py-1 rounded-full paper-card shrink-0">
+          <div className="lg:hidden flex items-center gap-1.5 text-[10px] font-mono px-2.5 py-1 rounded-full paper-card shrink-0">
             {isAutoSaving ? (
               <>
                 <Loader2 className="w-3 h-3 animate-spin text-amber-500 animate-duration-1000" />
@@ -307,8 +307,8 @@ export function Writer() {
         </div>
 
         {/* Desktop Auto-Save Badge & Action Buttons */}
-        <div className="flex flex-row items-center justify-end gap-2 sm:gap-3 shrink-0">
-          <div className="hidden sm:flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-full shrink-0 paper-card">
+        <div className="flex flex-row items-center justify-end gap-2 lg:gap-3 shrink-0">
+          <div className="hidden lg:flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-full shrink-0 paper-card">
             {isAutoSaving ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
@@ -336,21 +336,21 @@ export function Writer() {
             <button
               onClick={() => handleSave(true)}
               disabled={isSaving || isAutoSaving}
-              className="px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 min-h-[40px] h-10 w-10 sm:w-auto paper-btn-amber shrink-0"
+              className="px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 min-h-[40px] h-10 w-10 lg:w-auto paper-btn-amber shrink-0"
               title={t("saveDraft")}
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Save className="w-4 h-4 shrink-0" />}
-              <span className="hidden sm:inline">{t("saveDraft")}</span>
+              <span className="hidden lg:inline">{t("saveDraft")}</span>
             </button>
             
             <button
               onClick={() => handleSave(false)}
               disabled={isSaving || isAutoSaving}
-              className="px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 min-h-[40px] h-10 w-10 sm:w-auto paper-btn-dark shrink-0"
+              className="px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 min-h-[40px] h-10 w-10 lg:w-auto paper-btn-dark shrink-0"
               title={story.isDraft ? t("publishNow") : t("saveChanges")}
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Send className="w-4 h-4 shrink-0" />}
-              <span className="hidden sm:inline">{story.isDraft ? t("publishNow") : t("saveChanges")}</span>
+              <span className="hidden lg:inline">{story.isDraft ? t("publishNow") : t("saveChanges")}</span>
             </button>
           </div>
         </div>
@@ -363,15 +363,15 @@ export function Writer() {
       )}
 
       {/* Editor Main Card */}
-      <div className="rounded-2xl p-4 sm:p-8 max-w-full overflow-hidden paper-card">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
+      <div className="rounded-2xl p-4 lg:p-8 max-w-full overflow-hidden paper-card">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6">
           <div>
             <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1.5">{t("editTitle")}</label>
             <input 
               type="text" 
               value={editTitle || ""} 
               onChange={(e) => setEditTitle(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-base sm:text-lg font-serif font-bold rounded-xl focus:outline-none transition-colors paper-card"
+              className="w-full px-3.5 py-2.5 text-base lg:text-lg font-serif font-bold rounded-xl focus:outline-none transition-colors paper-card"
             />
           </div>
           <div>
@@ -406,7 +406,7 @@ export function Writer() {
               type="text" 
               value={editAuthor || ""} 
               onChange={(e) => setEditAuthor(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-base sm:text-lg font-serif rounded-xl focus:outline-none transition-colors paper-card"
+              className="w-full px-3.5 py-2.5 text-base lg:text-lg font-serif rounded-xl focus:outline-none transition-colors paper-card"
             />
           </div>
           <div>

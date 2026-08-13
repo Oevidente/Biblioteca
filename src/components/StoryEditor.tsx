@@ -35,6 +35,7 @@ import {
   Moon,
   Sun,
   ChevronLeft,
+  Search,
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -64,7 +65,7 @@ export function StoryEditor({
   onChange,
   className,
 }: StoryEditorProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const editorRef = useRef<HTMLDivElement>(null);
 
   const isInitialized = useRef(false);
@@ -160,6 +161,12 @@ export function StoryEditor({
     useState<boolean>(false);
   const [dictWords, setDictWords] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string>('');
+
+  // Local Search Tool (Ctrl + F / Cmd + F) States (RF-12, RF-13)
+  const [searchOpen, setSearchOpen] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(0);
+  const [searchMatches, setSearchMatches] = useState<HTMLElement[]>([]);
 
   // Derived state
   const [computedPages, setComputedPages] = useState<string[]>([]);
@@ -326,6 +333,145 @@ export function StoryEditor({
     setDictWords(getPersonalDictionary());
   }, [showPersonalDictModal]);
 
+  // Search Logic and Highlight Management (RF-12, RF-13)
+  const highlightSearchTerm = (container: HTMLElement, query: string, activeIndex: number): HTMLElement[] => {
+    removeHighlights(container);
+
+    if (!query) return [];
+
+    const matches: HTMLElement[] = [];
+    const walk = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+    const textNodes: Node[] = [];
+    let node: Node | null;
+    while ((node = walk.nextNode())) {
+      if (node.parentElement?.closest('[contenteditable="false"]')) continue;
+      textNodes.push(node);
+    }
+
+    const queryLower = query.toLowerCase();
+
+    for (const textNode of textNodes) {
+      const text = textNode.textContent || '';
+      let index = text.toLowerCase().indexOf(queryLower);
+      if (index === -1) continue;
+
+      const parent = textNode.parentNode;
+      if (!parent) continue;
+
+      const fragment = document.createDocumentFragment();
+      let lastIndex = 0;
+
+      while (index !== -1) {
+        if (index > lastIndex) {
+          fragment.appendChild(document.createTextNode(text.substring(lastIndex, index)));
+        }
+
+        const mark = document.createElement('mark');
+        mark.className = 'editor-search-match px-0.5 rounded-sm bg-amber-200 dark:bg-amber-500/30 text-inherit transition-all duration-150';
+        mark.setAttribute('data-search-term', query);
+        mark.textContent = text.substring(index, index + query.length);
+        fragment.appendChild(mark);
+        matches.push(mark);
+
+        lastIndex = index + query.length;
+        index = text.toLowerCase().indexOf(queryLower, lastIndex);
+      }
+
+      if (lastIndex < text.length) {
+        fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+      }
+
+      parent.replaceChild(fragment, textNode);
+    }
+
+    if (matches.length > 0 && activeIndex >= 0 && activeIndex < matches.length) {
+      const activeMark = matches[activeIndex];
+      activeMark.classList.remove('bg-amber-200', 'dark:bg-amber-500/30');
+      activeMark.classList.add('bg-amber-500', 'text-black', 'dark:bg-amber-400', 'ring-2', 'ring-amber-600', 'font-bold');
+
+      activeMark.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+
+    return matches;
+  };
+
+  const removeHighlights = (container: HTMLElement) => {
+    const marks = container.querySelectorAll('mark.editor-search-match');
+    marks.forEach((mark) => {
+      const parent = mark.parentNode;
+      if (parent) {
+        const textNode = document.createTextNode(mark.textContent || '');
+        parent.replaceChild(textNode, mark);
+      }
+    });
+    container.normalize();
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    setCurrentMatchIndex(0);
+    if (editorRef.current) {
+      const matches = highlightSearchTerm(editorRef.current, query, 0);
+      setSearchMatches(matches);
+    }
+  };
+
+  const handleSearchNext = () => {
+    if (searchMatches.length === 0) return;
+    const nextIndex = (currentMatchIndex + 1) % searchMatches.length;
+    setCurrentMatchIndex(nextIndex);
+    if (editorRef.current) {
+      highlightSearchTerm(editorRef.current, searchQuery, nextIndex);
+    }
+  };
+
+  const handleSearchPrev = () => {
+    if (searchMatches.length === 0) return;
+    const prevIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
+    setCurrentMatchIndex(prevIndex);
+    if (editorRef.current) {
+      highlightSearchTerm(editorRef.current, searchQuery, prevIndex);
+    }
+  };
+
+  const handleCloseSearch = () => {
+    setSearchOpen(false);
+    setSearchQuery('');
+    setSearchMatches([]);
+    setCurrentMatchIndex(0);
+    if (editorRef.current) {
+      removeHighlights(editorRef.current);
+    }
+  };
+
+  const handleEditorFocus = () => {
+    if (searchQuery) {
+      handleCloseSearch();
+    }
+  };
+
+  // Keyboard shortcut listener (RF-12, RF-13)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setSearchOpen(true);
+        setTimeout(() => {
+          const input = document.getElementById('editor-search-input') as HTMLInputElement;
+          if (input) {
+            input.focus();
+            input.select();
+          }
+        }, 100);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3000);
@@ -460,12 +606,10 @@ export function StoryEditor({
           <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600 shrink-0" />
           <span>{toastMessage}</span>
         </div>
-      )}
-
-      {/* Top Toolbar Header */}
-      <div className="bg-[#F5F5F0] dark:bg-[#0A0A0A] p-2.5 sm:p-3 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10 space-y-3 max-w-full overflow-hidden">
+      )}      {/* Top Toolbar Header */}
+      <div className="bg-[#F5F5F0] dark:bg-[#0A0A0A] p-2.5 lg:p-3 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10 space-y-3 max-w-full overflow-hidden">
         {/* Format & Tools Bar - Desktop / Tablet Layout */}
-        <div className="hidden sm:flex items-center justify-between gap-2 border-b border-[#1A1A1A]/10 dark:border-white/10 pb-3 overflow-x-auto max-w-full">
+        <div className="hidden lg:flex items-center justify-between gap-2 border-b border-[#1A1A1A]/10 dark:border-white/10 pb-3 overflow-x-auto max-w-full">
           <div className="flex items-center gap-1.5 shrink-0">
             {/* Format selector */}
             <div className="flex items-center bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 p-0.5 shrink-0">
@@ -476,7 +620,7 @@ export function StoryEditor({
                 title={t('formatTitle')}
               >
                 <Heading1 className="w-4 h-4" />
-                <span className="hidden sm:inline">{t('formatTitle')}</span>
+                <span className="hidden lg:inline">{t('formatTitle')}</span>
               </button>
               <button
                 type="button"
@@ -485,7 +629,7 @@ export function StoryEditor({
                 title={t('formatSubtitle')}
               >
                 <Heading2 className="w-4 h-4" />
-                <span className="hidden sm:inline">{t('formatSubtitle')}</span>
+                <span className="hidden lg:inline">{t('formatSubtitle')}</span>
               </button>
               <button
                 type="button"
@@ -494,7 +638,7 @@ export function StoryEditor({
                 title={t('formatParagraph')}
               >
                 <Pilcrow className="w-4 h-4" />
-                <span className="hidden sm:inline">{t('formatParagraph')}</span>
+                <span className="hidden lg:inline">{t('formatParagraph')}</span>
               </button>
             </div>
 
@@ -536,7 +680,7 @@ export function StoryEditor({
               </button>
             </div>
 
-            <div className="h-5 w-px bg-[#1A1A1A]/10 dark:bg-white/10 mx-1 hidden sm:block" />
+            <div className="h-5 w-px bg-[#1A1A1A]/10 dark:bg-white/10 mx-1 hidden lg:block" />
 
             {/* Alignments */}
             <div className="flex items-center bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 p-0.5">
@@ -574,7 +718,7 @@ export function StoryEditor({
               </button>
             </div>
 
-            <div className="h-5 w-px bg-[#1A1A1A]/10 dark:bg-white/10 mx-1 hidden md:block" />
+            <div className="h-5 w-px bg-[#1A1A1A]/10 dark:bg-white/10 mx-1 hidden lg:block" />
 
             {/* Lists & Quotes */}
             <div className="flex items-center bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#1A1A1A]/10 dark:border-white/10 p-0.5">
@@ -607,6 +751,35 @@ export function StoryEditor({
 
           {/* Action Tools & Review Button */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Search Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (searchOpen) {
+                  handleCloseSearch();
+                } else {
+                  setSearchOpen(true);
+                  setTimeout(() => {
+                    const input = document.getElementById('editor-search-input') as HTMLInputElement;
+                    if (input) {
+                      input.focus();
+                      input.select();
+                    }
+                  }, 100);
+                }
+              }}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-2 border rounded-xl text-xs font-bold hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 transition-colors',
+                searchOpen
+                  ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/40'
+                  : 'bg-white dark:bg-[#1A1A1A] border-[#1A1A1A]/10 dark:border-white/10'
+              )}
+              title={language === 'pt' ? 'Buscar (Ctrl + F)' : language === 'es' ? 'Buscar (Ctrl + F)' : language === 'zh' ? '搜索 (Ctrl + F)' : 'Search (Ctrl + F)'}
+            >
+              <Search className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <span className="hidden lg:inline">{language === 'pt' ? 'Buscar' : language === 'es' ? 'Buscar' : language === 'zh' ? '搜索' : 'Search'}</span>
+            </button>
+
             <button
               type="button"
               onClick={insertPageBreak}
@@ -614,7 +787,7 @@ export function StoryEditor({
               title={t('insertPageBreak')}
             >
               <Split className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              <span className="hidden sm:inline">{t('insertPageBreak')}</span>
+              <span className="hidden lg:inline">{t('insertPageBreak')}</span>
             </button>
 
             {/* Review Button (RF-03, RF-04) */}
@@ -643,7 +816,7 @@ export function StoryEditor({
         </div>
 
         {/* Format & Tools Bar - Mobile Touch Layout */}
-        <div className="block sm:hidden space-y-1.5 border-b border-[#1A1A1A]/10 dark:border-white/10 pb-2">
+        <div className="block lg:hidden space-y-1.5 border-b border-[#1A1A1A]/10 dark:border-white/10 pb-2">
           <div className="grid grid-cols-5 gap-0.5 bg-[#1A1A1A]/5 dark:bg-white/5 rounded-lg p-0.5">
             <button
               type="button"
@@ -835,6 +1008,32 @@ export function StoryEditor({
                   <Split className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                   <span>{t('insertPageBreak')}</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (searchOpen) {
+                      handleCloseSearch();
+                    } else {
+                      setSearchOpen(true);
+                      setTimeout(() => {
+                        const input = document.getElementById('editor-search-input') as HTMLInputElement;
+                        if (input) {
+                          input.focus();
+                          input.select();
+                        }
+                      }, 100);
+                    }
+                  }}
+                  className={cn(
+                    "px-2 py-1 rounded-md text-[9px] font-bold flex items-center gap-1 transition-all",
+                    searchOpen
+                      ? "bg-amber-500/20 text-amber-800 dark:text-amber-300"
+                      : "bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 text-[#1A1A1A] dark:text-[#F8FAFC]"
+                  )}
+                >
+                  <Search className="w-3 h-3 text-amber-500" />
+                  <span>{language === 'pt' ? 'Buscar' : language === 'es' ? 'Buscar' : language === 'zh' ? '搜索' : 'Search'}</span>
+                </button>
               </div>
             )}
 
@@ -954,6 +1153,71 @@ export function StoryEditor({
 
       {/* Main Container: Editor Writing Canvas (ALWAYS 100% full width, CT-05) */}
       <div className="w-full relative">
+        {/* Local Search Tool Floating Panel (RF-12, RF-13) */}
+        {searchOpen && (
+          <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 p-1.5 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md rounded-xl border border-[#1A1A1A]/15 dark:border-white/15 shadow-xl animate-in slide-in-from-top-4 duration-200">
+            <div className="flex items-center gap-1 px-1">
+              <Search className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <input
+                id="editor-search-input"
+                type="text"
+                placeholder={language === 'pt' ? 'Buscar no texto...' : language === 'es' ? 'Buscar en el texto...' : language === 'zh' ? '在文中搜索...' : 'Search in text...'}
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                      handleSearchPrev();
+                    } else {
+                      handleSearchNext();
+                    }
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    handleCloseSearch();
+                  }
+                }}
+                className="w-36 sm:w-48 bg-transparent border-none text-xs text-[#1A1A1A] dark:text-[#F8FAFC] focus:outline-none placeholder-[#1A1A1A]/40 dark:placeholder-white/40 font-serif"
+              />
+            </div>
+
+            {/* Match Counter */}
+            <span className="text-[10px] font-mono font-bold bg-[#1A1A1A]/5 dark:bg-white/5 px-2 py-0.5 rounded-md text-[#1A1A1A]/60 dark:text-[#F8FAFC]/60 whitespace-nowrap">
+              {searchMatches.length > 0 ? `${currentMatchIndex + 1} / ${searchMatches.length}` : '0 / 0'}
+            </span>
+
+            {/* Navigation Buttons */}
+            <div className="flex items-center gap-0.5 border-l border-[#1A1A1A]/10 dark:border-white/10 pl-1.5">
+              <button
+                type="button"
+                onClick={handleSearchPrev}
+                disabled={searchMatches.length === 0}
+                className="p-1 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-md disabled:opacity-40"
+                title={language === 'pt' ? 'Anterior (Shift+Enter)' : 'Previous (Shift+Enter)'}
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={handleSearchNext}
+                disabled={searchMatches.length === 0}
+                className="p-1 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-md disabled:opacity-40"
+                title={language === 'pt' ? 'Próxima (Enter)' : 'Next (Enter)'}
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={handleCloseSearch}
+                className="p-1 hover:bg-red-500/10 text-red-500 rounded-md"
+                title={t('cancel')}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="w-full">
           {activeTab === 'edit' ? (
             <div className="relative">
@@ -961,6 +1225,8 @@ export function StoryEditor({
                 ref={editorRef}
                 contentEditable
                 onInput={handleContentChange}
+                onFocus={handleEditorFocus}
+                onClick={handleEditorFocus}
                 className="w-full min-h-[380px] max-h-[650px] overflow-y-auto p-4 sm:p-8 bg-white dark:bg-[#1A1A1A] border border-[#1A1A1A]/15 dark:border-white/15 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white font-serif text-base sm:text-lg leading-relaxed text-[#1A1A1A] dark:text-[#F5F5F0] shadow-inner prose dark:prose-invert max-w-none transition-all duration-300"
                 style={{ minHeight: '380px' }}
               />
@@ -1123,16 +1389,16 @@ export function StoryEditor({
 
         {showReviewPanel && createPortal(
           <>
-            {/* RF-09: Backdrop overlay on mobile for sliding drawer feel */}
+            {/* RF-09: Backdrop overlay on mobile/tablet for sliding drawer feel */}
             <div
-              className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 sm:hidden animate-in fade-in duration-200"
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 lg:hidden animate-in fade-in duration-200"
               onClick={() => setShowReviewPanel(false)}
             />
 
-            {/* RF-09: Responsive Drawer: bottom-sliding on mobile, standard sidebar on desktop */}
-            <div className="fixed bottom-0 left-0 right-0 sm:bottom-auto sm:left-auto sm:top-20 sm:right-8 z-50 sm:z-40 w-full sm:w-[380px] max-h-[80vh] sm:max-h-[82vh] overflow-y-auto bg-white dark:bg-[#121212] sm:bg-white/95 sm:dark:bg-[#121212]/95 backdrop-blur-md rounded-t-3xl sm:rounded-3xl border-t border-x sm:border border-[#1A1A1A]/20 dark:border-white/20 p-5 sm:p-5 shadow-2xl space-y-4 animate-in slide-in-from-bottom sm:slide-in-from-right-6 duration-200 text-[#1A1A1A] dark:text-[#F8FAFC]">
-              {/* Mobile Drawer visual handle indicator */}
-              <div className="w-12 h-1 bg-black/10 dark:bg-white/20 rounded-full mx-auto mb-1.5 sm:hidden shrink-0" />
+            {/* RF-09: Responsive Drawer: bottom-sliding on mobile/tablet, standard sidebar on desktop */}
+            <div className="fixed bottom-0 left-0 right-0 lg:bottom-auto lg:left-auto lg:top-20 lg:right-8 z-50 lg:z-40 w-full lg:w-[380px] max-h-[80vh] lg:max-h-[82vh] overflow-y-auto bg-white dark:bg-[#121212] lg:bg-white/95 lg:dark:bg-[#121212]/95 backdrop-blur-md rounded-t-3xl lg:rounded-3xl border-t border-x lg:border border-[#1A1A1A]/20 dark:border-white/20 p-5 lg:p-5 shadow-2xl space-y-4 animate-in slide-in-from-bottom lg:slide-in-from-right-6 duration-200 text-[#1A1A1A] dark:text-[#F8FAFC]">
+              {/* Mobile/Tablet Drawer visual handle indicator */}
+              <div className="w-12 h-1 bg-black/10 dark:bg-white/20 rounded-full mx-auto mb-1.5 lg:hidden shrink-0" />
             {/* Review Panel Header */}
             <div className="flex items-center justify-between pb-3 border-b border-[#1A1A1A]/10 dark:border-white/10 sticky top-0 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-xs z-10 pt-1">
               <div className="flex items-center gap-2">
