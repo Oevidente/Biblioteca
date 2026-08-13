@@ -77,6 +77,14 @@ export function isWordIgnored(word: string): boolean {
   return sessionIgnoredWords.has(word.trim().toLowerCase());
 }
 
+export function clearIgnoredWords(): void {
+  sessionIgnoredWords.clear();
+}
+
+export function getIgnoredWordsCount(): number {
+  return sessionIgnoredWords.size;
+}
+
 // Dictionaries & Misspelling Rules
 export const commonTypoRules: Record<string, Record<string, string[]>> = {
   pt: {
@@ -351,6 +359,34 @@ const validVocabularies: Record<string, Set<string>> = {
     'amor', 'vida', 'tempo', 'dia', 'noite', 'casa', 'mundo', 'homem', 'mulher',
     'olhos', 'mão', 'caminho', 'luz', 'sombras', 'vento', 'fogo', 'água', 'terra',
     'céu', 'estrelas', 'noite', 'manhã', 'tarde', 'silêncio', 'voz', 'passo',
+    'ciúme', 'ciúmes', 'ciumento', 'ciumenta', 'álbum', 'álbuns', 'úmido', 'útil',
+    'úteis', 'incrível', 'incríveis', 'difícil', 'difíceis', 'fácil', 'fáceis',
+    'possível', 'possíveis', 'impossível', 'impossíveis', 'horrível', 'horríveis',
+    'terrível', 'terríveis', 'sensível', 'sensíveis', 'amável', 'amáveis',
+    'herói', 'heróis', 'papéis', 'anéis', 'lençóis', 'pastéis', 'saudável',
+    'vulnerável', 'insustentável', 'sustentável', 'lamentável', 'admirável',
+    'confortável', 'desconfortável', 'saúde', 'música', 'músicas', 'rápido',
+    'rápidos', 'rápida', 'rápidas', 'último', 'últimos', 'última', 'últimas',
+    'próximo', 'próximos', 'próxima', 'próximas', 'notícia', 'notícias',
+    'sério', 'sérios', 'séria', 'sérias', 'relógio', 'relógios', 'comércio',
+    'comércios', 'física', 'química', 'matemática', 'estatística', 'histórico',
+    'históricos', 'histórica', 'históricas', 'público', 'públicos', 'pública',
+    'públicas', 'espírito', 'espíritos', 'século', 'séculos', 'gênio', 'gênios',
+    'silêncio', 'silêncios', 'influência', 'influências', 'experiência',
+    'experiências', 'resistência', 'resistências', 'paciência', 'consequência',
+    'consequências', 'frequência', 'ciência', 'ciências', 'eficiência',
+    'essência', 'essências', 'reunião', 'reuniões', 'opinião', 'opiniões',
+    'decisão', 'decisões', 'visão', 'visões', 'razão', 'razões', 'região',
+    'regiões', 'estação', 'estações', 'atração', 'atrações', 'geração',
+    'gerações', 'criação', 'criações', 'posição', 'posições', 'condição',
+    'condições', 'comunicação', 'comunicações', 'organização', 'organizações',
+    'realização', 'realizações', 'alteração', 'alterações', 'avaliação',
+    'avaliações', 'declaração', 'declarações', 'explicação', 'explicações',
+    'aplicação', 'aplicações', 'publicação', 'publicações', 'observação',
+    'observações', 'conclusão', 'conclusões', 'discussão', 'discussões',
+    'pressão', 'pressões', 'expressão', 'expressões', 'missão', 'missões',
+    'emissão', 'emissões', 'transmissão', 'transmissões', 'permissão',
+    'permissoes', 'sessão', 'sessões', 'secção', 'secções'
   ]),
   en: new Set([
     'a', 'an', 'the', 'and', 'but', 'or', 'so', 'because', 'as', 'until', 'while',
@@ -390,6 +426,15 @@ const validVocabularies: Record<string, Set<string>> = {
     'sustituto', 'sustitutos', 'definitivamente', 'también', 'sólo', 'solo', 'está',
     'aquí', 'allí', 'después', 'corazón', 'canción', 'página', 'capítulo', 'historias',
     'carácter', 'mención', 'sección', 'acción', 'expresión', 'biblioteca', 'autor',
+    'canciones', 'páginas', 'capítulos', 'caracteres', 'menciones', 'secciones',
+    'acciones', 'expresiones', 'están', 'atención', 'atenciones', 'opinión',
+    'opiniones', 'decisión', 'decisiones', 'relación', 'relaciones', 'dirección',
+    'direcciones', 'situación', 'situaciones', 'solución', 'soluciones', 'así',
+    'cómo', 'quién', 'qué', 'dónde', 'cuándo', 'cuál', 'cuáles', 'algún', 'ningún',
+    'además', 'quizás', 'quizá', 'común', 'comunes', 'inglés', 'francés', 'alemán',
+    'fácil', 'fáciles', 'difícil', 'difíciles', 'útil', 'útiles', 'rápido', 'rápidos',
+    'rápida', 'rápidas', 'último', 'últimos', 'última', 'últimas', 'próximo',
+    'próximos', 'próxima', 'próximas'
   ]),
   id: new Set([
     'dan', 'yang', 'di', 'ke', 'dari', 'ini', 'itu', 'dengan', 'untuk', 'pada',
@@ -433,6 +478,50 @@ function levenshteinDistance(a: string, b: string): number {
 }
 
 /**
+ * Helper to strip accents from a word for smart diacritic/accent-missing spellchecking
+ */
+export function removeAccents(str: string): string {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+/**
+ * Find dynamic autocorrection or suggestion for a word by checking:
+ * 1. Explicit typo mapping
+ * 2. Accent-missing match from the vocabulary list
+ */
+export function getCorrectionForWord(
+  word: string,
+  lang: 'pt' | 'es' | 'en' | 'id' | 'zh',
+): string | undefined {
+  const cleanWord = word.trim().toLowerCase();
+  if (!cleanWord) return undefined;
+
+  // 1. Direct typo rules map check
+  const langRules = commonTypoRules[lang] || commonTypoRules.pt;
+  if (langRules[cleanWord] && langRules[cleanWord].length > 0) {
+    return langRules[cleanWord][0];
+  }
+
+  // 2. Unaccented matching on vocab Set for PT and ES (smart correction)
+  if (lang === 'pt' || lang === 'es') {
+    const vocabSet = validVocabularies[lang];
+    if (vocabSet) {
+      // Find the first accented word in our vocabulary that matches cleanWord when unaccented
+      for (const vocabWord of vocabSet) {
+        if (vocabWord.length === cleanWord.length) {
+          const unaccentedVocab = removeAccents(vocabWord);
+          if (unaccentedVocab === cleanWord && vocabWord !== cleanWord) {
+            return vocabWord;
+          }
+        }
+      }
+    }
+  }
+
+  return undefined;
+}
+
+/**
  * Find candidate suggestions from dictionary or rules
  */
 export function getSuggestionsForWord(
@@ -442,10 +531,13 @@ export function getSuggestionsForWord(
   const cleanWord = word.trim().toLowerCase();
   if (!cleanWord) return [];
 
-  // 1. Direct rule match
-  const langRules = commonTypoRules[lang] || commonTypoRules.pt;
-  if (langRules[cleanWord]) {
-    return langRules[cleanWord];
+  // 1. Check direct correction helper (which handles rules & unaccented)
+  const correction = getCorrectionForWord(cleanWord, lang);
+  if (correction) {
+    const formatted = word[0] === word[0].toUpperCase()
+      ? correction.charAt(0).toUpperCase() + correction.slice(1)
+      : correction;
+    return [formatted];
   }
 
   // 2. Levenshtein match from vocabulary set
@@ -645,14 +737,18 @@ export function runSpellCheckOnPages(
             continue;
           }
 
-          // Check direct typo rules or suspicious misspellings
-          if (knownTypoMap[cleanWord]) {
+          // Check direct typo rules, unaccented mappings, or suspicious misspellings
+          const correction = getCorrectionForWord(cleanWord, lang);
+          if (correction) {
+            const formattedCorrection = rawWord[0] === rawWord[0].toUpperCase()
+              ? correction.charAt(0).toUpperCase() + correction.slice(1)
+              : correction;
             issues.push({
               id: `spell_${pageIdx}_${pIdx}_${match.index}_${cleanWord}`,
               category: 'spelling',
               word: rawWord,
               context: getSnippet(pText, match.index, rawWord.length),
-              suggestions: knownTypoMap[cleanWord],
+              suggestions: [formattedCorrection],
               pageIndex: pageIdx,
               paragraphIndex: pIdx,
               wordOffset: match.index,
@@ -674,3 +770,262 @@ function getSnippet(fullText: string, index: number, length: number): string {
   if (end < fullText.length) snippet = snippet + '...';
   return snippet;
 }
+
+export interface LanguageToolCheckResult {
+  issues: ReviewIssue[];
+  isFallback: boolean;
+  errorReason?: string;
+}
+
+export function mapLanguageToLTCode(
+  lang: ReviewLanguage,
+  sampleText = '',
+): string {
+  let activeLang = lang;
+  if (activeLang === 'auto') {
+    activeLang = detectLanguageFromText(sampleText);
+  }
+  switch (activeLang) {
+    case 'pt':
+      return 'pt-BR';
+    case 'en':
+      return 'en-US';
+    case 'es':
+      return 'es';
+    case 'zh':
+      return 'zh-CN';
+    case 'id':
+      return 'id';
+    default:
+      return 'pt-BR';
+  }
+}
+
+interface LTMatch {
+  message: string;
+  shortMessage?: string;
+  offset: number;
+  length: number;
+  replacements: Array<{ value: string }>;
+  rule?: {
+    id: string;
+    description: string;
+    issueType?: string;
+    category?: { id: string; name: string };
+  };
+  context?: { text: string; offset: number; length: number };
+}
+
+function mapLTCategory(match: LTMatch): IssueCategory {
+  const issueType = match.rule?.issueType?.toLowerCase() || '';
+  const catId = match.rule?.category?.id?.toUpperCase() || '';
+
+  if (issueType === 'misspelling' || catId === 'TYPOS') {
+    return 'spelling';
+  }
+  if (
+    issueType === 'punctuation' ||
+    catId === 'PUNCTUATION' ||
+    catId === 'TYPOGRAPHY'
+  ) {
+    return 'punctuation';
+  }
+  return 'grammar';
+}
+
+/**
+ * Perform LanguageTool API check (POST https://api.languagetool.org/v2/check)
+ * Features payload chunking for text > 20,000 chars, mapped language parameters,
+ * and automatic fallback to local spellcheck on HTTP 429 or network errors.
+ */
+export async function checkWithLanguageTool(
+  pages: string[],
+  selectedLang: ReviewLanguage = 'auto',
+): Promise<LanguageToolCheckResult> {
+  if (!pages || pages.length === 0) {
+    return { issues: [], isFallback: false };
+  }
+
+  interface ParaItem {
+    pageIdx: number;
+    pIdx: number;
+    text: string;
+  }
+
+  const allItems: ParaItem[] = [];
+  let combinedSample = '';
+
+  pages.forEach((pageHtml, pageIdx) => {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = pageHtml;
+    tempDiv.querySelectorAll('.page-break-marker').forEach((m) => m.remove());
+
+    const paragraphs = Array.from(
+      tempDiv.querySelectorAll('p, h1, h2, h3, h4, h5, h6, blockquote, li'),
+    );
+    const targetParagraphs =
+      paragraphs.length > 0 ? paragraphs : [tempDiv as unknown as Element];
+
+    targetParagraphs.forEach((pEl, pIdx) => {
+      const pText = pEl.textContent || '';
+      if (pText.trim()) {
+        allItems.push({ pageIdx, pIdx, text: pText });
+        combinedSample += pText + ' ';
+      }
+    });
+  });
+
+  if (allItems.length === 0) {
+    return { issues: [], isFallback: false };
+  }
+
+  const ltLangCode = mapLanguageToLTCode(selectedLang, combinedSample);
+  const personalDict = new Set(
+    getPersonalDictionary().map((w) => w.toLowerCase()),
+  );
+
+  interface ChunkGroup {
+    text: string;
+    items: Array<{
+      pageIdx: number;
+      pIdx: number;
+      paragraphText: string;
+      startInChunk: number;
+      endInChunk: number;
+    }>;
+  }
+
+  const MAX_CHUNK_LEN = 20000;
+  const chunkGroups: ChunkGroup[] = [];
+
+  let currentChunkText = '';
+  let currentChunkItems: ChunkGroup['items'] = [];
+
+  allItems.forEach((item) => {
+    const pText = item.text;
+    const addLen = pText.length + 2;
+
+    if (
+      currentChunkText.length + addLen > MAX_CHUNK_LEN &&
+      currentChunkText.length > 0
+    ) {
+      chunkGroups.push({ text: currentChunkText, items: currentChunkItems });
+      currentChunkText = '';
+      currentChunkItems = [];
+    }
+
+    const startInChunk = currentChunkText.length;
+    currentChunkText += pText + '\n\n';
+    const endInChunk = currentChunkText.length - 2;
+
+    currentChunkItems.push({
+      pageIdx: item.pageIdx,
+      pIdx: item.pIdx,
+      paragraphText: pText,
+      startInChunk,
+      endInChunk,
+    });
+  });
+
+  if (currentChunkText.length > 0) {
+    chunkGroups.push({ text: currentChunkText, items: currentChunkItems });
+  }
+
+  const ltIssues: ReviewIssue[] = [];
+
+  try {
+    for (let cIdx = 0; cIdx < chunkGroups.length; cIdx++) {
+      const group = chunkGroups[cIdx];
+      const params = new URLSearchParams();
+      params.append('text', group.text);
+      params.append('language', ltLangCode);
+
+      const response = await fetch('https://api.languagetool.org/v2/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params.toString(),
+      });
+
+      if (response.status === 429) {
+        console.warn(
+          'LanguageTool rate limit (429) encountered. Falling back to local checker.',
+        );
+        throw new Error('HTTP 429 Rate Limit');
+      }
+
+      if (!response.ok) {
+        console.warn(
+          `LanguageTool response status ${response.status}. Falling back to local checker.`,
+        );
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      const matches: LTMatch[] = data.matches || [];
+
+      matches.forEach((m) => {
+        const matchOffset = m.offset;
+        const matchLength = m.length;
+
+        const targetItem = group.items.find(
+          (it) =>
+            matchOffset >= it.startInChunk && matchOffset < it.endInChunk,
+        );
+
+        if (targetItem) {
+          const offsetInParagraph = matchOffset - targetItem.startInChunk;
+          const matchedWord = targetItem.paragraphText.slice(
+            offsetInParagraph,
+            offsetInParagraph + matchLength,
+          );
+
+          const cleanWord = matchedWord.trim().toLowerCase();
+
+          // Apply personal dictionary & session ignored filtering
+          if (
+            isWordIgnored(matchedWord) ||
+            isWordIgnored(cleanWord) ||
+            personalDict.has(cleanWord)
+          ) {
+            return;
+          }
+
+          const category = mapLTCategory(m);
+          const suggestions = (m.replacements || [])
+            .map((r) => r.value)
+            .slice(0, 5);
+
+          ltIssues.push({
+            id: `lt_${cIdx}_${targetItem.pageIdx}_${targetItem.pIdx}_${offsetInParagraph}_${m.rule?.id || 'rule'}`,
+            category,
+            word: matchedWord,
+            context: getSnippet(
+              targetItem.paragraphText,
+              offsetInParagraph,
+              matchLength,
+            ),
+            suggestions,
+            pageIndex: targetItem.pageIdx,
+            paragraphIndex: targetItem.pIdx,
+            wordOffset: offsetInParagraph,
+            message: m.message || m.shortMessage || m.rule?.description,
+          });
+        }
+      });
+    }
+
+    return { issues: ltIssues, isFallback: false };
+  } catch (err) {
+    console.warn('LanguageTool API execution failed or fell back:', err);
+    const localIssues = runSpellCheckOnPages(pages, selectedLang);
+    return {
+      issues: localIssues,
+      isFallback: true,
+      errorReason:
+        'LanguageTool indisponível (HTTP 429 / offline) — usando modo local',
+    };
+  }
+}
+

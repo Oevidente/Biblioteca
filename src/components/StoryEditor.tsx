@@ -37,17 +37,22 @@ import {
   ChevronLeft,
   Search,
   Heart,
+  RotateCcw,
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import {
   runSpellCheckOnPages,
+  checkWithLanguageTool,
   addToPersonalDictionary,
   getPersonalDictionary,
   clearPersonalDictionary,
   ignoreWordInSession,
   detectLanguageFromText,
   commonTypoRules,
+  getCorrectionForWord,
+  clearIgnoredWords,
+  getIgnoredWordsCount,
   ReviewIssue,
   ReviewLanguage,
   IssueCategory,
@@ -180,7 +185,14 @@ export function StoryEditor({
   >('format');
 
   // Review & Spellcheck State
-  const [reviewLanguage, setReviewLanguage] = useState<ReviewLanguage>('auto');
+  const [reviewLanguage, setReviewLanguage] = useState<ReviewLanguage>(language as ReviewLanguage);
+
+  // Sync spell check language with global site language on change
+  useEffect(() => {
+    if (language) {
+      setReviewLanguage(language as ReviewLanguage);
+    }
+  }, [language]);
   const [showReviewPanel, setShowReviewPanel] = useState<boolean>(false);
   const [reviewFilterCategory, setReviewFilterCategory] = useState<
     'all' | IssueCategory
@@ -195,6 +207,14 @@ export function StoryEditor({
   const [showPersonalDictModal, setShowPersonalDictModal] =
     useState<boolean>(false);
   const [dictWords, setDictWords] = useState<string[]>([]);
+  const [ignoredCount, setIgnoredCount] = useState<number>(0);
+  const [isFallbackMode, setIsFallbackMode] = useState<boolean>(false);
+  const [isCheckingLanguageTool, setIsCheckingLanguageTool] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIgnoredCount(getIgnoredWordsCount());
+  }, []);
+
   const [toastMessage, setToastMessage] = useState<string>('');
 
   // Local Search Tool (Ctrl + F / Cmd + F) States (RF-12, RF-13)
@@ -315,15 +335,26 @@ export function StoryEditor({
     };
   };
 
-  // Run async spellcheck with debounce (Stress test support CT-04)
+  // Run async LanguageTool / spellcheck with 1.8s debounce (RF-15, RF-16)
   const spellCheckTimer = useRef<NodeJS.Timeout | null>(null);
   const triggerSpellCheck = useCallback(
     (pagesToScan: string[]) => {
       if (spellCheckTimer.current) clearTimeout(spellCheckTimer.current);
-      spellCheckTimer.current = setTimeout(() => {
-        const found = runSpellCheckOnPages(pagesToScan, reviewLanguage);
-        setIssues(found);
-      }, 150);
+      setIsCheckingLanguageTool(true);
+      spellCheckTimer.current = setTimeout(async () => {
+        try {
+          const result = await checkWithLanguageTool(pagesToScan, reviewLanguage);
+          setIssues(result.issues);
+          setIsFallbackMode(result.isFallback);
+        } catch (e) {
+          console.warn('Spellcheck execution error, using local fallback:', e);
+          const fallbackIssues = runSpellCheckOnPages(pagesToScan, reviewLanguage);
+          setIssues(fallbackIssues);
+          setIsFallbackMode(true);
+        } finally {
+          setIsCheckingLanguageTool(false);
+        }
+      }, 1800);
     },
     [reviewLanguage],
   );
@@ -604,6 +635,28 @@ export function StoryEditor({
 
         const beforeCaretText = text.slice(0, offset);
 
+        // RF-14: Dialogue dash auto-substitution (- to —)
+        if (e.key === ' ' && beforeCaretText.endsWith('-')) {
+          const hasSpaceBefore = beforeCaretText.length > 1 && /[ \u00a0\t]/.test(beforeCaretText.charAt(beforeCaretText.length - 2));
+          if (!hasSpaceBefore) {
+            e.preventDefault();
+            const startOfHyphenIdx = offset - 1;
+            const replacement = '— ';
+            const newText = text.slice(0, startOfHyphenIdx) + replacement + text.slice(offset);
+            textNode.textContent = newText;
+
+            const newOffset = startOfHyphenIdx + replacement.length;
+            const newRange = document.createRange();
+            newRange.setStart(textNode, newOffset);
+            newRange.setEnd(textNode, newOffset);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+
+            handleContentChange();
+            return;
+          }
+        }
+
         const wordMatch = beforeCaretText.match(/([a-zA-ZÀ-ÿ\-']+)$/);
         if (wordMatch) {
           const lastWord = wordMatch[1];
@@ -611,11 +664,9 @@ export function StoryEditor({
 
           const currentTextForLang = editorRef.current?.innerText || '';
           const lang = reviewLanguage === 'auto' ? detectLanguageFromText(currentTextForLang) : reviewLanguage;
-          const langRules = commonTypoRules[lang];
+          const suggestion = getCorrectionForWord(cleanWord, lang);
 
-          if (langRules && langRules[cleanWord]) {
-            const suggestion = langRules[cleanWord][0];
-
+          if (suggestion) {
             let finalCorrection = suggestion;
             if (lastWord === lastWord.toUpperCase()) {
               finalCorrection = suggestion.toUpperCase();
@@ -649,9 +700,6 @@ export function StoryEditor({
 
     const textContent = editorRef.current.innerText || '';
     const lang = reviewLanguage === 'auto' ? detectLanguageFromText(textContent) : reviewLanguage;
-    const langRules = commonTypoRules[lang];
-
-    if (!langRules) return;
 
     let correctionCount = 0;
 
@@ -666,8 +714,8 @@ export function StoryEditor({
           const rawWord = match[1];
           const cleanWord = rawWord.toLowerCase();
 
-          if (langRules[cleanWord]) {
-            const suggestion = langRules[cleanWord][0];
+          const suggestion = getCorrectionForWord(cleanWord, lang);
+          if (suggestion) {
             let finalCorrection = suggestion;
             if (cleanWord !== suggestion) {
               if (rawWord === rawWord.toUpperCase()) {
@@ -724,11 +772,21 @@ export function StoryEditor({
   // Ignore word in session
   const handleIgnoreWord = (issue: ReviewIssue) => {
     ignoreWordInSession(issue.word);
+    setIgnoredCount(getIgnoredWordsCount());
     if (editorRef.current) {
       handleContentChange();
     }
     setActivePopoverIssue(null);
     setPopoverPosition(null);
+  };
+
+  const handleRestoreIgnoredWords = () => {
+    clearIgnoredWords();
+    setIgnoredCount(0);
+    if (editorRef.current) {
+      handleContentChange();
+    }
+    showToast(t('ignoredWordsCleared'));
   };
 
   // Add word to personal dictionary
@@ -1680,6 +1738,27 @@ export function StoryEditor({
               </div>
             </div>
 
+            {/* LanguageTool Status & Mode Badge (RF-15, RF-16) */}
+            <div className="flex items-center justify-between text-[10px] font-bold px-1 py-1 rounded-xl bg-[#F5F5F0]/80 dark:bg-[#1A1A1A]/80 border border-[#1A1A1A]/10 dark:border-white/10 px-2.5">
+              <span className="text-[#1A1A1A]/70 dark:text-[#F8FAFC]/70">Motor:</span>
+              {isCheckingLanguageTool ? (
+                <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-extrabold animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+                  {t('checkingProgress')}
+                </span>
+              ) : isFallbackMode ? (
+                <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-extrabold" title="Fallback ativado devido a limite de cota ou sem conexão">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  {t('fallbackModeActive')}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-extrabold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  {t('languageToolActive')}
+                </span>
+              )}
+            </div>
+
             {/* Language Selector (RF-01, CT-01) */}
             <div className="space-y-1.5">
               <label className="text-[10px] uppercase font-bold tracking-widest text-[#1A1A1A]/80 dark:text-[#F8FAFC]/90 flex items-center gap-1.5">
@@ -1809,6 +1888,23 @@ export function StoryEditor({
                 {t('wordsInDictionary', { count: dictWords.length })}
               </span>
             </div>
+
+            {/* Ignored Words Manage Button */}
+            {ignoredCount > 0 && (
+              <div className="flex justify-between items-center text-[11px] px-1 pt-1.5 border-t border-[#1A1A1A]/5 dark:border-white/5 text-[#1A1A1A] dark:text-[#F8FAFC] animate-in fade-in slide-in-from-top-1 duration-200">
+                <button
+                  type="button"
+                  onClick={handleRestoreIgnoredWords}
+                  className="flex items-center gap-1.5 text-red-600 dark:text-red-400 hover:underline font-bold"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>{t('restoreIgnoredWords')}</span>
+                </button>
+                <span className="text-[10px] font-mono text-[#1A1A1A]/65 dark:text-[#F8FAFC]/75 font-bold">
+                  {ignoredCount} {language === 'pt' ? (ignoredCount === 1 ? 'ignorada' : 'ignoradas') : 'ignored'}
+                </span>
+              </div>
+            )}
 
             {/* Review Issues List */}
             <div className="space-y-2.5 pr-1">

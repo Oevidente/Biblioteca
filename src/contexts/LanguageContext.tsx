@@ -546,6 +546,11 @@ export const translations = {
     autoCorrectAllSuccess: "Todos os erros ortográficos comuns foram corrigidos com sucesso!",
     collapseTools: "Recolher Ferramentas",
     expandTools: "Expandir Ferramentas",
+    restoreIgnoredWords: "Desfazer Ignorados / Restaurar Palavras",
+    ignoredWordsCleared: "Lista de palavras ignoradas foi limpa com sucesso!",
+    languageToolActive: "LanguageTool (Online)",
+    fallbackModeActive: "Verificador Local (Offline / Fallback)",
+    checkingProgress: "Verificando texto...",
   },
   es: {
     // Navigation / Header / Footer
@@ -1088,6 +1093,11 @@ export const translations = {
     autoCorrectAllSuccess: "¡Todos los errores ortográficos comunes se han corregido con éxito!",
     collapseTools: "Contraer Herramientas",
     expandTools: "Expandir Herramientas",
+    restoreIgnoredWords: "Deshacer Ignorados / Restaurar Palabras",
+    ignoredWordsCleared: "¡La lista de palabras ignoradas ha sido borrada con éxito!",
+    languageToolActive: "LanguageTool (En línea)",
+    fallbackModeActive: "Verificador Local (Sin conexión / Fallback)",
+    checkingProgress: "Comprobando texto...",
   },
   en: {
     // Navigation / Header / Footer
@@ -1629,7 +1639,12 @@ export const translations = {
     autoCorrectAll: "Auto-correct all common typos",
     autoCorrectAllSuccess: "All common spelling and accent typos have been corrected successfully!",
     collapseTools: "Collapse Tools",
-    expandTools: "Expand Tools",
+    expandTools: "Expand/Show Tools",
+    restoreIgnoredWords: "Undo Ignored / Restore Words",
+    ignoredWordsCleared: "Ignored words list has been cleared successfully!",
+    languageToolActive: "LanguageTool (Online)",
+    fallbackModeActive: "Local Checker (Offline / Fallback)",
+    checkingProgress: "Checking text...",
   },
   id: {
     // Navigation / Header / Footer
@@ -2172,6 +2187,11 @@ export const translations = {
     autoCorrectAllSuccess: "Semua kesalahan ejaan dan tanda baca umum telah berhasil diperbaiki!",
     collapseTools: "Ciutkan Alat",
     expandTools: "Luaskan Alat",
+    restoreIgnoredWords: "Batal Abaikan / Pulihkan Kata",
+    ignoredWordsCleared: "Daftar kata yang diabaikan telah berhasil dihapus!",
+    languageToolActive: "LanguageTool (Dalam Talian)",
+    fallbackModeActive: "Pemeriksa Lokal (Luar Talian / Cadangan)",
+    checkingProgress: "Memeriksa teks...",
   },
   zh: {
     // Navigation / Header / Footer
@@ -2714,6 +2734,11 @@ export const translations = {
     autoCorrectAllSuccess: "所有常见的拼写和标点错误均已成功纠正！",
     collapseTools: "折叠工具栏",
     expandTools: "展开工具栏",
+    restoreIgnoredWords: "撤销忽略 / 恢复单词",
+    ignoredWordsCleared: "忽略单词列表已成功清空！",
+    languageToolActive: "LanguageTool (在线)",
+    fallbackModeActive: "本地检查器 (离线 / 备用)",
+    checkingProgress: "正在检查文本...",
   }
 } as const;
 
