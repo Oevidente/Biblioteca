@@ -248,6 +248,9 @@ export const translations = {
     publishDraftConfirm: "Deseja publicar este rascunho agora?",
     draftSavedSuccess: "Rascunho salvo com sucesso no banco de dados!",
     draftPublishedSuccess: "História publicada com sucesso!",
+    revertToDraft: "Despublicar",
+    revertToDraftConfirm: "Deseja transformar esta história em rascunho de novo? Ela não estará disponível para o público.",
+    revertToDraftSuccess: "História revertida para rascunho com sucesso!",
     filterStatus: "Filtrar por Status",
     allStatus: "Todos os Status",
     draftModeNotice: "Modo Rascunho - Visualização do Autor",
@@ -514,7 +517,29 @@ export const translations = {
     roleLabel: "Função",
     favoritesLabel: "Favoritos",
     authorApprovedSuccess: "Autorizado com sucesso!",
-    errorApprovingAuthor: "Erro ao autorizar autor."
+    errorApprovingAuthor: "Erro ao autorizar autor.",
+
+    // Multi-language Spell Checker & Review Tool
+    reviewPanelTitle: "Painel de Revisão",
+    reviewButton: "Revisão",
+    spellingLanguage: "Idioma da Revisão",
+    autoDetectLanguage: "Detecção Automática",
+    spellingIssues: "Ortografia",
+    grammarIssues: "Gramática",
+    punctuationIssues: "Pontuação",
+    noErrorsFound: "Nenhum erro encontrado!",
+    noErrorsDesc: "Sua história passou na verificação ortográfica e gramatical sem avisos.",
+    ignore: "Ignorar",
+    addToDictionary: "Adicionar ao Dicionário",
+    wordAddedToDictionary: "Palavra adicionada ao seu dicionário pessoal!",
+    suggestions: "Sugestões",
+    applySuggestion: "Aplicar",
+    issuesCount: "{count} aviso(s)",
+    personalDictionary: "Dicionário Pessoal",
+    clearPersonalDictionary: "Limpar Dicionário Pessoal",
+    wordsInDictionary: "{count} palavra(s) salva(s)",
+    spellcheckActive: "Revisão Ortográfica",
+    pageIssueGroup: "Página {page}"
   },
   es: {
     // Navigation / Header / Footer
@@ -759,6 +784,9 @@ export const translations = {
     publishDraftConfirm: "¿Deseas publicar este borrador ahora?",
     draftSavedSuccess: "¡Borrador guardado con éxito!",
     draftPublishedSuccess: "¡Historia publicada con éxito!",
+    revertToDraft: "Despublicar",
+    revertToDraftConfirm: "¿Deseas transformar esta historia en borrador de nuevo? No estará disponible para el público.",
+    revertToDraftSuccess: "¡Historia revertida a borrador con éxito!",
     filterStatus: "Filtrar por Estado",
     allStatus: "Todos los Estados",
     draftModeNotice: "Modo Borrador - Vista Previa de Autor",
@@ -1025,7 +1053,29 @@ export const translations = {
     roleLabel: "Rol",
     favoritesLabel: "Favoritos",
     authorApprovedSuccess: "¡Autorizado con éxito!",
-    errorApprovingAuthor: "Error al autorizar al autor."
+    errorApprovingAuthor: "Error al autorizar al autor.",
+
+    // Multi-language Spell Checker & Review Tool
+    reviewPanelTitle: "Panel de Revisión",
+    reviewButton: "Revisión",
+    spellingLanguage: "Idioma de Revisión",
+    autoDetectLanguage: "Detección Automática",
+    spellingIssues: "Ortografía",
+    grammarIssues: "Gramática",
+    punctuationIssues: "Puntuación",
+    noErrorsFound: "¡No se encontraron errores!",
+    noErrorsDesc: "Tu historia superó la revisión ortográfica y gramatical sin advertencias.",
+    ignore: "Ignorar",
+    addToDictionary: "Añadir al Diccionario",
+    wordAddedToDictionary: "¡Palabra añadida a tu diccionario personal!",
+    suggestions: "Sugerencias",
+    applySuggestion: "Aplicar",
+    issuesCount: "{count} aviso(s)",
+    personalDictionary: "Diccionario Personal",
+    clearPersonalDictionary: "Borrar Diccionario Personal",
+    wordsInDictionary: "{count} palabra(s) guardada(s)",
+    spellcheckActive: "Revisión Ortográfica",
+    pageIssueGroup: "Página {page}"
   },
   en: {
     // Navigation / Header / Footer
@@ -1270,6 +1320,9 @@ export const translations = {
     publishDraftConfirm: "Do you want to publish this draft now?",
     draftSavedSuccess: "Draft saved successfully!",
     draftPublishedSuccess: "Story published successfully!",
+    revertToDraft: "Unpublish",
+    revertToDraftConfirm: "Do you want to turn this story back into a draft? It will no longer be available to the public.",
+    revertToDraftSuccess: "Story successfully reverted to draft!",
     filterStatus: "Filter by Status",
     allStatus: "All Statuses",
     draftModeNotice: "Draft Mode - Author Preview",
@@ -1536,7 +1589,29 @@ export const translations = {
     roleLabel: "Role",
     favoritesLabel: "Favorites",
     authorApprovedSuccess: "Authorized successfully!",
-    errorApprovingAuthor: "Error authorizing author."
+    errorApprovingAuthor: "Error authorizing author.",
+
+    // Multi-language Spell Checker & Review Tool
+    reviewPanelTitle: "Review Panel",
+    reviewButton: "Review",
+    spellingLanguage: "Review Language",
+    autoDetectLanguage: "Auto Detect",
+    spellingIssues: "Spelling",
+    grammarIssues: "Grammar",
+    punctuationIssues: "Punctuation",
+    noErrorsFound: "No errors found!",
+    noErrorsDesc: "Your story passed spelling and grammar verification with no issues.",
+    ignore: "Ignore",
+    addToDictionary: "Add to Dictionary",
+    wordAddedToDictionary: "Word added to your personal dictionary!",
+    suggestions: "Suggestions",
+    applySuggestion: "Apply",
+    issuesCount: "{count} issue(s)",
+    personalDictionary: "Personal Dictionary",
+    clearPersonalDictionary: "Clear Personal Dictionary",
+    wordsInDictionary: "{count} word(s) saved",
+    spellcheckActive: "Spellcheck Active",
+    pageIssueGroup: "Page {page}"
   },
   id: {
     // Navigation / Header / Footer
@@ -1781,6 +1856,9 @@ export const translations = {
     publishDraftConfirm: "Apakah Anda ingin menerbitkan draf ini sekarang?",
     draftSavedSuccess: "Draf berhasil disimpan!",
     draftPublishedSuccess: "Cerita berhasil diterbitkan!",
+    revertToDraft: "Batal Terbitkan",
+    revertToDraftConfirm: "Apakah Anda ingin mengubah cerita ini kembali menjadi draf? Cerita ini tidak akan tersedia untuk umum.",
+    revertToDraftSuccess: "Cerita berhasil diubah kembali menjadi draf!",
     filterStatus: "Filter berdasarkan Status",
     allStatus: "Semua Status",
     draftModeNotice: "Mode Draf - Pratinjau Penulis",
@@ -2047,7 +2125,29 @@ export const translations = {
     roleLabel: "Peran",
     favoritesLabel: "Favorit",
     authorApprovedSuccess: "Berhasil diotorisasi!",
-    errorApprovingAuthor: "Gagal mengotorisasi penulis."
+    errorApprovingAuthor: "Gagal mengotorisasi penulis.",
+
+    // Multi-language Spell Checker & Review Tool
+    reviewPanelTitle: "Panel Peninjauan",
+    reviewButton: "Peninjauan",
+    spellingLanguage: "Bahasa Peninjauan",
+    autoDetectLanguage: "Deteksi Otomatis",
+    spellingIssues: "Ejaan",
+    grammarIssues: "Tata Bahasa",
+    punctuationIssues: "Tanda Baca",
+    noErrorsFound: "Tidak ada kesalahan ditemukan!",
+    noErrorsDesc: "Cerita Anda lulus verifikasi ejaan dan tata bahasa tanpa masalah.",
+    ignore: "Abaikan",
+    addToDictionary: "Tambahkan ke Kamus",
+    wordAddedToDictionary: "Kata ditambahkan ke kamus pribadi Anda!",
+    suggestions: "Saran",
+    applySuggestion: "Terapkan",
+    issuesCount: "{count} masalah",
+    personalDictionary: "Kamus Pribadi",
+    clearPersonalDictionary: "Hapus Kamus Pribadi",
+    wordsInDictionary: "{count} kata tersimpan",
+    spellcheckActive: "Pemeriksaan Ejaan",
+    pageIssueGroup: "Halaman {page}"
   },
   zh: {
     // Navigation / Header / Footer
@@ -2292,6 +2392,9 @@ export const translations = {
     publishDraftConfirm: "您现在要发布这份草稿吗？",
     draftSavedSuccess: "草稿已成功保存至数据库！",
     draftPublishedSuccess: "故事发布成功！",
+    revertToDraft: "设为草稿",
+    revertToDraftConfirm: "您想将此故事重新设为草稿吗？公众将无法再访问它。",
+    revertToDraftSuccess: "故事已成功设为草稿！",
     filterStatus: "按状态筛选",
     allStatus: "所有状态",
     draftModeNotice: "草稿模式 - 作者预览",
@@ -2558,7 +2661,29 @@ export const translations = {
     roleLabel: "角色",
     favoritesLabel: "收藏夹",
     authorApprovedSuccess: "授权成功！",
-    errorApprovingAuthor: "授权作者时出错。"
+    errorApprovingAuthor: "授权作者时出错。",
+
+    // Multi-language Spell Checker & Review Tool
+    reviewPanelTitle: "审阅面板",
+    reviewButton: "审阅",
+    spellingLanguage: "审阅语言",
+    autoDetectLanguage: "自动检测",
+    spellingIssues: "拼写",
+    grammarIssues: "语法",
+    punctuationIssues: "标点符号",
+    noErrorsFound: "未发现错误！",
+    noErrorsDesc: "您的故事已通过拼写与语法检查，未发现任何问题。",
+    ignore: "忽略",
+    addToDictionary: "添加到词典",
+    wordAddedToDictionary: "单词已添加到您的个人词典！",
+    suggestions: "建议",
+    applySuggestion: "应用",
+    issuesCount: "{count} 个问题",
+    personalDictionary: "个人词典",
+    clearPersonalDictionary: "清空个人词典",
+    wordsInDictionary: "已保存 {count} 个单词",
+    spellcheckActive: "拼写检查",
+    pageIssueGroup: "第 {page} 页"
   }
 } as const;
 

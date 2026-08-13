@@ -180,6 +180,8 @@ export function Admin() {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [storyToDelete, setStoryToDelete] = useState<StoryItem | null>(null);
   const [deletingStoryId, setDeletingStoryId] = useState<string | null>(null);
+  const [storyToRevert, setStoryToRevert] = useState<StoryItem | null>(null);
+  const [revertingStoryId, setRevertingStoryId] = useState<string | null>(null);
   const [manageMsg, setManageMsg] = useState<string | null>(null);
 
   // Superadmin State
@@ -931,6 +933,21 @@ export function Admin() {
     } catch (err) {
       console.error("Error publishing draft:", err);
       setManageMsg(t("errorUpdatingStory"));
+    }
+  };
+
+  const handleRevertToDraft = async (story: StoryItem) => {
+    setRevertingStoryId(story.id);
+    try {
+      await updateDoc(doc(db, "stories", story.id), { isDraft: true });
+      setStoriesList(prev => prev.map(s => s.id === story.id ? { ...s, isDraft: true } : s));
+      setManageMsg(t("revertToDraftSuccess"));
+      setStoryToRevert(null);
+    } catch (err) {
+      console.error("Error reverting story to draft:", err);
+      setManageMsg(t("errorUpdatingStory"));
+    } finally {
+      setRevertingStoryId(null);
     }
   };
 
@@ -2172,6 +2189,18 @@ export function Admin() {
                               </button>
                             )}
 
+                            {/* Revert to Draft if Published */}
+                            {!story.isDraft && (
+                              <button
+                                onClick={() => setStoryToRevert(story)}
+                                disabled={isDeletingThis}
+                                className="px-2.5 py-2 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-sm min-h-[38px] paper-btn-amber"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">{t("revertToDraft")}</span>
+                              </button>
+                            )}
+
                             <button
                               onClick={() => handleStartEdit(story)}
                               disabled={isDeletingThis}
@@ -2397,6 +2426,47 @@ export function Admin() {
               >
                 {deletingStoryId === storyToDelete.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                 {t("yesDelete")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Story Unpublishing */}
+      {storyToRevert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="max-w-md w-full rounded-2xl p-6 shadow-2xl space-y-4 paper-card">
+            <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
+              <div className="p-3 bg-amber-500/10 rounded-full">
+                <RotateCcw className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-serif font-bold text-lg text-[#1A1A1A] dark:text-white">{t("revertToDraft")}</h3>
+                <p className="text-xs opacity-60">{t("draft")}</p>
+              </div>
+            </div>
+
+            <p className="text-sm leading-relaxed text-[#1A1A1A] dark:text-white/90">
+              {t("revertToDraftConfirm")}
+            </p>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setStoryToRevert(null)}
+                disabled={revertingStoryId === storyToRevert.id}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all paper-btn-light"
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRevertToDraft(storyToRevert)}
+                disabled={revertingStoryId === storyToRevert.id}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 disabled:opacity-50 paper-btn-amber"
+              >
+                {revertingStoryId === storyToRevert.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                {t("revertToDraft")}
               </button>
             </div>
           </div>

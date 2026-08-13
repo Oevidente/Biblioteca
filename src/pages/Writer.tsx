@@ -23,7 +23,7 @@ export function Writer() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [story, setStory] = useState<StoryData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -244,6 +244,18 @@ export function Writer() {
     }
   };
 
+  // Allow Ctrl+S/Cmd+S to save draft
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        handleSave(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleSave]);
+
   const formatTime = (d: Date) => {
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
@@ -261,44 +273,41 @@ export function Writer() {
   return (
     <div className="max-w-5xl mx-auto py-4 sm:py-8 px-3 sm:px-8 animate-in fade-in duration-500 overflow-x-hidden">
       {/* Top Header & Actions Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6 p-4 rounded-2xl paper-card">
-        <div className="flex items-center justify-between w-full sm:w-auto">
+      <div className="flex flex-row items-center justify-between gap-3 mb-6 p-4 rounded-2xl paper-card">
+        <div className="flex items-center gap-2.5">
           <button 
             onClick={() => navigate("/admin")}
-            className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity paper-btn-light px-3 py-1.5 rounded-xl"
+            className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity paper-btn-light h-10 w-10 sm:w-auto sm:px-3 sm:py-1.5 rounded-xl shrink-0"
+            title={t("backToAdmin")}
           >
-            <ArrowLeft className="w-4 h-4" />
-            {t("backToAdmin")}
+            <ArrowLeft className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline">{t("backToAdmin")}</span>
           </button>
 
           {/* Mobile Auto-Save Status Badge */}
           <div className="sm:hidden flex items-center gap-1.5 text-[10px] font-mono px-2.5 py-1 rounded-full paper-card shrink-0">
             {isAutoSaving ? (
               <>
-                <Loader2 className="w-3 h-3 animate-spin text-amber-500" />
-                <span className="text-amber-600 dark:text-amber-400 font-bold">{t("autoSaving")}</span>
+                <Loader2 className="w-3 h-3 animate-spin text-amber-500 animate-duration-1000" />
               </>
             ) : hasUnsavedChanges ? (
               <>
                 <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                <span className="opacity-70">{t("pendingAutoSave")}</span>
               </>
             ) : lastAutoSaveTime ? (
               <>
                 <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                <span className="text-emerald-700 dark:text-emerald-400 font-bold">{t("draftSavedAt", { time: formatTime(lastAutoSaveTime) })}</span>
               </>
             ) : (
               <>
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span className="opacity-70">{t("autoSaveIn")}</span>
               </>
             )}
           </div>
         </div>
 
         {/* Desktop Auto-Save Badge & Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end w-full sm:w-auto gap-3">
+        <div className="flex flex-row items-center justify-end gap-2 sm:gap-3 shrink-0">
           <div className="hidden sm:flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-full shrink-0 paper-card">
             {isAutoSaving ? (
               <>
@@ -323,23 +332,25 @@ export function Writer() {
             )}
           </div>
 
-          <div className="flex gap-2.5 w-full sm:w-auto">
+          <div className="flex gap-2 w-auto">
             <button
               onClick={() => handleSave(true)}
               disabled={isSaving || isAutoSaving}
-              className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 min-h-[40px] paper-btn-amber"
+              className="px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 min-h-[40px] h-10 w-10 sm:w-auto paper-btn-amber shrink-0"
+              title={t("saveDraft")}
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Save className="w-4 h-4 shrink-0" />}
-              <span>{t("saveDraft")}</span>
+              <span className="hidden sm:inline">{t("saveDraft")}</span>
             </button>
             
             <button
               onClick={() => handleSave(false)}
               disabled={isSaving || isAutoSaving}
-              className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 min-h-[40px] paper-btn-dark"
+              className="px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 min-h-[40px] h-10 w-10 sm:w-auto paper-btn-dark shrink-0"
+              title={story.isDraft ? t("publishNow") : t("saveChanges")}
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Send className="w-4 h-4 shrink-0" />}
-              <span>{story.isDraft ? t("publishNow") : t("saveChanges")}</span>
+              <span className="hidden sm:inline">{story.isDraft ? t("publishNow") : t("saveChanges")}</span>
             </button>
           </div>
         </div>
@@ -364,44 +375,39 @@ export function Writer() {
             />
           </div>
           <div>
-            <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1.5">{t("editAuthor")}</label>
+            <div className="flex items-center justify-between mb-1.5 min-h-[22px]">
+              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60">{t("editAuthor")}</label>
+              {profile && (
+                <select
+                  value=""
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "name" && profile.displayName) {
+                      setEditAuthor(profile.displayName);
+                    } else if (val === "user" && profile.username) {
+                      setEditAuthor(profile.username);
+                    }
+                  }}
+                  className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg border border-[#1A1A1A]/10 dark:border-white/10 bg-white dark:bg-[#1A1A1A] focus:outline-none text-[#1A1A1A] dark:text-[#F8FAFC] transition-colors cursor-pointer"
+                >
+                  <option value="" disabled>
+                    {language === "pt" ? "Identificação" : language === "es" ? "Identificación" : language === "zh" ? "预设作者" : language === "id" ? "Identitas" : "Identity"}
+                  </option>
+                  <option value="name">
+                    {language === "pt" ? "Nome" : language === "es" ? "Nombre" : language === "zh" ? "姓名" : language === "id" ? "Nama" : "Name"}
+                  </option>
+                  <option value="user">
+                    {language === "pt" ? "Usuário" : language === "es" ? "Usuario" : language === "zh" ? "用户名" : language === "id" ? "Pengguna" : "Username"}
+                  </option>
+                </select>
+              )}
+            </div>
             <input 
               type="text" 
               value={editAuthor || ""} 
               onChange={(e) => setEditAuthor(e.target.value)}
               className="w-full px-3.5 py-2.5 text-base sm:text-lg font-serif rounded-xl focus:outline-none transition-colors paper-card"
             />
-            {profile && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {profile.displayName && (
-                  <button
-                    type="button"
-                    onClick={() => setEditAuthor(profile.displayName!)}
-                    className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all active:scale-95 paper-btn-amber"
-                  >
-                    {t("useMyName", { name: profile.displayName })}
-                  </button>
-                )}
-                {profile.username && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setEditAuthor(`@${profile.username}`)}
-                      className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all active:scale-95 paper-btn-amber"
-                    >
-                      {t("useMyUsername", { username: profile.username })}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditAuthor(profile.username!)}
-                      className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all active:scale-95 paper-btn-amber"
-                    >
-                      {t("useUsernameOnly", { username: profile.username })}
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
           </div>
           <div>
             <div className="flex justify-between items-center mb-1.5">
