@@ -431,25 +431,10 @@ export function Writer() {
           </div>
         </div>
 
-        {/* Supporters & Contributors Section */}
-        <div className="mb-6 p-4 rounded-xl bg-amber-500/5 border border-amber-500/10">
-          <div className="flex items-center gap-2 mb-2">
-            <Heart className="w-4 h-4 text-amber-500 shrink-0" />
-            <label className="block text-[10px] uppercase font-bold tracking-widest opacity-80">{t("supporters")}</label>
-          </div>
-          <input 
-            type="text" 
-            value={editSupporters || ""} 
-            onChange={(e) => setEditSupporters(e.target.value)}
-            placeholder={t("supportersPlaceholder")}
-            className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl focus:outline-none transition-colors paper-card"
-          />
-          <span className="block text-[9px] opacity-50 mt-1.5 font-mono">{t("supportersHelp")}</span>
-        </div>
-
         <div className="border-t border-black/5 dark:border-white/5 pt-6">
           <StoryEditor
             initialPages={pages}
+            supporters={editSupporters}
             onChange={(newPages, text, wc) => {
               setPages(newPages);
               setFullText(text);

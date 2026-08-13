@@ -36,6 +36,7 @@ import {
   Sun,
   ChevronLeft,
   Search,
+  Heart,
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -60,12 +61,14 @@ interface StoryEditorProps {
   initialPages?: string[];
   onChange: (pages: string[], fullText: string, wordCount: number) => void;
   className?: string;
+  supporters?: string[] | string;
 }
 
 export function StoryEditor({
   initialPages = [],
   onChange,
   className,
+  supporters,
 }: StoryEditorProps) {
   const { t, language } = useLanguage();
   const editorRef = useRef<HTMLDivElement>(null);
@@ -92,6 +95,19 @@ export function StoryEditor({
   const [wordsPerPage, setWordsPerPage] = useState<number>(300);
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
   const [previewPageIdx, setPreviewPageIdx] = useState<number>(0);
+  const [isToolbarCollapsed, setIsToolbarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('inkora_toolbar_collapsed') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('inkora_toolbar_collapsed', String(isToolbarCollapsed));
+    } catch (e) {}
+  }, [isToolbarCollapsed]);
 
   // Advanced Typography & Themes synced with Reader
   const [fontFamily, setFontFamily] = useState<'serif' | 'sans' | 'opendyslexic'>(() => {
@@ -815,7 +831,9 @@ export function StoryEditor({
         </div>
       )}      {/* Top Toolbar Header */}
       <div className="bg-[#F5F5F0] dark:bg-[#0A0A0A] p-2.5 lg:p-3 rounded-2xl border border-[#1A1A1A]/10 dark:border-white/10 space-y-3 max-w-full overflow-hidden">
-        {/* Format & Tools Bar - Desktop / Tablet Layout */}
+        {!isToolbarCollapsed && (
+          <>
+            {/* Format & Tools Bar - Desktop / Tablet Layout */}
         <div className="hidden lg:flex items-center justify-between gap-2 border-b border-[#1A1A1A]/10 dark:border-white/10 pb-3 overflow-x-auto max-w-full">
           <div className="flex items-center gap-1.5 shrink-0">
             {/* Format selector */}
@@ -1252,6 +1270,8 @@ export function StoryEditor({
             )}
           </div>
         </div>
+          </>
+        )}
 
         {/* Pagination Controls & Stats Bar */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
@@ -1285,14 +1305,35 @@ export function StoryEditor({
             )}
           </div>
 
-          <div className="flex items-center gap-4 font-mono text-[11px] opacity-70">
-            <span>{t('wordsCount', { count: totalWords })}</span>
-            <span>
-              {t('readTimeEstimate', { count: Math.ceil(totalWords / 250) })}
-            </span>
-            <span className="px-2 py-0.5 bg-[#1A1A1A]/10 dark:bg-white/10 rounded-full font-bold">
-              {t('pagesCount', { count: computedPages.length || 1 })}
-            </span>
+          <div className="flex items-center gap-3 select-none shrink-0">
+            <div className="flex items-center gap-3 font-mono text-[11px] opacity-70">
+              <span>{t('wordsCount', { count: totalWords })}</span>
+              <span>
+                {t('readTimeEstimate', { count: Math.ceil(totalWords / 250) })}
+              </span>
+              <span className="px-2 py-0.5 bg-[#1A1A1A]/10 dark:bg-white/10 rounded-full font-bold">
+                {t('pagesCount', { count: computedPages.length || 1 })}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsToolbarCollapsed(!isToolbarCollapsed)}
+              className="flex items-center gap-1 py-1 px-2.5 rounded-lg bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 border border-[#1A1A1A]/10 dark:border-white/10 font-bold text-[10px] uppercase tracking-wider transition-all text-[#1A1A1A] dark:text-[#F8FAFC]"
+              title={isToolbarCollapsed ? t('expandTools') : t('collapseTools')}
+            >
+              {isToolbarCollapsed ? (
+                <>
+                  <ChevronDown className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{t('expandTools')}</span>
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-3.5 h-3.5 transform rotate-180" />
+                  <span className="hidden sm:inline">{t('collapseTools')}</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -1435,8 +1476,11 @@ export function StoryEditor({
                 onKeyDown={handleEditorKeyDown}
                 onFocus={handleEditorFocus}
                 onClick={handleEditorFocus}
-                className="w-full min-h-[380px] max-h-[650px] overflow-y-auto p-4 sm:p-8 bg-white dark:bg-[#1A1A1A] border border-[#1A1A1A]/15 dark:border-white/15 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white font-serif text-base sm:text-lg leading-relaxed text-[#1A1A1A] dark:text-[#F5F5F0] shadow-inner prose dark:prose-invert max-w-none transition-all duration-300"
-                style={{ minHeight: '380px' }}
+                className={cn(
+                  "w-full overflow-y-auto p-4 sm:p-8 bg-white dark:bg-[#1A1A1A] border border-[#1A1A1A]/15 dark:border-white/15 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white font-serif text-base sm:text-lg leading-relaxed text-[#1A1A1A] dark:text-[#F5F5F0] shadow-inner prose dark:prose-invert max-w-none transition-all duration-300",
+                  isToolbarCollapsed ? "min-h-[550px] max-h-[850px]" : "min-h-[380px] max-h-[650px]"
+                )}
+                style={{ minHeight: isToolbarCollapsed ? '550px' : '380px' }}
               />
               {totalWords === 0 && (
                 <div className="absolute top-4 left-4 sm:top-8 sm:left-8 text-sm sm:text-base font-serif opacity-40 pointer-events-none">
@@ -1448,7 +1492,8 @@ export function StoryEditor({
             /* Preview Mode Page View */
             <div 
               className={cn(
-                "relative min-h-[380px] p-6 sm:p-12 rounded-2xl transition-all overflow-hidden w-full break-words shadow-lg border border-black/5",
+                "relative p-6 sm:p-12 rounded-2xl transition-all overflow-hidden w-full break-words shadow-lg border border-black/5",
+                isToolbarCollapsed ? "min-h-[550px]" : "min-h-[380px]",
                 readerMode === "dark" 
                   ? "paper-card text-[#F5F5F0]" 
                   : "bg-[#FDFCF9] text-[#1A1A1A]"
@@ -1591,6 +1636,7 @@ export function StoryEditor({
                     `<p class='opacity-40 italic'>${t('emptyPage')}</p>`,
                 }}
               />
+
             </div>
           )}
         </div>

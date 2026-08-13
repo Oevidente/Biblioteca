@@ -544,6 +544,8 @@ export const translations = {
     autoCorrectDesc: "Corrige acentuação e erros ortográficos comuns ao pressionar espaço ou pontuação.",
     autoCorrectAll: "Corrigir todos os erros conhecidos",
     autoCorrectAllSuccess: "Todos os erros ortográficos comuns foram corrigidos com sucesso!",
+    collapseTools: "Recolher Ferramentas",
+    expandTools: "Expandir Ferramentas",
   },
   es: {
     // Navigation / Header / Footer
@@ -1084,6 +1086,8 @@ export const translations = {
     autoCorrectDesc: "Corrige acentuación y errores comunes al presionar espacio o puntuación.",
     autoCorrectAll: "Corregir todos los errores comunes",
     autoCorrectAllSuccess: "¡Todos los errores ortográficos comunes se han corregido con éxito!",
+    collapseTools: "Contraer Herramientas",
+    expandTools: "Expandir Herramientas",
   },
   en: {
     // Navigation / Header / Footer
@@ -1624,6 +1628,8 @@ export const translations = {
     autoCorrectDesc: "Corrects accents and common typos when pressing space or punctuation.",
     autoCorrectAll: "Auto-correct all common typos",
     autoCorrectAllSuccess: "All common spelling and accent typos have been corrected successfully!",
+    collapseTools: "Collapse Tools",
+    expandTools: "Expand Tools",
   },
   id: {
     // Navigation / Header / Footer
@@ -2164,6 +2170,8 @@ export const translations = {
     autoCorrectDesc: "Memperbaiki tanda baca dan kesalahan umum saat menekan spasi atau tanda baca.",
     autoCorrectAll: "Perbaiki semua kesalahan umum",
     autoCorrectAllSuccess: "Semua kesalahan ejaan dan tanda baca umum telah berhasil diperbaiki!",
+    collapseTools: "Ciutkan Alat",
+    expandTools: "Luaskan Alat",
   },
   zh: {
     // Navigation / Header / Footer
@@ -2704,6 +2712,8 @@ export const translations = {
     autoCorrectDesc: "在按下空格键或标点符号时自动更正音调和常见错误。",
     autoCorrectAll: "自动纠正所有常见错误",
     autoCorrectAllSuccess: "所有常见的拼写和标点错误均已成功纠正！",
+    collapseTools: "折叠工具栏",
+    expandTools: "展开工具栏",
   }
 } as const;
 
