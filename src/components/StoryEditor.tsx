@@ -45,6 +45,8 @@ import {
   getPersonalDictionary,
   clearPersonalDictionary,
   ignoreWordInSession,
+  detectLanguageFromText,
+  commonTypoRules,
   ReviewIssue,
   ReviewLanguage,
   IssueCategory,
@@ -140,6 +142,23 @@ export function StoryEditor({
       console.error(e);
     }
   }, [readerMode]);
+
+  const [autoCorrectEnabled, setAutoCorrectEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('inkora_autocorrect_enabled');
+      return saved !== 'false';
+    } catch (e) {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('inkora_autocorrect_enabled', String(autoCorrectEnabled));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [autoCorrectEnabled]);
   const [mobileTab, setMobileTab] = useState<
     'style' | 'format' | 'align' | 'insert' | 'review'
   >('format');
@@ -496,6 +515,194 @@ export function StoryEditor({
     setActivePopoverIssue(null);
     setPopoverPosition(null);
     showToast(t('applySuggestion') + `: ${issue.word} ➔ ${suggestion}`);
+  };
+
+  const getCaretCharacterOffsetWithin = (element: HTMLElement): number => {
+    let caretOffset = 0;
+    const doc = element.ownerDocument || document;
+    const win = doc.defaultView || window;
+    let sel;
+    if (typeof win.getSelection !== "undefined") {
+      sel = win.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        const preCaretRange = range.cloneRange();
+        preCaretRange.selectNodeContents(element);
+        preCaretRange.setEnd(range.endContainer, range.endOffset);
+        caretOffset = preCaretRange.toString().length;
+      }
+    }
+    return caretOffset;
+  };
+
+  const setCaretPosition = (element: HTMLElement, offset: number) => {
+    const range = document.createRange();
+    const sel = window.getSelection();
+    let currentOffset = 0;
+    let found = false;
+
+    const traverse = (node: Node) => {
+      if (found) return;
+      if (node.nodeType === Node.TEXT_NODE) {
+        const len = node.textContent?.length || 0;
+        if (currentOffset + len >= offset) {
+          try {
+            range.setStart(node, offset - currentOffset);
+            range.setEnd(node, offset - currentOffset);
+            found = true;
+          } catch (e) {}
+        } else {
+          currentOffset += len;
+        }
+      } else {
+        for (let i = 0; i < node.childNodes.length; i++) {
+          traverse(node.childNodes[i]);
+          if (found) break;
+        }
+      }
+    };
+
+    traverse(element);
+    if (sel && found) {
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  };
+
+  const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!autoCorrectEnabled) return;
+
+    const triggerKeys = [' ', 'Enter', '.', ',', '!', '?', ';', ':'];
+    if (!triggerKeys.includes(e.key)) return;
+
+    try {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) return;
+
+      const range = selection.getRangeAt(0);
+      const textNode = range.startContainer;
+
+      if (textNode.nodeType === Node.TEXT_NODE) {
+        const text = textNode.textContent || '';
+        const offset = range.startOffset;
+
+        const beforeCaretText = text.slice(0, offset);
+
+        const wordMatch = beforeCaretText.match(/([a-zA-ZÀ-ÿ\-']+)$/);
+        if (wordMatch) {
+          const lastWord = wordMatch[1];
+          const cleanWord = lastWord.toLowerCase();
+
+          const currentTextForLang = editorRef.current?.innerText || '';
+          const lang = reviewLanguage === 'auto' ? detectLanguageFromText(currentTextForLang) : reviewLanguage;
+          const langRules = commonTypoRules[lang];
+
+          if (langRules && langRules[cleanWord]) {
+            const suggestion = langRules[cleanWord][0];
+
+            let finalCorrection = suggestion;
+            if (lastWord === lastWord.toUpperCase()) {
+              finalCorrection = suggestion.toUpperCase();
+            } else if (lastWord[0] === lastWord[0].toUpperCase()) {
+              finalCorrection = suggestion.charAt(0).toUpperCase() + suggestion.slice(1);
+            }
+
+            const startOfWordIdx = offset - lastWord.length;
+            const newText = text.slice(0, startOfWordIdx) + finalCorrection + text.slice(offset);
+
+            textNode.textContent = newText;
+
+            const newOffset = startOfWordIdx + finalCorrection.length;
+            const newRange = document.createRange();
+            newRange.setStart(textNode, newOffset);
+            newRange.setEnd(textNode, newOffset);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+
+            handleContentChange();
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Autocorrect error:', err);
+    }
+  };
+
+  const handleAutoCorrectAll = () => {
+    if (!editorRef.current) return;
+
+    const textContent = editorRef.current.innerText || '';
+    const lang = reviewLanguage === 'auto' ? detectLanguageFromText(textContent) : reviewLanguage;
+    const langRules = commonTypoRules[lang];
+
+    if (!langRules) return;
+
+    let correctionCount = 0;
+
+    const traverseAndCorrect = (node: Node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        let text = node.textContent || '';
+        const wordRegex = /\b([a-zA-ZÀ-ÿ\-']+)\b/g;
+        let match;
+        const replacements: { index: number; length: number; word: string; correction: string }[] = [];
+
+        while ((match = wordRegex.exec(text)) !== null) {
+          const rawWord = match[1];
+          const cleanWord = rawWord.toLowerCase();
+
+          if (langRules[cleanWord]) {
+            const suggestion = langRules[cleanWord][0];
+            let finalCorrection = suggestion;
+            if (cleanWord !== suggestion) {
+              if (rawWord === rawWord.toUpperCase()) {
+                finalCorrection = suggestion.toUpperCase();
+              } else if (rawWord[0] === rawWord[0].toUpperCase()) {
+                finalCorrection = suggestion.charAt(0).toUpperCase() + suggestion.slice(1);
+              }
+              replacements.push({
+                index: match.index,
+                length: rawWord.length,
+                word: rawWord,
+                correction: finalCorrection,
+              });
+            }
+          }
+        }
+
+        if (replacements.length > 0) {
+          for (let i = replacements.length - 1; i >= 0; i--) {
+            const r = replacements[i];
+            text = text.slice(0, r.index) + r.correction + text.slice(r.index + r.length);
+            correctionCount++;
+          }
+          node.textContent = text;
+        }
+      } else {
+        for (let i = 0; i < node.childNodes.length; i++) {
+          traverseAndCorrect(node.childNodes[i]);
+        }
+      }
+    };
+
+    let savedOffset = 0;
+    try {
+      savedOffset = getCaretCharacterOffsetWithin(editorRef.current);
+    } catch (e) {}
+
+    traverseAndCorrect(editorRef.current);
+
+    if (correctionCount > 0) {
+      handleContentChange();
+      showToast(`${t('autoCorrectAllSuccess')} (${correctionCount} ${t('reviewButton').toLowerCase() === 'revisão' ? (correctionCount === 1 ? 'correção' : 'correções') : 'corrections'})`);
+
+      try {
+        if (editorRef.current) {
+          setCaretPosition(editorRef.current, savedOffset);
+        }
+      } catch (e) {}
+    } else {
+      showToast(t('noErrorsFound'));
+    }
   };
 
   // Ignore word in session
@@ -1225,6 +1432,7 @@ export function StoryEditor({
                 ref={editorRef}
                 contentEditable
                 onInput={handleContentChange}
+                onKeyDown={handleEditorKeyDown}
                 onFocus={handleEditorFocus}
                 onClick={handleEditorFocus}
                 className="w-full min-h-[380px] max-h-[650px] overflow-y-auto p-4 sm:p-8 bg-white dark:bg-[#1A1A1A] border border-[#1A1A1A]/15 dark:border-white/15 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white font-serif text-base sm:text-lg leading-relaxed text-[#1A1A1A] dark:text-[#F5F5F0] shadow-inner prose dark:prose-invert max-w-none transition-all duration-300"
@@ -1448,6 +1656,45 @@ export function StoryEditor({
                 <option value="id" className="bg-white dark:bg-[#121212] text-[#1A1A1A] dark:text-[#F8FAFC]">🇮🇩 Indonesia</option>
                 <option value="zh" className="bg-white dark:bg-[#121212] text-[#1A1A1A] dark:text-[#F8FAFC]">🇨🇳 中文 (Chinese)</option>
               </select>
+            </div>
+
+            {/* Auto-Correct Controls (RF-01, RF-02) */}
+            <div className="bg-[#F5F5F0]/50 dark:bg-[#1A1A1A]/50 border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl p-3 space-y-2.5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex flex-col space-y-0.5">
+                  <span className="text-xs font-bold text-[#1A1A1A] dark:text-[#F8FAFC]">
+                    {t('autoCorrectLabel')}
+                  </span>
+                  <span className="text-[10px] text-[#1A1A1A]/60 dark:text-[#F8FAFC]/60 font-medium leading-tight">
+                    {t('autoCorrectDesc')}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAutoCorrectEnabled(!autoCorrectEnabled)}
+                  className={cn(
+                    "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                    autoCorrectEnabled ? "bg-red-500" : "bg-neutral-300 dark:bg-neutral-700"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out",
+                      autoCorrectEnabled ? "translate-x-4" : "translate-x-0"
+                    )}
+                  />
+                </button>
+              </div>
+
+              {/* Run Auto-correct all button */}
+              <button
+                type="button"
+                onClick={handleAutoCorrectAll}
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-bold text-xs shadow-sm transition-colors"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{t('autoCorrectAll')}</span>
+              </button>
             </div>
 
             {/* Category Filter Tabs */}

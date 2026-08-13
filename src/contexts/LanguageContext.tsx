@@ -539,7 +539,11 @@ export const translations = {
     clearPersonalDictionary: "Limpar Dicionário Pessoal",
     wordsInDictionary: "{count} palavra(s) salva(s)",
     spellcheckActive: "Revisão Ortográfica",
-    pageIssueGroup: "Página {page}"
+    pageIssueGroup: "Página {page}",
+    autoCorrectLabel: "Autocorreção ao digitar",
+    autoCorrectDesc: "Corrige acentuação e erros ortográficos comuns ao pressionar espaço ou pontuação.",
+    autoCorrectAll: "Corrigir todos os erros conhecidos",
+    autoCorrectAllSuccess: "Todos os erros ortográficos comuns foram corrigidos com sucesso!",
   },
   es: {
     // Navigation / Header / Footer
@@ -1075,7 +1079,11 @@ export const translations = {
     clearPersonalDictionary: "Borrar Diccionario Personal",
     wordsInDictionary: "{count} palabra(s) guardada(s)",
     spellcheckActive: "Revisión Ortográfica",
-    pageIssueGroup: "Página {page}"
+    pageIssueGroup: "Página {page}",
+    autoCorrectLabel: "Autocorrección al escribir",
+    autoCorrectDesc: "Corrige acentuación y errores comunes al presionar espacio o puntuación.",
+    autoCorrectAll: "Corregir todos los errores comunes",
+    autoCorrectAllSuccess: "¡Todos los errores ortográficos comunes se han corregido con éxito!",
   },
   en: {
     // Navigation / Header / Footer
@@ -1611,7 +1619,11 @@ export const translations = {
     clearPersonalDictionary: "Clear Personal Dictionary",
     wordsInDictionary: "{count} word(s) saved",
     spellcheckActive: "Spellcheck Active",
-    pageIssueGroup: "Page {page}"
+    pageIssueGroup: "Page {page}",
+    autoCorrectLabel: "Auto-correct as you type",
+    autoCorrectDesc: "Corrects accents and common typos when pressing space or punctuation.",
+    autoCorrectAll: "Auto-correct all common typos",
+    autoCorrectAllSuccess: "All common spelling and accent typos have been corrected successfully!",
   },
   id: {
     // Navigation / Header / Footer
@@ -2147,7 +2159,11 @@ export const translations = {
     clearPersonalDictionary: "Hapus Kamus Pribadi",
     wordsInDictionary: "{count} kata tersimpan",
     spellcheckActive: "Pemeriksaan Ejaan",
-    pageIssueGroup: "Halaman {page}"
+    pageIssueGroup: "Halaman {page}",
+    autoCorrectLabel: "Koreksi otomatis saat mengetik",
+    autoCorrectDesc: "Memperbaiki tanda baca dan kesalahan umum saat menekan spasi atau tanda baca.",
+    autoCorrectAll: "Perbaiki semua kesalahan umum",
+    autoCorrectAllSuccess: "Semua kesalahan ejaan dan tanda baca umum telah berhasil diperbaiki!",
   },
   zh: {
     // Navigation / Header / Footer
@@ -2683,7 +2699,11 @@ export const translations = {
     clearPersonalDictionary: "清空个人词典",
     wordsInDictionary: "已保存 {count} 个单词",
     spellcheckActive: "拼写检查",
-    pageIssueGroup: "第 {page} 页"
+    pageIssueGroup: "第 {page} 页",
+    autoCorrectLabel: "输入时自动更正",
+    autoCorrectDesc: "在按下空格键或标点符号时自动更正音调和常见错误。",
+    autoCorrectAll: "自动纠正所有常见错误",
+    autoCorrectAllSuccess: "所有常见的拼写和标点错误均已成功纠正！",
   }
 } as const;
 
