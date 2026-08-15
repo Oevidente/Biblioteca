@@ -6,6 +6,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { StoryEditor } from "../components/StoryEditor";
 import { ArrowLeft, Save, Loader2, Send, CheckCircle2, Heart } from "lucide-react";
 import { generateTagsLocal } from "../lib/tagger";
+import { cleanStoryHtml } from "../lib/cleanStoryHtml";
 
 interface StoryData {
   title: string;
@@ -149,7 +150,8 @@ export function Writer() {
       setIsAutoSaving(true);
       try {
         const storyRef = doc(db, "stories", state.id);
-        const cleanPages = state.pages.length > 0 ? state.pages : ["<p></p>"];
+        const rawPages = state.pages.length > 0 ? state.pages : ["<p></p>"];
+        const cleanPages = rawPages.map((p) => cleanStoryHtml(p));
         
         // Preserve existing tags, only generate if they don't exist
         let tags = state.story.tags || [];
@@ -199,7 +201,8 @@ export function Writer() {
     setMessage("");
     try {
       const storyRef = doc(db, "stories", id);
-      const cleanPages = pages.length > 0 ? pages : ["<p></p>"];
+      const rawPages = pages.length > 0 ? pages : ["<p></p>"];
+      const cleanPages = rawPages.map((p) => cleanStoryHtml(p));
       
       // Preserve existing tags, only generate if they don't exist
       let tags = story.tags || [];

@@ -61,6 +61,7 @@ import {
   ReviewLanguage,
   IssueCategory,
 } from '../lib/spellChecker';
+import { cleanStoryHtml } from '../lib/cleanStoryHtml';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -313,10 +314,11 @@ export function StoryEditor({
   const processHtmlIntoPages = (
     html: string,
   ): { pages: string[]; wordCount: number; cleanText: string } => {
-    const hasManualBreaks = html.includes('class="page-break-marker"');
+    const cleanedHtml = cleanStoryHtml(html);
+    const hasManualBreaks = cleanedHtml.includes('class="page-break-marker"') || html.includes('class="page-break-marker"');
 
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
+    tempDiv.innerHTML = cleanedHtml;
 
     const markers = tempDiv.querySelectorAll('.page-break-marker');
     markers.forEach((m) => m.remove());
@@ -329,17 +331,17 @@ export function StoryEditor({
     const wordCount = words.length;
 
     if (hasManualBreaks) {
-      const rawParts = html.split(
+      const rawParts = cleanedHtml.split(
         /<div class="page-break-marker"[^>]*>.*?<\/div>/gi,
       );
       const pages = rawParts
-        .map((p) => p.trim())
+        .map((p) => cleanStoryHtml(p.trim()))
         .filter(
           (p) => p.length > 0 && p !== '<p><br></p>' && p !== '<p><br/></p>',
         );
 
       return {
-        pages: pages.length > 0 ? pages : [html],
+        pages: pages.length > 0 ? pages : [cleanedHtml || '<p></p>'],
         wordCount,
         cleanText,
       };
@@ -348,7 +350,7 @@ export function StoryEditor({
     if (autoPagination && wordsPerPage > 0) {
       const paragraphs = Array.from(tempDiv.children);
       if (paragraphs.length === 0) {
-        const rawContent = tempDiv.innerHTML || html;
+        const rawContent = cleanStoryHtml(tempDiv.innerHTML || cleanedHtml);
         return { pages: [rawContent || '<p></p>'], wordCount, cleanText };
       }
 
@@ -367,7 +369,7 @@ export function StoryEditor({
           currentChunkWords > 0 &&
           currentChunkWords + childWordCount > wordsPerPage + 50
         ) {
-          pages.push(currentChunkHtml);
+          pages.push(cleanStoryHtml(currentChunkHtml));
           currentChunkHtml = child.outerHTML;
           currentChunkWords = childWordCount;
         } else {
@@ -377,18 +379,18 @@ export function StoryEditor({
       });
 
       if (currentChunkHtml.trim().length > 0) {
-        pages.push(currentChunkHtml);
+        pages.push(cleanStoryHtml(currentChunkHtml));
       }
 
       return {
-        pages: pages.length > 0 ? pages : [html],
+        pages: pages.length > 0 ? pages : [cleanedHtml || '<p></p>'],
         wordCount,
         cleanText,
       };
     }
 
     return {
-      pages: [html || '<p></p>'],
+      pages: [cleanedHtml || '<p></p>'],
       wordCount,
       cleanText,
     };

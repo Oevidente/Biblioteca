@@ -68,6 +68,7 @@ import {
 import { unlockAchievement } from '../lib/achievements';
 import { logUserActivity } from '../lib/social';
 import { translateStoryPageHtml } from '../lib/storyTranslator';
+import { cleanStoryHtml } from '../lib/cleanStoryHtml';
 import { TranslatedText } from '../components/TranslatedText';
 import { extractStoryId } from '../utils/urlUtils';
 import { clsx, type ClassValue } from 'clsx';
@@ -157,12 +158,12 @@ export function Reader() {
             currentPage,
           );
           if (!isCancelled) {
-            setDisplayContent(translated);
+            setDisplayContent(cleanStoryHtml(translated));
           }
         } catch (e) {
           console.error('Translation processing error:', e);
           if (!isCancelled) {
-            setDisplayContent(pageContent);
+            setDisplayContent(cleanStoryHtml(pageContent));
           }
         } finally {
           if (!isCancelled) {
@@ -170,7 +171,7 @@ export function Reader() {
           }
         }
       } else {
-        setDisplayContent(pageContent);
+        setDisplayContent(cleanStoryHtml(pageContent));
         setIsTranslating(false);
       }
     }
@@ -324,10 +325,10 @@ export function Reader() {
             typeof data.index === 'number'
               ? data.index
               : parseInt(d.id, 10) || 0;
-          pagesMap[idx] = data.content || '';
+          pagesMap[idx] = cleanStoryHtml(data.content || '');
         });
         if (Object.keys(pagesMap).length === 0 && pageContent) {
-          pagesMap[0] = pageContent;
+          pagesMap[0] = cleanStoryHtml(pageContent);
         }
         setAllPagesContent(pagesMap);
         setTocHeadings(
@@ -339,7 +340,7 @@ export function Reader() {
       } catch (e) {
         console.error('Error loading all pages for TOC:', e);
         if (pageContent) {
-          const fallbackPages = { [currentPage]: pageContent };
+          const fallbackPages = { [currentPage]: cleanStoryHtml(pageContent) };
           setAllPagesContent(fallbackPages);
           setTocHeadings(
             extractTocHeadingsFromPages(
@@ -681,7 +682,8 @@ export function Reader() {
       const cacheKey = `page_cache_${id}_${currentPage}`;
       const cachedPage = sessionStorage.getItem(cacheKey);
       if (cachedPage) {
-        setPageContent(cachedPage);
+        const cleanCached = cleanStoryHtml(cachedPage);
+        setPageContent(cleanCached);
         setLoadingPage(false);
       } else {
         setPageContent('');
@@ -693,7 +695,7 @@ export function Reader() {
         const pageRef = doc(db, `stories/${id}/pages`, currentPage.toString());
         const pageSnap = await getDoc(pageRef);
         if (pageSnap.exists()) {
-          const content = pageSnap.data().content;
+          const content = cleanStoryHtml(pageSnap.data().content || '');
           setPageContent(content);
           try {
             sessionStorage.setItem(cacheKey, content);
@@ -1367,7 +1369,7 @@ export function Reader() {
                             );
                             pSnap.docs.forEach((d) => {
                               const data = d.data();
-                              pagesMap[data.index || 0] = data.content || '';
+                              pagesMap[data.index || 0] = cleanStoryHtml(data.content || '');
                             });
                             await saveStoryOffline({
                               id,
