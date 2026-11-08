@@ -90,6 +90,11 @@ export function StoryEditor({
 }: StoryEditorProps) {
   const { t, language } = useLanguage();
   const editorRef = useRef<HTMLDivElement>(null);
+  const selectionToolbarRef = useRef<HTMLDivElement>(null);
+  const [selectionToolbarPosition, setSelectionToolbarPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
 
   const isInitialized = useRef(false);
 
@@ -396,6 +401,60 @@ export function StoryEditor({
     document.execCommand(command, false, value);
     handleContentChange();
   };
+
+  const updateSelectionToolbar = useCallback(() => {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    const anchorNode = selection?.anchorNode;
+    const focusNode = selection?.focusNode;
+
+    if (
+      activeTab !== 'edit' ||
+      !editor ||
+      !selection ||
+      selection.rangeCount === 0 ||
+      selection.isCollapsed ||
+      !anchorNode ||
+      !focusNode ||
+      !editor.contains(anchorNode) ||
+      !editor.contains(focusNode)
+    ) {
+      setSelectionToolbarPosition(null);
+      return;
+    }
+
+    const rect = selection.getRangeAt(0).getBoundingClientRect();
+    if (!rect.width && !rect.height) {
+      setSelectionToolbarPosition(null);
+      return;
+    }
+
+    const halfWidth = Math.min(156, (window.innerWidth - 24) / 2);
+    const selectionCenter = rect.left + rect.width / 2;
+    const left = Math.min(
+      window.innerWidth - halfWidth - 12,
+      Math.max(halfWidth + 12, selectionCenter),
+    );
+
+    setSelectionToolbarPosition({
+      top: rect.top > 56 ? rect.top - 48 : rect.bottom + 8,
+      left,
+    });
+  }, [activeTab]);
+
+  useEffect(() => {
+    const refreshPosition = () => updateSelectionToolbar();
+    document.addEventListener('selectionchange', refreshPosition);
+    window.addEventListener('resize', refreshPosition);
+    window.addEventListener('scroll', refreshPosition, true);
+    refreshPosition();
+
+    return () => {
+      document.removeEventListener('selectionchange', refreshPosition);
+      window.removeEventListener('resize', refreshPosition);
+      window.removeEventListener('scroll', refreshPosition, true);
+    };
+  }, [updateSelectionToolbar]);
 
   const handleFormatBlock = (tag: string) => {
     executeCommand('formatBlock', `<${tag}>`);
@@ -2093,6 +2152,17 @@ export function StoryEditor({
                 onPaste={handleEditorPaste}
                 onDrop={handleEditorDrop}
                 onKeyDown={handleEditorKeyDown}
+                onBlur={(e) => {
+                  if (
+                    e.relatedTarget &&
+                    selectionToolbarRef.current?.contains(
+                      e.relatedTarget as Node,
+                    )
+                  ) {
+                    return;
+                  }
+                  setSelectionToolbarPosition(null);
+                }}
                 onFocus={handleEditorFocus}
                 onClick={handleEditorFocus}
                 className={cn(
@@ -2115,6 +2185,80 @@ export function StoryEditor({
                   {imageError}
                 </div>
               )}
+              {selectionToolbarPosition &&
+                createPortal(
+                  <div
+                    ref={selectionToolbarRef}
+                    role="toolbar"
+                    aria-label="Text formatting"
+                    className="fixed z-[80] flex max-w-[calc(100vw-24px)] items-center gap-0.5 overflow-x-auto rounded-xl border border-[#1A1A1A]/15 bg-white p-1 text-[#1A1A1A] shadow-xl dark:border-white/15 dark:bg-[#1C1C1E] dark:text-[#F5F5F0]"
+                    style={{
+                      top: selectionToolbarPosition.top,
+                      left: selectionToolbarPosition.left,
+                      transform: 'translateX(-50%)',
+                    }}
+                    onMouseDown={(e) => e.preventDefault()}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => executeCommand('bold')}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                      title={t('bold')}
+                    >
+                      <Bold className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => executeCommand('italic')}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                      title={t('italic')}
+                    >
+                      <Italic className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => executeCommand('underline')}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                      title={t('underline')}
+                    >
+                      <Underline className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => executeCommand('strikeThrough')}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                      title={t('strikethrough')}
+                    >
+                      <Strikethrough className="h-4 w-4" />
+                    </button>
+                    <div className="mx-1 h-5 w-px shrink-0 bg-[#1A1A1A]/10 dark:bg-white/15" />
+                    <button
+                      type="button"
+                      onClick={() => handleFormatBlock('h1')}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                      title={t('formatTitle')}
+                    >
+                      <Heading1 className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleFormatBlock('h2')}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                      title={t('formatSubtitle')}
+                    >
+                      <Heading2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleFormatBlock('p')}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                      title={t('formatParagraph')}
+                    >
+                      <Pilcrow className="h-4 w-4" />
+                    </button>
+                  </div>,
+                  document.body,
+                )}
             </div>
           ) : (
             /* Preview Mode Page View */
