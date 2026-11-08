@@ -225,6 +225,8 @@ export const translations = {
     realTimeError: 'Erro em Tempo Real ({stage})',
     errorProcess: 'Erro durante o processo: ',
     errorUpdatingStory: 'Erro ao atualizar história: ',
+    storyTooLargeError:
+      'A página {page} ficou pesada demais pra salvar (limite do banco: 1 MB). Remove ou diminui algumas imagens dessa parte e tenta de novo.',
     errorDeletingStory: 'Erro ao apagar história: ',
     errorUpdatingCommentStatus: 'Erro ao atualizar status do comentário.',
     loginFailed: 'Login falhou',
@@ -819,6 +821,8 @@ export const translations = {
     realTimeError: 'Error en Tiempo Real ({stage})',
     errorProcess: 'Error durante el proceso: ',
     errorUpdatingStory: 'Error al actualizar la historia: ',
+    storyTooLargeError:
+      'La página {page} es demasiado grande para guardar (límite de la base de datos: 1 MB). Quita o reduce algunas imágenes de esa parte e inténtalo de nuevo.',
     errorDeletingStory: 'Error al eliminar la historia: ',
     errorUpdatingCommentStatus: 'Error al actualizar el estado del comentario.',
     loginFailed: 'El inicio de sesión falló',
@@ -1410,6 +1414,8 @@ export const translations = {
     realTimeError: 'Real-Time Error ({stage})',
     errorProcess: 'Error during process: ',
     errorUpdatingStory: 'Error updating story: ',
+    storyTooLargeError:
+      'Page {page} is too large to save (database limit: 1 MB). Remove or shrink some images in that part and try again.',
     errorDeletingStory: 'Error deleting story: ',
     errorUpdatingCommentStatus: 'Error updating comment status.',
     loginFailed: 'Login failed',
