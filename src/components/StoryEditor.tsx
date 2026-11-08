@@ -2256,6 +2256,28 @@ export function StoryEditor({
                     >
                       <Pilcrow className="h-4 w-4" />
                     </button>
+                    {recentColors.length > 0 && (
+                      <>
+                        <div className="mx-1 h-5 w-px shrink-0 bg-[#1A1A1A]/10 dark:bg-white/15" />
+                        <div
+                          role="group"
+                          aria-label={t('recentColors')}
+                          className="flex shrink-0 items-center gap-1 px-1"
+                        >
+                          {recentColors.map((color, index) => (
+                            <button
+                              key={`${color}-${index}`}
+                              type="button"
+                              onClick={() => handleApplyColor(color)}
+                              className="h-5 w-5 shrink-0 rounded border border-black/20 shadow-sm transition-transform hover:scale-125 dark:border-white/25"
+                              style={{ backgroundColor: color }}
+                              title={`${t('recentColors')}: ${color}`}
+                              aria-label={`${t('recentColors')}: ${color}`}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>,
                   document.body,
                 )}
