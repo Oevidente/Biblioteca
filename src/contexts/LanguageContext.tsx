@@ -225,6 +225,8 @@ export const translations = {
     realTimeError: 'Erro em Tempo Real ({stage})',
     errorProcess: 'Erro durante o processo: ',
     errorUpdatingStory: 'Erro ao atualizar história: ',
+    firestoreWriteQuotaExceeded:
+      'A cota diária gratuita de gravações do Firestore foi esgotada. Ela renova por volta de 00:00 no horário do Pacífico (próximo reset: {resetTime}, no seu fuso local). Suas alterações continuam não salvas; tente novamente após esse horário.',
     storyTooLargeError:
       'A página {page} ficou pesada demais pra salvar (limite do banco: 1 MB). Remove ou diminui algumas imagens dessa parte e tenta de novo.',
     errorDeletingStory: 'Erro ao apagar história: ',
@@ -821,6 +823,8 @@ export const translations = {
     realTimeError: 'Error en Tiempo Real ({stage})',
     errorProcess: 'Error durante el proceso: ',
     errorUpdatingStory: 'Error al actualizar la historia: ',
+    firestoreWriteQuotaExceeded:
+      'Se agotó la cuota diaria gratuita de escrituras de Firestore. Se renueva alrededor de las 00:00, hora del Pacífico (próximo reinicio: {resetTime}, en tu zona horaria). Tus cambios siguen sin guardarse; inténtalo de nuevo después de esa hora.',
     storyTooLargeError:
       'La página {page} es demasiado grande para guardar (límite de la base de datos: 1 MB). Quita o reduce algunas imágenes de esa parte e inténtalo de nuevo.',
     errorDeletingStory: 'Error al eliminar la historia: ',
@@ -1414,6 +1418,8 @@ export const translations = {
     realTimeError: 'Real-Time Error ({stage})',
     errorProcess: 'Error during process: ',
     errorUpdatingStory: 'Error updating story: ',
+    firestoreWriteQuotaExceeded:
+      'The Firestore free daily write quota has been exhausted. It resets around 12:00 AM Pacific Time (next reset: {resetTime} in your local time zone). Your changes are still unsaved; try again after that time.',
     storyTooLargeError:
       'Page {page} is too large to save (database limit: 1 MB). Remove or shrink some images in that part and try again.',
     errorDeletingStory: 'Error deleting story: ',

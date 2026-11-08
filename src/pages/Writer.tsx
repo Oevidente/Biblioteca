@@ -63,6 +63,85 @@ async function savePagesToFirestore(
   await Promise.all(leftovers);
 }
 
+function isFirestoreDailyWriteQuotaError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  const firebaseError = error as { code?: unknown; message?: unknown };
+  const code = String(firebaseError.code || '').toLowerCase();
+  const message = String(firebaseError.message || '').toLowerCase();
+
+  return (
+    (code === 'resource-exhausted' || code.endsWith('/resource-exhausted')) &&
+    message.includes('free daily write units')
+  );
+}
+
+function getNextFirestoreQuotaReset(now = new Date()): Date {
+  const timeZone = 'America/Los_Angeles';
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hourCycle: 'h23',
+  });
+  const getParts = (date: Date) =>
+    Object.fromEntries(
+      formatter
+        .formatToParts(date)
+        .filter((part) => part.type !== 'literal')
+        .map((part) => [part.type, Number(part.value)]),
+    );
+  const currentParts = getParts(now);
+  const nextPacificMidnight = Date.UTC(
+    currentParts.year,
+    currentParts.month - 1,
+    currentParts.day + 1,
+  );
+  const getOffset = (date: Date) => {
+    const parts = getParts(date);
+    const wholeSecond = Math.floor(date.getTime() / 1000) * 1000;
+    const zonedTimeAsUtc = Date.UTC(
+      parts.year,
+      parts.month - 1,
+      parts.day,
+      parts.hour,
+      parts.minute,
+      parts.second,
+    );
+    return zonedTimeAsUtc - wholeSecond;
+  };
+
+  let resetAt = nextPacificMidnight - getOffset(now);
+  resetAt = nextPacificMidnight - getOffset(new Date(resetAt));
+  return new Date(resetAt);
+}
+
+function formatQuotaResetTime(language: string): string {
+  const locale =
+    language === 'pt'
+      ? 'pt-BR'
+      : language === 'es'
+        ? 'es-ES'
+        : language === 'zh'
+          ? 'zh-CN'
+          : language === 'id'
+            ? 'id-ID'
+            : 'en-US';
+
+  return new Intl.DateTimeFormat(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(getNextFirestoreQuotaReset());
+}
+
 export function Writer() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -286,6 +365,14 @@ export function Writer() {
       } catch (err) {
         console.warn('Auto-save failed (network/quota):', err);
         setHasUnsavedChanges(true);
+        if (isFirestoreDailyWriteQuotaError(err)) {
+          setMessageIsError(true);
+          setMessage(
+            t('firestoreWriteQuotaExceeded', {
+              resetTime: formatQuotaResetTime(language),
+            }),
+          );
+        }
       } finally {
         setIsAutoSaving(false);
       }
@@ -358,7 +445,15 @@ export function Writer() {
     } catch (err: any) {
       console.error('Error updating story:', err);
       setMessageIsError(true);
-      setMessage(t('errorUpdatingStory') + (err?.message || err?.code || ''));
+      if (isFirestoreDailyWriteQuotaError(err)) {
+        setMessage(
+          t('firestoreWriteQuotaExceeded', {
+            resetTime: formatQuotaResetTime(language),
+          }),
+        );
+      } else {
+        setMessage(t('errorUpdatingStory') + (err?.message || err?.code || ''));
+      }
     } finally {
       setIsSaving(false);
     }
