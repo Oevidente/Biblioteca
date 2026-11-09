@@ -91,6 +91,10 @@ export function StoryEditor({
   const { t, language } = useLanguage();
   const editorRef = useRef<HTMLDivElement>(null);
   const selectionToolbarRef = useRef<HTMLDivElement>(null);
+  const draggedImageRef = useRef<HTMLImageElement | null>(null);
+  const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(
+    null,
+  );
   const [selectionToolbarPosition, setSelectionToolbarPosition] = useState<{
     top: number;
     left: number;
@@ -408,28 +412,41 @@ export function StoryEditor({
     const anchorNode = selection?.anchorNode;
     const focusNode = selection?.focusNode;
 
-    if (
-      activeTab !== 'edit' ||
-      !editor ||
-      !selection ||
-      selection.rangeCount === 0 ||
-      selection.isCollapsed ||
-      !anchorNode ||
-      !focusNode ||
-      !editor.contains(anchorNode) ||
-      !editor.contains(focusNode)
-    ) {
+    if (activeTab !== 'edit' || !editor) {
       setSelectionToolbarPosition(null);
       return;
     }
 
-    const rect = selection.getRangeAt(0).getBoundingClientRect();
+    const hasTextSelection = Boolean(
+      selection &&
+      selection.rangeCount > 0 &&
+      !selection.isCollapsed &&
+      anchorNode &&
+      focusNode &&
+      editor.contains(anchorNode) &&
+      editor.contains(focusNode),
+    );
+    const imageIsSelected = Boolean(
+      selectedImage && editor.contains(selectedImage),
+    );
+
+    if (!hasTextSelection && !imageIsSelected) {
+      setSelectionToolbarPosition(null);
+      return;
+    }
+
+    const rect = hasTextSelection
+      ? selection!.getRangeAt(0).getBoundingClientRect()
+      : selectedImage!.getBoundingClientRect();
     if (!rect.width && !rect.height) {
       setSelectionToolbarPosition(null);
       return;
     }
 
-    const halfWidth = Math.min(156, (window.innerWidth - 24) / 2);
+    const toolbarWidth =
+      selectionToolbarRef.current?.offsetWidth ??
+      Math.min(520, window.innerWidth - 24);
+    const halfWidth = Math.min(toolbarWidth / 2, (window.innerWidth - 24) / 2);
     const selectionCenter = rect.left + rect.width / 2;
     const left = Math.min(
       window.innerWidth - halfWidth - 12,
@@ -440,7 +457,7 @@ export function StoryEditor({
       top: rect.top > 56 ? rect.top - 48 : rect.bottom + 8,
       left,
     });
-  }, [activeTab]);
+  }, [activeTab, selectedImage]);
 
   useEffect(() => {
     const refreshPosition = () => updateSelectionToolbar();
@@ -715,6 +732,45 @@ export function StoryEditor({
   };
 
   const handleEditorDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    const draggedImage = draggedImageRef.current;
+    if (draggedImage && editorRef.current) {
+      e.preventDefault();
+      draggedImageRef.current = null;
+
+      let range: Range | null = null;
+      if (document.caretRangeFromPoint) {
+        range = document.caretRangeFromPoint(e.clientX, e.clientY);
+      } else if ((document as any).caretPositionFromPoint) {
+        const pos = (document as any).caretPositionFromPoint(
+          e.clientX,
+          e.clientY,
+        );
+        if (pos) {
+          range = document.createRange();
+          range.setStart(pos.offsetNode, pos.offset);
+          range.collapse(true);
+        }
+      }
+
+      if (
+        range &&
+        editorRef.current.contains(range.startContainer) &&
+        !draggedImage.contains(range.startContainer)
+      ) {
+        range.insertNode(draggedImage);
+        const caret = document.createRange();
+        caret.setStartAfter(draggedImage);
+        caret.collapse(true);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(caret);
+        setSelectedImage(draggedImage);
+        handleContentChange();
+        updateSelectionToolbar();
+      }
+      return;
+    }
+
     const files = (Array.from(e.dataTransfer?.files || []) as File[]).filter(
       (f) => f.type.startsWith('image/'),
     );
@@ -740,6 +796,27 @@ export function StoryEditor({
       savedRangeRef.current = range;
     }
     insertImageFiles(files);
+  };
+
+  const handleEditorDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    const target = e.target;
+    if (
+      !(target instanceof HTMLImageElement) ||
+      !editorRef.current?.contains(target)
+    ) {
+      return;
+    }
+    target.draggable = true;
+    draggedImageRef.current = target;
+    setSelectedImage(target);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', 'story-image');
+  };
+
+  const handleEditorDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (draggedImageRef.current || e.dataTransfer.types.includes('Files')) {
+      e.preventDefault();
+    }
   };
 
   useEffect(() => {
@@ -913,6 +990,33 @@ export function StoryEditor({
     if (searchQuery) {
       handleCloseSearch();
     }
+  };
+
+  const handleEditorClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    handleEditorFocus();
+    const target = e.target;
+    if (target instanceof HTMLImageElement) {
+      target.draggable = true;
+    }
+    setSelectedImage(target instanceof HTMLImageElement ? target : null);
+  };
+
+  const setSelectedImagePosition = (position: 'left' | 'center' | 'right') => {
+    const image = selectedImage;
+    if (!image || !editorRef.current?.contains(image)) return;
+
+    image.draggable = true;
+    image.style.float = position === 'center' ? 'none' : position;
+    image.style.width = position === 'center' ? 'auto' : '55%';
+    image.style.margin =
+      position === 'left'
+        ? '0.5rem 1rem 0.75rem 0'
+        : position === 'right'
+          ? '0.5rem 0 0.75rem 1rem'
+          : '1rem auto';
+
+    handleContentChange();
+    updateSelectionToolbar();
   };
 
   // Keyboard shortcut listener (RF-12, RF-13)
@@ -2151,6 +2255,11 @@ export function StoryEditor({
                 onInput={handleContentChange}
                 onPaste={handleEditorPaste}
                 onDrop={handleEditorDrop}
+                onDragStart={handleEditorDragStart}
+                onDragOver={handleEditorDragOver}
+                onDragEnd={() => {
+                  draggedImageRef.current = null;
+                }}
                 onKeyDown={handleEditorKeyDown}
                 onBlur={(e) => {
                   if (
@@ -2161,10 +2270,11 @@ export function StoryEditor({
                   ) {
                     return;
                   }
+                  setSelectedImage(null);
                   setSelectionToolbarPosition(null);
                 }}
                 onFocus={handleEditorFocus}
-                onClick={handleEditorFocus}
+                onClick={handleEditorClick}
                 className={cn(
                   'w-full overflow-y-auto p-4 sm:p-8 bg-white dark:bg-[#1A1A1A] border border-[#1A1A1A]/15 dark:border-white/15 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white font-serif text-base sm:text-lg leading-relaxed text-[#1A1A1A] dark:text-[#F5F5F0] shadow-inner prose dark:prose-invert max-w-none transition-all duration-300',
                   '[&_img]:mx-auto [&_img]:rounded-lg [&_img]:max-w-full [&_img]:h-auto',
@@ -2199,83 +2309,117 @@ export function StoryEditor({
                     }}
                     onMouseDown={(e) => e.preventDefault()}
                   >
-                    <button
-                      type="button"
-                      onClick={() => executeCommand('bold')}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
-                      title={t('bold')}
-                    >
-                      <Bold className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => executeCommand('italic')}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
-                      title={t('italic')}
-                    >
-                      <Italic className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => executeCommand('underline')}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
-                      title={t('underline')}
-                    >
-                      <Underline className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => executeCommand('strikeThrough')}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
-                      title={t('strikethrough')}
-                    >
-                      <Strikethrough className="h-4 w-4" />
-                    </button>
-                    <div className="mx-1 h-5 w-px shrink-0 bg-[#1A1A1A]/10 dark:bg-white/15" />
-                    <button
-                      type="button"
-                      onClick={() => handleFormatBlock('h1')}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
-                      title={t('formatTitle')}
-                    >
-                      <Heading1 className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleFormatBlock('h2')}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
-                      title={t('formatSubtitle')}
-                    >
-                      <Heading2 className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleFormatBlock('p')}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
-                      title={t('formatParagraph')}
-                    >
-                      <Pilcrow className="h-4 w-4" />
-                    </button>
-                    {recentColors.length > 0 && (
+                    {selectedImage ? (
                       <>
-                        <div className="mx-1 h-5 w-px shrink-0 bg-[#1A1A1A]/10 dark:bg-white/15" />
-                        <div
-                          role="group"
-                          aria-label={t('recentColors')}
-                          className="flex shrink-0 items-center gap-1 px-1"
+                        <button
+                          type="button"
+                          onClick={() => setSelectedImagePosition('left')}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                          title={t('alignLeft')}
+                          aria-label={t('alignLeft')}
                         >
-                          {recentColors.map((color, index) => (
-                            <button
-                              key={`${color}-${index}`}
-                              type="button"
-                              onClick={() => handleApplyColor(color)}
-                              className="h-5 w-5 shrink-0 rounded border border-black/20 shadow-sm transition-transform hover:scale-125 dark:border-white/25"
-                              style={{ backgroundColor: color }}
-                              title={`${t('recentColors')}: ${color}`}
-                              aria-label={`${t('recentColors')}: ${color}`}
-                            />
-                          ))}
-                        </div>
+                          <AlignLeft className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedImagePosition('center')}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                          title={t('alignCenter')}
+                          aria-label={t('alignCenter')}
+                        >
+                          <AlignCenter className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedImagePosition('right')}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                          title={t('alignRight')}
+                          aria-label={t('alignRight')}
+                        >
+                          <AlignRight className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => executeCommand('bold')}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                          title={t('bold')}
+                        >
+                          <Bold className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => executeCommand('italic')}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                          title={t('italic')}
+                        >
+                          <Italic className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => executeCommand('underline')}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                          title={t('underline')}
+                        >
+                          <Underline className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => executeCommand('strikeThrough')}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                          title={t('strikethrough')}
+                        >
+                          <Strikethrough className="h-4 w-4" />
+                        </button>
+                        <div className="mx-1 h-5 w-px shrink-0 bg-[#1A1A1A]/10 dark:bg-white/15" />
+                        <button
+                          type="button"
+                          onClick={() => handleFormatBlock('h1')}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                          title={t('formatTitle')}
+                        >
+                          <Heading1 className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleFormatBlock('h2')}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                          title={t('formatSubtitle')}
+                        >
+                          <Heading2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleFormatBlock('p')}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                          title={t('formatParagraph')}
+                        >
+                          <Pilcrow className="h-4 w-4" />
+                        </button>
+                        {recentColors.length > 0 && (
+                          <>
+                            <div className="mx-1 h-5 w-px shrink-0 bg-[#1A1A1A]/10 dark:bg-white/15" />
+                            <div
+                              role="group"
+                              aria-label={t('recentColors')}
+                              className="flex shrink-0 items-center gap-1 px-1"
+                            >
+                              {recentColors.map((color, index) => (
+                                <button
+                                  key={`${color}-${index}`}
+                                  type="button"
+                                  onClick={() => handleApplyColor(color)}
+                                  className="h-5 w-5 shrink-0 rounded border border-black/20 shadow-sm transition-transform hover:scale-125 dark:border-white/25"
+                                  style={{ backgroundColor: color }}
+                                  title={`${t('recentColors')}: ${color}`}
+                                  aria-label={`${t('recentColors')}: ${color}`}
+                                />
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </>
                     )}
                   </div>,
