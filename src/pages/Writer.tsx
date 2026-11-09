@@ -345,7 +345,8 @@ export function Writer() {
           pagesSnap.forEach((p) => {
             loadedPages.push(p.data().content || '');
           });
-          const remotePages = loadedPages.length > 0 ? loadedPages : ['<p></p>'];
+          const remotePages =
+            loadedPages.length > 0 ? loadedPages : ['<p></p>'];
           basePagesRef.current = remotePages;
           const currentVersion = getStoryVersion(data, remotePages);
           setPages(remotePages);
@@ -474,7 +475,10 @@ export function Writer() {
           setLocalDraft(pendingDraft);
           setLastLocalDraftSaveTime(new Date(pendingDraft.savedAt));
         } catch (draftError) {
-          console.warn('Could not persist draft before manual save:', draftError);
+          console.warn(
+            'Could not persist draft before manual save:',
+            draftError,
+          );
         }
       }
 

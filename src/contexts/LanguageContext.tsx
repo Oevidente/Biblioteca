@@ -452,8 +452,10 @@ export const translations = {
     localDraftPending: 'Alterações ainda não salvas no banco',
     localDraftSavedAt: 'Rascunho local salvo às {time} (não sincronizado)',
     localDraftReady: 'Autosave local ativo; use Salvar para sincronizar',
-    localDraftSaveError: 'Não foi possível salvar o rascunho neste dispositivo.',
-    writerDraftConflict: 'A versão no banco mudou desde a criação deste rascunho local. Escolha qual versão abrir.',
+    localDraftSaveError:
+      'Não foi possível salvar o rascunho neste dispositivo.',
+    writerDraftConflict:
+      'A versão no banco mudou desde a criação deste rascunho local. Escolha qual versão abrir.',
     recoverWriterDraft: 'Recuperar rascunho local',
     useServerVersion: 'Usar versão do banco',
     useMyName: 'Usar meu Nome: {name}',
@@ -1064,7 +1066,8 @@ export const translations = {
     localDraftSavedAt: 'Borrador local guardado a las {time} (sin sincronizar)',
     localDraftReady: 'Guardado local activo; usa Guardar para sincronizar',
     localDraftSaveError: 'No se pudo guardar el borrador en este dispositivo.',
-    writerDraftConflict: 'La versión de la base de datos cambió desde que se creó este borrador local. Elige cuál abrir.',
+    writerDraftConflict:
+      'La versión de la base de datos cambió desde que se creó este borrador local. Elige cuál abrir.',
     recoverWriterDraft: 'Recuperar borrador local',
     useServerVersion: 'Usar versión de la base de datos',
     useMyName: 'Usar mi Nombre: {name}',
@@ -1671,7 +1674,8 @@ export const translations = {
     localDraftSavedAt: 'Local draft saved at {time} (not synced)',
     localDraftReady: 'Local autosave is active; use Save to sync',
     localDraftSaveError: 'Could not save the draft on this device.',
-    writerDraftConflict: 'The database version changed since this local draft was created. Choose which version to open.',
+    writerDraftConflict:
+      'The database version changed since this local draft was created. Choose which version to open.',
     recoverWriterDraft: 'Recover local draft',
     useServerVersion: 'Use database version',
     useMyName: 'Use my Name: {name}',
@@ -2267,9 +2271,11 @@ export const translations = {
     localDraftSaving: 'Menyimpan draf di perangkat ini...',
     localDraftPending: 'Perubahan belum disimpan ke basis data',
     localDraftSavedAt: 'Draf lokal disimpan pukul {time} (belum disinkronkan)',
-    localDraftReady: 'Simpan otomatis lokal aktif; gunakan Simpan untuk sinkronisasi',
+    localDraftReady:
+      'Simpan otomatis lokal aktif; gunakan Simpan untuk sinkronisasi',
     localDraftSaveError: 'Draf tidak dapat disimpan di perangkat ini.',
-    writerDraftConflict: 'Versi basis data berubah sejak draf lokal ini dibuat. Pilih versi yang ingin dibuka.',
+    writerDraftConflict:
+      'Versi basis data berubah sejak draf lokal ini dibuat. Pilih versi yang ingin dibuka.',
     recoverWriterDraft: 'Pulihkan draf lokal',
     useServerVersion: 'Gunakan versi basis data',
     useMyName: 'Gunakan Nama Saya: {name}',
@@ -2855,7 +2861,8 @@ export const translations = {
     localDraftSavedAt: '本地草稿已于 {time} 保存（未同步）',
     localDraftReady: '本地自动保存已启用；点击保存以同步',
     localDraftSaveError: '无法将草稿保存到此设备。',
-    writerDraftConflict: '创建此本地草稿后，数据库版本已更改。请选择要打开的版本。',
+    writerDraftConflict:
+      '创建此本地草稿后，数据库版本已更改。请选择要打开的版本。',
     recoverWriterDraft: '恢复本地草稿',
     useServerVersion: '使用数据库版本',
     useMyName: '使用我的姓名：{name}',
