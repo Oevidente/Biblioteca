@@ -696,45 +696,6 @@ export function Home() {
         </div>
       </section>
 
-      {filteredStories.length > 0 && (
-        <section className="mt-8" aria-label={t('mostPopular')}>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">
-              {t('mostPopular')}
-            </h2>
-            <span className="text-xs text-white/50">
-              {filteredStories.length}
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {filteredStories.slice(0, 4).map((story) => (
-              <button
-                key={`featured-${story.id}`}
-                type="button"
-                onClick={() => navigate(getStoryLink(story.id, story.title))}
-                className="home-feature-card group relative aspect-[1.25/1] overflow-hidden rounded-lg border border-white/10 text-left sm:aspect-[1/1.05]"
-              >
-                <BookCoverImage
-                  src={story.coverImage}
-                  alt={story.title}
-                  title={story.title}
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <span className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
-                <span className="absolute inset-x-3 bottom-3 z-10">
-                  <span className="block line-clamp-2 text-sm font-semibold text-white">
-                    <TranslatedText text={story.title} />
-                  </span>
-                  <span className="mt-1 block truncate text-[10px] text-white/60">
-                    {story.author || t('unknownAuthor')}
-                  </span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
       <div
         id="home-library"
         className="mt-10 flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6 scroll-mt-6"
