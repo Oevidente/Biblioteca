@@ -82,7 +82,8 @@ function cn(...inputs: ClassValue[]) {
 function getOrCreateGuestId(): string {
   let guestId = localStorage.getItem('inkora_guest_id');
   if (!guestId) {
-    guestId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+    guestId =
+      'guest_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
     try {
       localStorage.setItem('inkora_guest_id', guestId);
     } catch (e) {
@@ -114,7 +115,7 @@ interface CommentData {
 export function Reader() {
   const { id: urlId } = useParams<{ id: string }>();
   const id = extractStoryId(urlId);
-  
+
   const { user, profile } = useAuth();
   const { language, t } = useLanguage();
 
@@ -664,7 +665,9 @@ export function Reader() {
       updateMetaTags({
         title: story.title,
         description: `Leia "${story.title}" ${story.author ? `por ${story.author}` : ''} no INKORA.`,
-        image: story.coverImage || 'https://oevidente.github.io/Biblioteca/favicon.png',
+        image:
+          story.coverImage ||
+          'https://oevidente.github.io/Biblioteca/favicon.png',
         url: window.location.href,
       });
     } else {
@@ -756,7 +759,7 @@ export function Reader() {
     const currentMax = Math.max(maxPageRef.current, currentPage);
     maxPageRef.current = currentMax;
     setMaxPage(currentMax);
-    
+
     if (!story || !id || !isInitialProgressLoaded.current) return;
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -835,7 +838,9 @@ export function Reader() {
   const handleReviewSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!user) {
-      window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
+      window.dispatchEvent(
+        new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }),
+      );
       return;
     }
     if (!id || rating === 0) return;
@@ -1253,10 +1258,10 @@ export function Reader() {
               setShowMoreMenu(false);
             }}
             className={cn(
-              "w-11 h-11 flex items-center justify-center rounded-xl transition-all relative group shadow-sm border border-black/5 dark:border-white/5",
-              showTocSidebar 
-                ? "paper-btn-dark font-extrabold" 
-                : "paper-btn-light opacity-80 hover:opacity-100"
+              'w-11 h-11 flex items-center justify-center rounded-xl transition-all relative group shadow-sm border border-black/5 dark:border-white/5',
+              showTocSidebar
+                ? 'paper-btn-dark font-extrabold'
+                : 'paper-btn-light opacity-80 hover:opacity-100',
             )}
             title={t('tableOfContents')}
             aria-label={t('tableOfContents')}
@@ -1274,10 +1279,10 @@ export function Reader() {
               setShowMoreMenu(false);
             }}
             className={cn(
-              "w-11 h-11 flex items-center justify-center rounded-xl transition-all relative group shadow-sm border border-black/5 dark:border-white/5",
-              showFormattingPanel 
-                ? "paper-btn-dark font-extrabold" 
-                : "paper-btn-light opacity-80 hover:opacity-100"
+              'w-11 h-11 flex items-center justify-center rounded-xl transition-all relative group shadow-sm border border-black/5 dark:border-white/5',
+              showFormattingPanel
+                ? 'paper-btn-dark font-extrabold'
+                : 'paper-btn-light opacity-80 hover:opacity-100',
             )}
             title={t('fontFamily')}
             aria-label={t('fontFamily')}
@@ -1320,10 +1325,10 @@ export function Reader() {
                 setShowFormattingPanel(false);
               }}
               className={cn(
-                "w-11 h-11 flex items-center justify-center rounded-xl transition-all relative group shadow-sm border border-black/5 dark:border-white/5",
-                showMoreMenu 
-                  ? "paper-btn-dark font-extrabold" 
-                  : "paper-btn-light opacity-80 hover:opacity-100"
+                'w-11 h-11 flex items-center justify-center rounded-xl transition-all relative group shadow-sm border border-black/5 dark:border-white/5',
+                showMoreMenu
+                  ? 'paper-btn-dark font-extrabold'
+                  : 'paper-btn-light opacity-80 hover:opacity-100',
               )}
               title="Mais Opções"
               aria-label="Mais opções"
@@ -1338,7 +1343,10 @@ export function Reader() {
             <AnimatePresence>
               {showMoreMenu && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowMoreMenu(false)} />
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowMoreMenu(false)}
+                  />
                   <motion.div
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -1351,7 +1359,11 @@ export function Reader() {
                       onClick={async () => {
                         setShowMoreMenu(false);
                         if (!user) {
-                          window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
+                          window.dispatchEvent(
+                            new CustomEvent('open-auth-modal', {
+                              detail: { mode: 'login' },
+                            }),
+                          );
                           return;
                         }
                         if (!id || !story) return;
@@ -1370,7 +1382,9 @@ export function Reader() {
                             );
                             pSnap.docs.forEach((d) => {
                               const data = d.data();
-                              pagesMap[data.index || 0] = cleanStoryHtml(data.content || '');
+                              pagesMap[data.index || 0] = cleanStoryHtml(
+                                data.content || '',
+                              );
                             });
                             await saveStoryOffline({
                               id,
@@ -1392,10 +1406,10 @@ export function Reader() {
                       }}
                       disabled={isDownloading}
                       className={cn(
-                        "w-full px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 text-left",
+                        'w-full px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 text-left',
                         isDownloaded
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                          : "hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]"
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                          : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
                       )}
                     >
                       <Download className="w-4 h-4 shrink-0 text-emerald-500" />
@@ -1413,7 +1427,11 @@ export function Reader() {
                       onClick={() => {
                         setShowMoreMenu(false);
                         if (!user) {
-                          window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
+                          window.dispatchEvent(
+                            new CustomEvent('open-auth-modal', {
+                              detail: { mode: 'login' },
+                            }),
+                          );
                           return;
                         }
                         loadPlaylists();
@@ -1433,10 +1451,10 @@ export function Reader() {
                           setIsTranslationEnabled(!isTranslationEnabled);
                         }}
                         className={cn(
-                          "w-full px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 text-left",
+                          'w-full px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 text-left',
                           isTranslationEnabled
-                            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold"
-                            : "hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]"
+                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold'
+                            : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
                         )}
                       >
                         <Languages className="w-4 h-4 shrink-0 text-amber-500" />
@@ -1460,7 +1478,7 @@ export function Reader() {
         {showFormattingPanel && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
+            animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
             className="mb-6 rounded-2xl p-4 sm:p-5 space-y-4 paper-card overflow-hidden shadow-md"
@@ -1514,7 +1532,11 @@ export function Reader() {
             {/* 2. Reading Theme */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-black/5 dark:border-white/5">
               <div className="flex items-center gap-2 shrink-0">
-                {readerMode === 'dark' ? <Moon className="w-4 h-4 opacity-60 text-indigo-400" /> : <Sun className="w-4 h-4 opacity-60 text-amber-500" />}
+                {readerMode === 'dark' ? (
+                  <Moon className="w-4 h-4 opacity-60 text-indigo-400" />
+                ) : (
+                  <Sun className="w-4 h-4 opacity-60 text-amber-500" />
+                )}
                 <span className="text-xs font-bold uppercase tracking-wider opacity-70">
                   {t('readingTheme')}
                 </span>
@@ -1558,7 +1580,7 @@ export function Reader() {
                   {[
                     { label: t('narrowMargin'), val: 'narrow' },
                     { label: t('normalMargin'), val: 'normal' },
-                    { label: t('wideMargin'), val: 'wide' }
+                    { label: t('wideMargin'), val: 'wide' },
                   ].map((m) => (
                     <button
                       key={m.val}
@@ -1585,7 +1607,7 @@ export function Reader() {
                   {[
                     { label: '1.4', val: 'compact' },
                     { label: '1.8', val: 'relaxed' },
-                    { label: '2.2', val: 'loose' }
+                    { label: '2.2', val: 'loose' },
                   ].map((ls) => (
                     <button
                       key={ls.val}
@@ -1641,7 +1663,9 @@ export function Reader() {
                     max="100"
                     step="5"
                     value={eyeComfortIntensity}
-                    onChange={(e) => setEyeComfortIntensity(Number(e.target.value))}
+                    onChange={(e) =>
+                      setEyeComfortIntensity(Number(e.target.value))
+                    }
                     className="w-full h-1.5 bg-[#1A1A1A]/10 dark:bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-500"
                     title={t('filterIntensity')}
                     aria-label={t('filterIntensity')}
@@ -1680,22 +1704,22 @@ export function Reader() {
       </AnimatePresence>
 
       {/* Reader Page Frame */}
-      <div 
+      <div
         className={cn(
-          "relative min-h-[50vh] p-6 sm:p-10 rounded-2xl transition-all overflow-hidden w-full break-words shadow-lg border border-black/5",
-          readerMode === "dark" 
-            ? "paper-card text-[#F5F5F0]" 
-            : "bg-[#FDFCF9] text-[#1A1A1A]"
+          'relative min-h-[50vh] p-6 sm:p-10 rounded-2xl transition-all overflow-hidden w-full break-words shadow-lg border border-black/5',
+          readerMode === 'dark'
+            ? 'paper-card text-[#F5F5F0]'
+            : 'bg-[#FDFCF9] text-[#1A1A1A]',
         )}
       >
         {/* Active Translation Indicator */}
         {language !== 'pt' && isTranslationEnabled && (
-          <div 
+          <div
             className={cn(
-              "mb-6 px-3.5 py-2 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider",
-              readerMode === "dark"
-                ? "bg-amber-500/10 text-amber-300 border-amber-500/20"
-                : "bg-amber-500/5 text-amber-800 border-amber-500/15"
+              'mb-6 px-3.5 py-2 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider',
+              readerMode === 'dark'
+                ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                : 'bg-amber-500/5 text-amber-800 border-amber-500/15',
             )}
           >
             <div className="flex items-center gap-2">
@@ -1722,9 +1746,10 @@ export function Reader() {
           <div
             className="absolute inset-0 rounded-2xl pointer-events-none z-20 transition-colors duration-200"
             style={{
-              backgroundColor: readerMode === 'dark'
-                ? `rgba(251, 191, 36, ${(eyeComfortIntensity / 100) * 0.22})`
-                : `rgba(245, 180, 0, ${(eyeComfortIntensity / 100) * 0.36})`,
+              backgroundColor:
+                readerMode === 'dark'
+                  ? `rgba(251, 191, 36, ${(eyeComfortIntensity / 100) * 0.22})`
+                  : `rgba(245, 180, 0, ${(eyeComfortIntensity / 100) * 0.36})`,
               mixBlendMode: readerMode === 'dark' ? 'screen' : 'multiply',
             }}
           />
