@@ -91,11 +91,22 @@ export function StoryEditor({
   const { t, language } = useLanguage();
   const editorRef = useRef<HTMLDivElement>(null);
   const selectionToolbarRef = useRef<HTMLDivElement>(null);
-  const draggedImageRef = useRef<HTMLImageElement | null>(null);
+  const draggedImageRef = useRef<{
+    image: HTMLImageElement;
+    preview: HTMLImageElement | null;
+    pointerId: number;
+    startX: number;
+    startY: number;
+    originParent: Node;
+    originNextSibling: Node | null;
+    active: boolean;
+  } | null>(null);
+  const isResizingImageRef = useRef(false);
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(
     null,
   );
   const [selectedImageWidth, setSelectedImageWidth] = useState(55);
+  const [selectedImageWidthInput, setSelectedImageWidthInput] = useState('55');
   const [selectionToolbarPosition, setSelectionToolbarPosition] = useState<{
     top: number;
     left: number;
@@ -408,6 +419,7 @@ export function StoryEditor({
   };
 
   const updateSelectionToolbar = useCallback(() => {
+    if (isResizingImageRef.current) return;
     const editor = editorRef.current;
     const selection = window.getSelection();
     const anchorNode = selection?.anchorNode;
@@ -629,7 +641,16 @@ export function StoryEditor({
 
   const handleContentChange = () => {
     if (!editorRef.current) return;
+    const selectedImages = editorRef.current.querySelectorAll(
+      'img.story-image-selected',
+    );
+    selectedImages.forEach((image) =>
+      image.classList.remove('story-image-selected'),
+    );
     const currentHtml = editorRef.current.innerHTML;
+    selectedImages.forEach((image) =>
+      image.classList.add('story-image-selected'),
+    );
 
     const { pages, wordCount, cleanText } = processHtmlIntoPages(currentHtml);
     setComputedPages(pages);
@@ -692,7 +713,7 @@ export function StoryEditor({
         dataUrls.map(buildImageHtml).join(''),
       );
       editorRef.current.querySelectorAll('img').forEach((image) => {
-        image.draggable = true;
+        image.draggable = false;
       });
       handleContentChange();
     } finally {
@@ -732,52 +753,13 @@ export function StoryEditor({
       if (!editor) return;
       const changed = await normalizeEditorImages(editor);
       editor.querySelectorAll('img').forEach((image) => {
-        image.draggable = true;
+        image.draggable = false;
       });
       if (changed) handleContentChange();
     }, 0);
   };
 
   const handleEditorDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    const draggedImage = draggedImageRef.current;
-    if (draggedImage && editorRef.current) {
-      e.preventDefault();
-      draggedImageRef.current = null;
-
-      let range: Range | null = null;
-      if (document.caretRangeFromPoint) {
-        range = document.caretRangeFromPoint(e.clientX, e.clientY);
-      } else if ((document as any).caretPositionFromPoint) {
-        const pos = (document as any).caretPositionFromPoint(
-          e.clientX,
-          e.clientY,
-        );
-        if (pos) {
-          range = document.createRange();
-          range.setStart(pos.offsetNode, pos.offset);
-          range.collapse(true);
-        }
-      }
-
-      if (
-        range &&
-        editorRef.current.contains(range.startContainer) &&
-        !draggedImage.contains(range.startContainer)
-      ) {
-        range.insertNode(draggedImage);
-        const caret = document.createRange();
-        caret.setStartAfter(draggedImage);
-        caret.collapse(true);
-        const selection = window.getSelection();
-        selection?.removeAllRanges();
-        selection?.addRange(caret);
-        setSelectedImage(draggedImage);
-        handleContentChange();
-        updateSelectionToolbar();
-      }
-      return;
-    }
-
     const files = (Array.from(e.dataTransfer?.files || []) as File[]).filter(
       (f) => f.type.startsWith('image/'),
     );
@@ -805,7 +787,23 @@ export function StoryEditor({
     insertImageFiles(files);
   };
 
-  const handleEditorDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+  const getCaretRangeAtPoint = (x: number, y: number): Range | null => {
+    if (document.caretRangeFromPoint) {
+      return document.caretRangeFromPoint(x, y);
+    }
+    if ((document as any).caretPositionFromPoint) {
+      const position = (document as any).caretPositionFromPoint(x, y);
+      if (position) {
+        const range = document.createRange();
+        range.setStart(position.offsetNode, position.offset);
+        range.collapse(true);
+        return range;
+      }
+    }
+    return null;
+  };
+
+  const handleEditorPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const target = e.target;
     if (
       !(target instanceof HTMLImageElement) ||
@@ -813,16 +811,117 @@ export function StoryEditor({
     ) {
       return;
     }
-    target.draggable = true;
-    draggedImageRef.current = target;
+
+    e.preventDefault();
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
+
+    const previousImage = selectedImage;
+    previousImage?.classList.remove('story-image-selected');
+    target.classList.add('story-image-selected');
+    target.draggable = false;
+    window.getSelection()?.removeAllRanges();
+    const width = getImageWidthPercent(target);
     setSelectedImage(target);
-    setSelectedImageWidth(getImageWidthPercent(target));
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', 'story-image');
+    setSelectedImageWidth(width);
+    setSelectedImageWidthInput(String(width));
+    draggedImageRef.current = {
+      image: target,
+      preview: null,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      originParent: target.parentNode!,
+      originNextSibling: target.nextSibling,
+      active: false,
+    };
+  };
+
+  const handleEditorPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = draggedImageRef.current;
+    const editor = editorRef.current;
+    if (!drag || drag.pointerId !== e.pointerId || !editor) return;
+
+    if (!drag.active) {
+      if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < 5) {
+        return;
+      }
+
+      const preview = drag.image.cloneNode(true) as HTMLImageElement;
+      preview.draggable = false;
+      preview.classList.add('story-image-drag-preview');
+      preview.style.opacity = '0.72';
+      preview.style.outline = '2px dashed #D97706';
+      preview.style.outlineOffset = '3px';
+      preview.style.pointerEvents = 'none';
+      drag.image.parentNode?.replaceChild(preview, drag.image);
+      drag.preview = preview;
+      drag.active = true;
+      setSelectedImage(preview);
+      setSelectionToolbarPosition(null);
+    }
+
+    const preview = drag.preview;
+    const range = getCaretRangeAtPoint(e.clientX, e.clientY);
+    if (
+      !preview ||
+      !range ||
+      !editor.contains(range.startContainer) ||
+      preview.contains(range.startContainer) ||
+      (range.startContainer instanceof Element &&
+        range.startContainer.closest('[contenteditable="false"]'))
+    ) {
+      return;
+    }
+
+    e.preventDefault();
+    try {
+      range.insertNode(preview);
+    } catch {
+      return;
+    }
+  };
+
+  const finishEditorImageDrag = (
+    e: React.PointerEvent<HTMLDivElement>,
+    cancelled = false,
+  ) => {
+    const drag = draggedImageRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    draggedImageRef.current = null;
+
+    if (drag.active && drag.preview) {
+      if (cancelled) {
+        const originParent = drag.originParent;
+        const nextSibling = drag.originNextSibling;
+        if (originParent.isConnected) {
+          originParent.insertBefore(
+            drag.image,
+            nextSibling?.parentNode === originParent ? nextSibling : null,
+          );
+        }
+        drag.preview.remove();
+      } else {
+        drag.preview.replaceWith(drag.image);
+      }
+      drag.image.draggable = false;
+      drag.image.classList.add('story-image-selected');
+      setSelectedImage(drag.image);
+      const width = getImageWidthPercent(drag.image);
+      setSelectedImageWidth(width);
+      setSelectedImageWidthInput(String(width));
+      handleContentChange();
+    }
+
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
+    updateSelectionToolbar();
   };
 
   const handleEditorDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    if (draggedImageRef.current || e.dataTransfer.types.includes('Files')) {
+    if (e.dataTransfer.types.includes('Files')) {
       e.preventDefault();
     }
   };
@@ -832,7 +931,7 @@ export function StoryEditor({
       const html = getInitialHtml();
       editorRef.current.innerHTML = html;
       editorRef.current.querySelectorAll('img').forEach((image) => {
-        image.draggable = true;
+        image.draggable = false;
       });
       isInitialized.current = true;
       const { pages, wordCount, cleanText } = processHtmlIntoPages(html);
@@ -1006,11 +1105,16 @@ export function StoryEditor({
   const handleEditorClick = (e: React.MouseEvent<HTMLDivElement>) => {
     handleEditorFocus();
     const target = e.target;
+    selectedImage?.classList.remove('story-image-selected');
     if (target instanceof HTMLImageElement) {
-      target.draggable = true;
-      setSelectedImageWidth(getImageWidthPercent(target));
+      target.draggable = false;
+      target.classList.add('story-image-selected');
+      const width = getImageWidthPercent(target);
+      setSelectedImageWidth(width);
+      setSelectedImageWidthInput(String(width));
     } else {
       setSelectedImageWidth(55);
+      setSelectedImageWidthInput('55');
     }
     setSelectedImage(target instanceof HTMLImageElement ? target : null);
   };
@@ -1042,10 +1146,11 @@ export function StoryEditor({
     const image = selectedImage;
     if (!image || !editorRef.current?.contains(image)) return;
     const safeWidth = Math.max(15, Math.min(100, Math.round(width)));
-    image.draggable = true;
+    image.draggable = false;
     image.style.width = `${safeWidth}%`;
     image.style.maxWidth = '100%';
     setSelectedImageWidth(safeWidth);
+    setSelectedImageWidthInput(String(safeWidth));
     if (save) handleContentChange();
     updateSelectionToolbar();
   };
@@ -1054,7 +1159,7 @@ export function StoryEditor({
     const image = selectedImage;
     if (!image || !editorRef.current?.contains(image)) return;
 
-    image.draggable = true;
+    image.draggable = false;
     image.style.float = position === 'center' ? 'none' : position;
     image.style.width = `${selectedImageWidth}%`;
     image.style.margin =
@@ -2304,11 +2409,11 @@ export function StoryEditor({
                 onInput={handleContentChange}
                 onPaste={handleEditorPaste}
                 onDrop={handleEditorDrop}
-                onDragStart={handleEditorDragStart}
                 onDragOver={handleEditorDragOver}
-                onDragEnd={() => {
-                  draggedImageRef.current = null;
-                }}
+                onPointerDown={handleEditorPointerDown}
+                onPointerMove={handleEditorPointerMove}
+                onPointerUp={finishEditorImageDrag}
+                onPointerCancel={(e) => finishEditorImageDrag(e, true)}
                 onKeyDown={handleEditorKeyDown}
                 onBlur={(e) => {
                   if (
@@ -2319,6 +2424,7 @@ export function StoryEditor({
                   ) {
                     return;
                   }
+                  selectedImage?.classList.remove('story-image-selected');
                   setSelectedImage(null);
                   setSelectionToolbarPosition(null);
                 }}
@@ -2327,6 +2433,7 @@ export function StoryEditor({
                 className={cn(
                   'w-full overflow-y-auto p-4 sm:p-8 bg-white dark:bg-[#1A1A1A] border border-[#1A1A1A]/15 dark:border-white/15 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white font-serif text-base sm:text-lg leading-relaxed text-[#1A1A1A] dark:text-[#F5F5F0] shadow-inner prose dark:prose-invert max-w-none transition-all duration-300',
                   '[&_img]:mx-auto [&_img]:rounded-lg [&_img]:max-w-full [&_img]:h-auto',
+                  '[&_img.story-image-selected]:outline [&_img.story-image-selected]:outline-2 [&_img.story-image-selected]:outline-offset-2 [&_img.story-image-selected]:outline-amber-500',
                   isToolbarCollapsed
                     ? 'min-h-[550px] max-h-[850px]'
                     : 'min-h-[380px] max-h-[650px]',
@@ -2423,10 +2530,70 @@ export function StoryEditor({
                               false,
                             )
                           }
-                          onPointerUp={handleContentChange}
-                          onKeyUp={handleContentChange}
-                          onBlur={handleContentChange}
+                          onPointerDown={() => {
+                            isResizingImageRef.current = true;
+                          }}
+                          onPointerUp={() => {
+                            isResizingImageRef.current = false;
+                            handleContentChange();
+                            updateSelectionToolbar();
+                          }}
+                          onPointerCancel={() => {
+                            isResizingImageRef.current = false;
+                            handleContentChange();
+                            updateSelectionToolbar();
+                          }}
+                          onKeyDown={() => {
+                            isResizingImageRef.current = true;
+                          }}
+                          onKeyUp={() => {
+                            isResizingImageRef.current = false;
+                            handleContentChange();
+                            updateSelectionToolbar();
+                          }}
+                          onBlur={() => {
+                            if (isResizingImageRef.current) {
+                              isResizingImageRef.current = false;
+                              handleContentChange();
+                              updateSelectionToolbar();
+                            }
+                          }}
                           className="w-20 shrink-0 accent-[#1A1A1A] dark:accent-white"
+                          title={t('imageWidth')}
+                          aria-label={t('imageWidth')}
+                        />
+                        <input
+                          type="number"
+                          min="15"
+                          max="100"
+                          step="1"
+                          value={selectedImageWidthInput}
+                          onFocus={() => {
+                            isResizingImageRef.current = true;
+                          }}
+                          onChange={(e) => {
+                            const value = e.currentTarget.value;
+                            setSelectedImageWidthInput(value);
+                            if (value && Number.isFinite(Number(value))) {
+                              applySelectedImageWidth(Number(value), false);
+                              setSelectedImageWidthInput(value);
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const value = Number(e.currentTarget.value);
+                            const safeWidth = Number.isFinite(value)
+                              ? Math.max(15, Math.min(100, Math.round(value)))
+                              : selectedImageWidth;
+                            isResizingImageRef.current = false;
+                            applySelectedImageWidth(safeWidth, false);
+                            setSelectedImageWidthInput(String(safeWidth));
+                            handleContentChange();
+                            updateSelectionToolbar();
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') e.currentTarget.blur();
+                          }}
+                          className="h-7 w-12 shrink-0 rounded-md border border-[#1A1A1A]/15 bg-transparent px-1 text-center text-[10px] font-mono tabular-nums outline-none focus:border-amber-500 dark:border-white/15"
                           title={t('imageWidth')}
                           aria-label={t('imageWidth')}
                         />
