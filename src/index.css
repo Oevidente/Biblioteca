@@ -41,11 +41,21 @@ html {
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: rgba(26, 26, 26, 0.25) transparent;
-  background-color: #1A1A1A;
+  background-color: #07080B;
 }
 
 html.dark {
   scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.inkora-shell {
+  background-color: #07080b;
+  background-image:
+    radial-gradient(ellipse at 100% 0%, rgba(35, 83, 238, 0.16), transparent 30%),
+    radial-gradient(ellipse at 0% 55%, rgba(112, 42, 199, 0.14), transparent 38%),
+    linear-gradient(180deg, #090a0e 0%, #06070a 70%, #08090c 100%);
+  background-attachment: fixed;
+  color: #f4f5f7;
 }
 
 .home-page {
@@ -54,9 +64,9 @@ html.dark {
 
 .home-hero {
   background:
-    radial-gradient(ellipse at 80% 75%, rgba(41, 101, 255, 0.22), transparent 30%),
-    radial-gradient(ellipse at 70% 100%, rgba(177, 42, 255, 0.17), transparent 35%),
-    linear-gradient(115deg, #090a0d 0%, #0c0d13 65%, #10121a 100%);
+    radial-gradient(ellipse at 82% 78%, rgba(41, 101, 255, 0.32), transparent 34%),
+    radial-gradient(ellipse at 72% 100%, rgba(177, 42, 255, 0.25), transparent 40%),
+    linear-gradient(115deg, #08090c 0%, #0a0b10 65%, #0d0f18 100%);
 }
 
 .home-hero-art {
@@ -71,7 +81,7 @@ html.dark {
   border-bottom-color: rgba(89, 49, 201, 0.25);
   border-radius: 50%;
   transform: rotate(-24deg);
-  box-shadow: 0 -7px 28px -17px rgba(80, 135, 255, 0.9), 0 0 40px -28px rgba(197, 72, 255, 0.95);
+  box-shadow: 0 -7px 34px -15px rgba(80, 135, 255, 1), 0 0 48px -23px rgba(197, 72, 255, 1);
   pointer-events: none;
 }
 
@@ -86,7 +96,7 @@ html.dark {
 }
 
 .home-feature-card {
-  background: #101115;
+  background: #0c0d11;
 }
 
 @media (max-width: 640px) {
@@ -156,14 +166,14 @@ html.dark {
   }
 
   .dark .paper-card {
-    background-color: rgba(24, 24, 24, 0.93) !important;
+    background-color: rgba(11, 12, 16, 0.96) !important;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    background-image: linear-gradient(135deg, rgba(38, 38, 38, 0.4) 0%, rgba(18, 18, 18, 0.95) 100%) !important;
-    border: none !important;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 
-                0 6px 20px 0 rgba(0, 0, 0, 0.2), 
-                0 3px 6px -1px rgba(0, 0, 0, 0.12) !important;
+    background-image: linear-gradient(135deg, rgba(24, 26, 34, 0.68) 0%, rgba(9, 10, 14, 0.98) 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.24),
+                0 10px 24px 0 rgba(0, 0, 0, 0.28),
+                0 0 28px -24px rgba(82, 112, 255, 0.7) !important;
   }
 
   /* Volumetric buttons with no borders/strokes that swap external shadow for soft inset on hover */
@@ -184,16 +194,16 @@ html.dark {
   }
 
   .dark .paper-btn-dark {
-    background-color: #ECEAE5 !important; /* Soft bone/warm white */
-    color: #1A1A1A !important;
-    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.22) 0%, rgba(0, 0, 0, 0.03) 100%) !important;
+    background-color: #F4F5F7 !important;
+    color: #090a0d !important;
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.16) 0%, rgba(0, 0, 0, 0.025) 100%) !important;
     box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.2), 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
   }
   
   .dark .paper-btn-dark:hover {
     box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.15) !important;
     background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 0%, rgba(0, 0, 0, 0.06) 100%) !important;
-    background-color: #DFDDD8 !important;
+    background-color: #FFFFFF !important;
   }
 
   .paper-btn-light {
@@ -213,8 +223,9 @@ html.dark {
   }
 
   .dark .paper-btn-light {
-    background-color: rgba(36, 36, 36, 0.85) !important;
-    color: #ECEAE5 !important;
+    background-color: rgba(20, 21, 26, 0.92) !important;
+    border: 1px solid rgba(255, 255, 255, 0.07) !important;
+    color: #E8EAF0 !important;
     background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.1) 100%) !important;
     box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.15), 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
   }
@@ -222,7 +233,7 @@ html.dark {
   .dark .paper-btn-light:hover {
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25) !important;
     background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.15) 100%) !important;
-    background-color: rgba(30, 30, 30, 0.85) !important;
+    background-color: rgba(30, 32, 39, 0.96) !important;
   }
 
   /* Secondary color buttons softened for paper style */

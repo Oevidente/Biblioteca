@@ -974,7 +974,7 @@ export function Reader() {
           className="fixed left-4 top-32 z-40 hidden xl:flex items-center gap-2 px-3.5 py-2.5 rounded-2xl paper-card shadow-lg hover:scale-105 transition-all text-xs font-bold uppercase tracking-wider"
           title={t('tableOfContents')}
         >
-          <List className="w-4 h-4 text-amber-500" />
+          <List className="w-4 h-4 text-blue-400" />
           <span>{t('tableOfContents')}</span>
         </button>
       )}
@@ -990,7 +990,7 @@ export function Reader() {
           >
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-black/5 dark:border-white/5">
               <div className="flex items-center gap-2">
-                <List className="w-4 h-4 text-amber-500 shrink-0" />
+                <List className="w-4 h-4 text-blue-400 shrink-0" />
                 <h3 className="font-serif font-bold text-xs uppercase tracking-wider">
                   {t('tableOfContents')}
                 </h3>
@@ -1025,7 +1025,7 @@ export function Reader() {
                       }}
                       onFocus={() => setExpandedTocSection(sIdx)}
                       onBlur={() => setExpandedTocSection(null)}
-                      className="w-full text-left font-serif font-bold text-xs hover:text-amber-600 dark:hover:text-amber-400 transition-colors flex items-start gap-1.5 py-1 px-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5"
+                      className="w-full text-left font-serif font-bold text-xs hover:text-blue-500 dark:hover:text-blue-300 transition-colors flex items-start gap-1.5 py-1 px-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5"
                     >
                       <span className="flex-1 leading-snug">
                         {section.h1.text}
@@ -1039,7 +1039,7 @@ export function Reader() {
                     {section.h2s.length > 0 && (
                       <div
                         className={cn(
-                          'mt-1 ml-3 flex flex-col gap-1 border-l border-amber-500/50 pl-3 overflow-hidden transition-all duration-200',
+                          'mt-1 ml-3 flex flex-col gap-1 border-l border-blue-500/50 pl-3 overflow-hidden transition-all duration-200',
                           expandedTocSection === sIdx
                             ? 'max-h-[20rem] opacity-100'
                             : 'max-h-0 opacity-0',
@@ -1049,7 +1049,7 @@ export function Reader() {
                           <button
                             key={h2Idx}
                             onClick={() => handleTocClick(h2)}
-                            className="block w-full text-left font-serif text-[11px] opacity-80 hover:opacity-100 hover:text-amber-600 dark:hover:text-amber-400 transition-colors flex items-start gap-1.5 py-0.5 pr-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 break-words"
+                            className="block w-full text-left font-serif text-[11px] opacity-80 hover:opacity-100 hover:text-blue-500 dark:hover:text-blue-300 transition-colors flex items-start gap-1.5 py-0.5 pr-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 break-words"
                           >
                             <span className="flex-1 leading-snug">
                               {h2.text}
@@ -1081,7 +1081,7 @@ export function Reader() {
             >
               <div className="flex justify-between items-center pb-3 border-b border-black/5 dark:border-white/5 shrink-0">
                 <div className="flex items-center gap-2">
-                  <List className="w-5 h-5 text-amber-500" />
+                  <List className="w-5 h-5 text-blue-400" />
                   <h3 className="font-serif font-bold text-base">
                     {t('tableOfContents')}
                   </h3>
@@ -1104,7 +1104,7 @@ export function Reader() {
                     <div key={sIdx} className="space-y-2">
                       <button
                         onClick={() => handleTocClick(section.h1)}
-                        className="w-full text-left font-serif font-bold text-sm hover:text-amber-500 transition-colors flex items-start gap-2 py-1.5 px-3 rounded-xl bg-black/5 dark:bg-white/5"
+                        className="w-full text-left font-serif font-bold text-sm hover:text-blue-400 transition-colors flex items-start gap-2 py-1.5 px-3 rounded-xl bg-black/5 dark:bg-white/5"
                       >
                         <span className="flex-1">{section.h1.text}</span>
                         <span className="text-[10px] font-mono opacity-50 px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 shrink-0">
@@ -1113,12 +1113,12 @@ export function Reader() {
                       </button>
 
                       {section.h2s.length > 0 && (
-                        <div className="mt-1 ml-3 flex flex-col gap-1.5 border-l border-amber-500/50 pl-3">
+                        <div className="mt-1 ml-3 flex flex-col gap-1.5 border-l border-blue-500/50 pl-3">
                           {section.h2s.map((h2, h2Idx) => (
                             <button
                               key={h2Idx}
                               onClick={() => handleTocClick(h2)}
-                              className="block w-full text-left font-serif text-xs opacity-80 hover:opacity-100 hover:text-amber-500 transition-colors flex items-start gap-2 py-1 pr-2 rounded-lg break-words"
+                              className="block w-full text-left font-serif text-xs opacity-80 hover:opacity-100 hover:text-blue-400 transition-colors flex items-start gap-2 py-1 pr-2 rounded-lg break-words"
                             >
                               <span className="flex-1">{h2.text}</span>
                               <span className="text-[9px] font-mono opacity-40 px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 shrink-0">
@@ -1258,7 +1258,7 @@ export function Reader() {
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between p-2 rounded-2xl paper-card shadow-sm select-none gap-2 relative z-30">
             {/* Left: Reading stats / progress status badge */}
             <div className="flex items-center gap-2 px-3 py-1.5 opacity-80">
-              <FileText className="w-4 h-4 text-amber-500 shrink-0" />
+              <FileText className="w-4 h-4 text-blue-400 shrink-0" />
               <span className="text-[10px] font-bold uppercase tracking-wider font-mono">
                 {t('pageOf', {
                   page: currentPage + 1,
@@ -1324,9 +1324,9 @@ export function Reader() {
                 aria-label={t('bookmarks')}
               >
                 <div className="relative">
-                  <Bookmark className="w-5 h-5 text-amber-500" />
+                  <Bookmark className="w-5 h-5 text-blue-400" />
                   {notesList.length > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white dark:text-black font-mono text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-[#1A1A1A]">
+                    <span className="absolute -top-1.5 -right-1.5 bg-blue-500 text-white font-mono text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-[#1A1A1A]">
                       {notesList.length}
                     </span>
                   )}
@@ -1473,11 +1473,11 @@ export function Reader() {
                             className={cn(
                               'w-full px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 text-left',
                               isTranslationEnabled
-                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold'
+                                ? 'bg-violet-500/10 text-violet-700 dark:text-violet-300 font-extrabold'
                                 : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
                             )}
                           >
-                            <Languages className="w-4 h-4 shrink-0 text-amber-500" />
+                            <Languages className="w-4 h-4 shrink-0 text-violet-400" />
                             <span className="truncate">
                               {isTranslationEnabled
                                 ? t('showOriginalText')
@@ -1506,7 +1506,7 @@ export function Reader() {
                 {/* 1. Font Family */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-black/5 dark:border-white/5">
                   <div className="flex items-center gap-2 shrink-0">
-                    <Type className="w-4 h-4 opacity-60 text-amber-500" />
+                    <Type className="w-4 h-4 opacity-80 text-blue-400" />
                     <span className="text-xs font-bold uppercase tracking-wider opacity-70">
                       {t('fontFamily')}
                     </span>
@@ -1738,12 +1738,12 @@ export function Reader() {
                 className={cn(
                   'mb-6 px-3.5 py-2 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider',
                   readerMode === 'dark'
-                    ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
-                    : 'bg-amber-500/5 text-amber-800 border-amber-500/15',
+                    ? 'bg-violet-500/10 text-violet-300 border-violet-500/20'
+                    : 'bg-violet-500/5 text-violet-800 border-violet-500/15',
                 )}
               >
                 <div className="flex items-center gap-2">
-                  <Languages className="w-4 h-4 text-amber-500 shrink-0" />
+                    <Languages className="w-4 h-4 text-violet-400 shrink-0" />
                   <span>
                     {t('storyTranslationActive', {
                       lang: language.toUpperCase(),
@@ -1751,8 +1751,8 @@ export function Reader() {
                   </span>
                 </div>
                 {isTranslating ? (
-                  <span className="opacity-80 animate-pulse flex items-center gap-1.5 font-mono text-amber-600 dark:text-amber-400">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping inline-block" />
+                  <span className="opacity-80 animate-pulse flex items-center gap-1.5 font-mono text-violet-600 dark:text-violet-300">
+                    <span className="w-2 h-2 rounded-full bg-violet-500 animate-ping inline-block" />
                     {t('translatingStoryPage')}
                   </span>
                 ) : (
@@ -1891,7 +1891,7 @@ export function Reader() {
                         className={cn(
                           'w-3.5 h-3.5',
                           i < c.rating
-                            ? 'fill-amber-400 text-amber-400'
+                            ? 'fill-blue-400 text-blue-400'
                             : 'opacity-20',
                         )}
                       />
@@ -1928,9 +1928,9 @@ export function Reader() {
             if (supportersList.length === 0) return null;
 
             return (
-              <div className="mb-12 max-w-lg mx-auto text-center p-6 sm:p-8 rounded-2xl bg-amber-500/5 border border-amber-500/10 space-y-4">
+              <div className="mb-12 max-w-lg mx-auto text-center p-6 sm:p-8 rounded-2xl bg-violet-500/5 border border-violet-500/10 space-y-4">
                 <div className="flex items-center justify-center gap-2">
-                  <Heart className="w-5 h-5 text-amber-500 fill-amber-500/20 animate-pulse" />
+                  <Heart className="w-5 h-5 text-violet-400 fill-violet-400/20 animate-pulse" />
                   <h3 className="font-serif font-bold text-lg sm:text-xl text-[#1A1A1A] dark:text-white">
                     {t('storySupporters')}
                   </h3>
@@ -1993,7 +1993,7 @@ export function Reader() {
                         className={cn(
                           'w-8 h-8',
                           rating >= star
-                            ? 'fill-amber-400 text-amber-400'
+                            ? 'fill-blue-400 text-blue-400'
                             : 'text-black/20 dark:text-white/20',
                         )}
                       />
@@ -2052,7 +2052,7 @@ export function Reader() {
           <div className="bg-white dark:bg-[#1A1A1A] w-full max-w-lg rounded-2xl p-6 shadow-2xl border border-black/10 dark:border-white/10 space-y-4 max-h-[85vh] flex flex-col">
             <div className="flex justify-between items-center pb-3 border-b border-black/5 dark:border-white/5 shrink-0">
               <div className="flex items-center gap-2">
-                <Bookmark className="w-5 h-5 text-amber-500" />
+                <Bookmark className="w-5 h-5 text-blue-400" />
                 <h3 className="font-serif font-bold text-lg">
                   {t('bookmarks')}
                 </h3>
@@ -2126,7 +2126,7 @@ export function Reader() {
                     <div className="flex justify-end gap-2 pt-1">
                       <button
                         onClick={() => setCurrentPage(n.pageIndex)}
-                        className="text-[9px] bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold uppercase tracking-wider px-2 py-1 rounded-md"
+                        className="text-[9px] bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold uppercase tracking-wider px-2 py-1 rounded-md"
                       >
                         {t('goToPage')}
                       </button>

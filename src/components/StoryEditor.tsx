@@ -1003,7 +1003,7 @@ export function StoryEditor({
 
         const mark = document.createElement('mark');
         mark.className =
-          'editor-search-match px-0.5 rounded-sm bg-amber-200 dark:bg-amber-500/30 text-inherit transition-all duration-150';
+          'editor-search-match px-0.5 rounded-sm bg-blue-200 dark:bg-blue-500/30 text-inherit transition-all duration-150';
         mark.setAttribute('data-search-term', query);
         mark.textContent = text.substring(index, index + query.length);
         fragment.appendChild(mark);
@@ -1028,13 +1028,13 @@ export function StoryEditor({
       activeIndex < matches.length
     ) {
       const activeMark = matches[activeIndex];
-      activeMark.classList.remove('bg-amber-200', 'dark:bg-amber-500/30');
+      activeMark.classList.remove('bg-blue-200', 'dark:bg-blue-500/30');
       activeMark.classList.add(
-        'bg-amber-500',
-        'text-black',
-        'dark:bg-amber-400',
+        'bg-blue-500',
+        'text-white',
+        'dark:bg-blue-400',
         'ring-2',
-        'ring-amber-600',
+        'ring-blue-600',
         'font-bold',
       );
 
@@ -2132,7 +2132,7 @@ export function StoryEditor({
                   className={cn(
                     'flex items-center gap-1.5 px-3 py-2 border rounded-xl text-xs font-bold hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 transition-colors',
                     searchOpen
-                      ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/40'
+                      ? 'bg-blue-500/15 text-blue-800 dark:text-blue-300 border-blue-500/40'
                       : 'bg-white dark:bg-[#1A1A1A] border-[#1A1A1A]/10 dark:border-white/10',
                   )}
                   title={
@@ -2145,7 +2145,7 @@ export function StoryEditor({
                           : 'Search (Ctrl + F)'
                   }
                 >
-                  <Search className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <Search className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                   <span className="hidden md:inline">
                     {language === 'pt'
                       ? 'Buscar'
@@ -2163,7 +2163,7 @@ export function StoryEditor({
                   className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-[#1A1A1A] border border-[#1A1A1A]/10 dark:border-white/10 rounded-xl text-xs font-bold hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 transition-colors"
                   title={t('insertPageBreak')}
                 >
-                  <Split className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <Split className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                   <span className="hidden md:inline">
                     {t('insertPageBreak')}
                   </span>
@@ -2323,7 +2323,7 @@ export function StoryEditor({
         {searchOpen && (
           <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 p-1.5 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md rounded-xl border border-[#1A1A1A]/15 dark:border-white/15 shadow-xl animate-in slide-in-from-top-4 duration-200">
             <div className="flex items-center gap-1 px-1">
-              <Search className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <Search className="w-3.5 h-3.5 text-blue-400 shrink-0" />
               <input
                 id="editor-search-input"
                 type="text"
@@ -2431,7 +2431,7 @@ export function StoryEditor({
                 className={cn(
                   'w-full overflow-y-auto p-4 sm:p-8 bg-white dark:bg-[#1A1A1A] border border-[#1A1A1A]/15 dark:border-white/15 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white font-serif text-base sm:text-lg leading-relaxed text-[#1A1A1A] dark:text-[#F5F5F0] shadow-inner prose dark:prose-invert max-w-none transition-all duration-300',
                   '[&>*]:mx-auto [&>*]:max-w-[65ch] [&_img]:mx-auto [&_img]:rounded-lg [&_img]:max-w-full [&_img]:h-auto',
-                  '[&_img.story-image-selected]:outline [&_img.story-image-selected]:outline-2 [&_img.story-image-selected]:outline-offset-2 [&_img.story-image-selected]:outline-amber-500',
+                  '[&_img.story-image-selected]:outline [&_img.story-image-selected]:outline-2 [&_img.story-image-selected]:outline-offset-2 [&_img.story-image-selected]:outline-blue-500',
                   isToolbarCollapsed
                     ? 'min-h-[550px] max-h-[850px]'
                     : 'min-h-[380px] max-h-[850px]',
@@ -2594,7 +2594,7 @@ export function StoryEditor({
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') e.currentTarget.blur();
                           }}
-                          className="h-7 w-12 shrink-0 rounded-md border border-[#1A1A1A]/15 bg-transparent px-1 text-center text-[10px] font-mono tabular-nums outline-none focus:border-amber-500 dark:border-white/15"
+                          className="h-7 w-12 shrink-0 rounded-md border border-[#1A1A1A]/15 bg-transparent px-1 text-center text-[10px] font-mono tabular-nums outline-none focus:border-blue-500 dark:border-white/15"
                           title={t('imageWidth')}
                           aria-label={t('imageWidth')}
                         />
@@ -3056,7 +3056,7 @@ export function StoryEditor({
                   <button
                     type="button"
                     onClick={() => setShowPersonalDictModal(true)}
-                    className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 hover:underline font-bold"
+                    className="flex items-center gap-1.5 text-blue-500 dark:text-blue-400 hover:underline font-bold"
                   >
                     <BookMarked className="w-3.5 h-3.5" />
                     <span>{t('personalDictionary')}</span>
@@ -3272,7 +3272,7 @@ export function StoryEditor({
               <button
                 type="button"
                 onClick={() => handleAddToDictionary(activePopoverIssue)}
-                className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold flex items-center gap-1"
+                className="px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-800 dark:text-blue-300 font-bold flex items-center gap-1"
               >
                 <Plus className="w-3 h-3" />
                 <span>{t('addToDictionary')}</span>
@@ -3288,7 +3288,7 @@ export function StoryEditor({
             <div className="bg-white dark:bg-[#121212] rounded-3xl border border-[#1A1A1A]/20 dark:border-white/20 p-6 max-w-md w-full shadow-2xl space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-[#1A1A1A]/10 dark:border-white/10">
                 <div className="flex items-center gap-2">
-                  <BookMarked className="w-5 h-5 text-amber-500" />
+                  <BookMarked className="w-5 h-5 text-blue-400" />
                   <h3 className="text-sm font-bold uppercase tracking-wider">
                     {t('personalDictionary')}
                   </h3>
