@@ -167,7 +167,7 @@ export function Writer() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [message, setMessage] = useState('');
   const [messageIsError, setMessageIsError] = useState(false);
-  const [isWriterPanelCollapsed, setIsWriterPanelCollapsed] = useState(true);
+  const [isWriterPanelCollapsed, setIsWriterPanelCollapsed] = useState(false);
 
   const autoSaveRef = useRef({
     id,
@@ -489,242 +489,240 @@ export function Writer() {
   if (!story) return null;
 
   return (
-    <div className="w-full max-w-none mx-auto pt-2 pb-0 px-0 animate-in fade-in duration-500 overflow-x-hidden">
-      <div
-        className={`grid grid-cols-1 gap-3 lg:gap-4 ${
-          isWriterPanelCollapsed
-            ? 'lg:grid-cols-[56px_minmax(0,1fr)]'
-            : 'lg:grid-cols-[260px_minmax(0,1fr)]'
-        }`}
+    <div className="relative w-full max-w-none mx-auto pt-2 pb-0 px-0 animate-in fade-in duration-500">
+      <aside
+        className="fixed left-3 top-24 z-[60] transition-[width] duration-200"
+        style={{
+          width: isWriterPanelCollapsed ? 48 : 'min(280px, calc(100vw - 24px))',
+          maxHeight: 'calc(100dvh - 112px)',
+        }}
       >
-        <aside className="min-w-0 lg:sticky lg:top-4">
-          <div className="rounded-xl p-3 paper-card">
-            <div
-              className={`flex items-center ${
-                isWriterPanelCollapsed ? 'justify-center' : 'justify-between'
-              }`}
-            >
-              {!isWriterPanelCollapsed && (
-                <button
-                  type="button"
-                  onClick={() => navigate('/admin')}
-                  className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-xs font-bold uppercase tracking-wider opacity-70 transition-opacity hover:opacity-100"
-                  title={t('backToAdmin')}
-                >
-                  <ArrowLeft className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{t('backToAdmin')}</span>
-                </button>
-              )}
+        <div className="max-h-full overflow-y-auto rounded-xl p-3 paper-card shadow-2xl">
+          <div
+            className={`flex items-center ${
+              isWriterPanelCollapsed ? 'justify-center' : 'justify-between'
+            }`}
+          >
+            {!isWriterPanelCollapsed && (
               <button
                 type="button"
-                onClick={() =>
-                  setIsWriterPanelCollapsed((collapsed) => !collapsed)
-                }
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
-                title={
-                  isWriterPanelCollapsed ? t('expandTools') : t('collapseTools')
-                }
-                aria-label={
-                  isWriterPanelCollapsed ? t('expandTools') : t('collapseTools')
-                }
+                onClick={() => navigate('/admin')}
+                className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-xs font-bold uppercase tracking-wider opacity-70 transition-opacity hover:opacity-100"
+                title={t('backToAdmin')}
               >
-                {isWriterPanelCollapsed ? (
-                  <ChevronRight className="h-4 w-4" />
-                ) : (
-                  <ChevronLeft className="h-4 w-4" />
-                )}
+                <ArrowLeft className="h-4 w-4 shrink-0" />
+                <span className="truncate">{t('backToAdmin')}</span>
               </button>
-            </div>
-
-            {!isWriterPanelCollapsed && (
-              <div className="mt-3 space-y-4">
-                <div className="flex min-h-8 items-center gap-2 px-2 text-[10px] font-mono">
-                  {isAutoSaving ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-500" />
-                      <span className="text-amber-600 dark:text-amber-400">
-                        {t('autoSaving')}
-                      </span>
-                    </>
-                  ) : hasUnsavedChanges ? (
-                    <>
-                      <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                      <span>{t('autoSaveIn')}</span>
-                    </>
-                  ) : lastAutoSaveTime ? (
-                    <>
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                      <span className="text-emerald-700 dark:text-emerald-400">
-                        {t('draftSavedAt', {
-                          time: formatTime(lastAutoSaveTime),
-                        })}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                      <span>{t('autoSaveInterval')}</span>
-                    </>
-                  )}
-                </div>
-
-                <label className="block">
-                  <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest opacity-60">
-                    {t('editTitle')}
-                  </span>
-                  <input
-                    type="text"
-                    value={editTitle || ''}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    className="paper-card w-full rounded-lg px-3 py-2.5 font-serif text-base font-bold focus:outline-none"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-1.5 flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
-                      {t('editAuthor')}
-                    </span>
-                    {profile && (
-                      <select
-                        value=""
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === 'name' && profile.displayName) {
-                            setEditAuthor(profile.displayName);
-                          } else if (val === 'user' && profile.username) {
-                            setEditAuthor(profile.username);
-                          }
-                        }}
-                        className="max-w-28 cursor-pointer rounded-md border border-[#1A1A1A]/10 bg-white px-1.5 py-1 text-[9px] font-bold uppercase dark:border-white/10 dark:bg-[#1A1A1A]"
-                      >
-                        <option value="" disabled>
-                          {language === 'pt'
-                            ? 'Identificação'
-                            : language === 'es'
-                              ? 'Identificación'
-                              : language === 'zh'
-                                ? '预设作者'
-                                : language === 'id'
-                                  ? 'Identitas'
-                                  : 'Identity'}
-                        </option>
-                        <option value="name">
-                          {language === 'pt'
-                            ? 'Nome'
-                            : language === 'es'
-                              ? 'Nombre'
-                              : language === 'zh'
-                                ? '姓名'
-                                : language === 'id'
-                                  ? 'Nama'
-                                  : 'Name'}
-                        </option>
-                        <option value="user">
-                          {language === 'pt'
-                            ? 'Usuário'
-                            : language === 'es'
-                              ? 'Usuario'
-                              : language === 'zh'
-                                ? '用户名'
-                                : language === 'id'
-                                  ? 'Pengguna'
-                                  : 'Username'}
-                        </option>
-                      </select>
-                    )}
-                  </span>
-                  <input
-                    type="text"
-                    value={editAuthor || ''}
-                    onChange={(e) => setEditAuthor(e.target.value)}
-                    className="paper-card w-full rounded-lg px-3 py-2.5 font-serif text-base focus:outline-none"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-1.5 flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-widest opacity-60">
-                    <span>{t('scheduledRelease')}</span>
-                    {scheduledReleaseAt && (
-                      <button
-                        type="button"
-                        onClick={() => setScheduledReleaseAt('')}
-                        className="text-red-500 hover:text-red-700 dark:hover:text-red-400"
-                      >
-                        {t('clearSchedule')}
-                      </button>
-                    )}
-                  </span>
-                  <input
-                    type="datetime-local"
-                    value={scheduledReleaseAt || ''}
-                    onChange={(e) => setScheduledReleaseAt(e.target.value)}
-                    className="paper-card w-full rounded-lg px-3 py-2.5 font-mono text-xs focus:outline-none"
-                  />
-                </label>
-
-                <div className="grid grid-cols-1 gap-2 border-t border-black/10 pt-3 dark:border-white/10">
-                  <button
-                    type="button"
-                    onClick={() => handleSave(true)}
-                    disabled={isSaving || isAutoSaving}
-                    className="paper-btn-amber flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
-                    title={t('saveDraft')}
-                  >
-                    {isSaving ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4" />
-                    )}
-                    <span>{t('saveDraft')}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSave(false)}
-                    disabled={isSaving || isAutoSaving}
-                    className="paper-btn-dark flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
-                    title={story.isDraft ? t('publishNow') : t('saveChanges')}
-                  >
-                    {isSaving ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                    <span>
-                      {story.isDraft ? t('publishNow') : t('saveChanges')}
-                    </span>
-                  </button>
-                </div>
-              </div>
             )}
-          </div>
-        </aside>
-
-        <main className="min-w-0">
-          {message && (
-            <div
-              className={`mb-3 rounded-xl border p-3 text-center text-sm font-bold animate-in fade-in slide-in-from-top-4 ${
-                messageIsError
-                  ? 'border-red-500/30 bg-red-500/10 text-red-800 dark:text-red-300'
-                  : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
-              }`}
+            <button
+              type="button"
+              onClick={() =>
+                setIsWriterPanelCollapsed((collapsed) => !collapsed)
+              }
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
+              title={
+                isWriterPanelCollapsed ? t('expandTools') : t('collapseTools')
+              }
+              aria-label={
+                isWriterPanelCollapsed ? t('expandTools') : t('collapseTools')
+              }
             >
-              {message}
+              {isWriterPanelCollapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+
+          {!isWriterPanelCollapsed && (
+            <div className="mt-3 space-y-4">
+              <div className="flex min-h-8 items-center gap-2 px-2 text-[10px] font-mono">
+                {isAutoSaving ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-500" />
+                    <span className="text-amber-600 dark:text-amber-400">
+                      {t('autoSaving')}
+                    </span>
+                  </>
+                ) : hasUnsavedChanges ? (
+                  <>
+                    <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                    <span>{t('autoSaveIn')}</span>
+                  </>
+                ) : lastAutoSaveTime ? (
+                  <>
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    <span className="text-emerald-700 dark:text-emerald-400">
+                      {t('draftSavedAt', {
+                        time: formatTime(lastAutoSaveTime),
+                      })}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    <span>{t('autoSaveInterval')}</span>
+                  </>
+                )}
+              </div>
+
+              <label className="block">
+                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest opacity-60">
+                  {t('editTitle')}
+                </span>
+                <input
+                  type="text"
+                  value={editTitle || ''}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="paper-card w-full rounded-lg px-3 py-2.5 font-serif text-base font-bold focus:outline-none"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1.5 flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                    {t('editAuthor')}
+                  </span>
+                  {profile && (
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === 'name' && profile.displayName) {
+                          setEditAuthor(profile.displayName);
+                        } else if (val === 'user' && profile.username) {
+                          setEditAuthor(profile.username);
+                        }
+                      }}
+                      className="max-w-28 cursor-pointer rounded-md border border-[#1A1A1A]/10 bg-white px-1.5 py-1 text-[9px] font-bold uppercase dark:border-white/10 dark:bg-[#1A1A1A]"
+                    >
+                      <option value="" disabled>
+                        {language === 'pt'
+                          ? 'Identificação'
+                          : language === 'es'
+                            ? 'Identificación'
+                            : language === 'zh'
+                              ? '预设作者'
+                              : language === 'id'
+                                ? 'Identitas'
+                                : 'Identity'}
+                      </option>
+                      <option value="name">
+                        {language === 'pt'
+                          ? 'Nome'
+                          : language === 'es'
+                            ? 'Nombre'
+                            : language === 'zh'
+                              ? '姓名'
+                              : language === 'id'
+                                ? 'Nama'
+                                : 'Name'}
+                      </option>
+                      <option value="user">
+                        {language === 'pt'
+                          ? 'Usuário'
+                          : language === 'es'
+                            ? 'Usuario'
+                            : language === 'zh'
+                              ? '用户名'
+                              : language === 'id'
+                                ? 'Pengguna'
+                                : 'Username'}
+                      </option>
+                    </select>
+                  )}
+                </span>
+                <input
+                  type="text"
+                  value={editAuthor || ''}
+                  onChange={(e) => setEditAuthor(e.target.value)}
+                  className="paper-card w-full rounded-lg px-3 py-2.5 font-serif text-base focus:outline-none"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1.5 flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-widest opacity-60">
+                  <span>{t('scheduledRelease')}</span>
+                  {scheduledReleaseAt && (
+                    <button
+                      type="button"
+                      onClick={() => setScheduledReleaseAt('')}
+                      className="text-red-500 hover:text-red-700 dark:hover:text-red-400"
+                    >
+                      {t('clearSchedule')}
+                    </button>
+                  )}
+                </span>
+                <input
+                  type="datetime-local"
+                  value={scheduledReleaseAt || ''}
+                  onChange={(e) => setScheduledReleaseAt(e.target.value)}
+                  className="paper-card w-full rounded-lg px-3 py-2.5 font-mono text-xs focus:outline-none"
+                />
+              </label>
+
+              <div className="grid grid-cols-1 gap-2 border-t border-black/10 pt-3 dark:border-white/10">
+                <button
+                  type="button"
+                  onClick={() => handleSave(true)}
+                  disabled={isSaving || isAutoSaving}
+                  className="paper-btn-amber flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+                  title={t('saveDraft')}
+                >
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  <span>{t('saveDraft')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSave(false)}
+                  disabled={isSaving || isAutoSaving}
+                  className="paper-btn-dark flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+                  title={story.isDraft ? t('publishNow') : t('saveChanges')}
+                >
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                  <span>
+                    {story.isDraft ? t('publishNow') : t('saveChanges')}
+                  </span>
+                </button>
+              </div>
             </div>
           )}
-          <div className="min-w-0 rounded-xl p-1.5 paper-card sm:p-2">
-            <StoryEditor
-              initialPages={pages}
-              supporters={editSupporters}
-              onChange={(newPages, text, wc) => {
-                setPages(newPages);
-                setFullText(text);
-                setWordCount(wc);
-              }}
-            />
+        </div>
+      </aside>
+
+      <main className="min-w-0 w-full">
+        {message && (
+          <div
+            className={`mb-3 rounded-xl border p-3 text-center text-sm font-bold animate-in fade-in slide-in-from-top-4 ${
+              messageIsError
+                ? 'border-red-500/30 bg-red-500/10 text-red-800 dark:text-red-300'
+                : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
+            }`}
+          >
+            {message}
           </div>
-        </main>
-      </div>
+        )}
+        <div className="min-w-0 rounded-xl p-1.5 paper-card sm:p-2">
+          <StoryEditor
+            initialPages={pages}
+            supporters={editSupporters}
+            onChange={(newPages, text, wc) => {
+              setPages(newPages);
+              setFullText(text);
+              setWordCount(wc);
+            }}
+          />
+        </div>
+      </main>
     </div>
   );
 }

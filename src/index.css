@@ -38,9 +38,10 @@
 }
 
 html {
-  scrollbar-gutter: stable both-edges;
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: rgba(26, 26, 26, 0.25) transparent;
+  background-color: #1A1A1A;
 }
 
 html.dark {
