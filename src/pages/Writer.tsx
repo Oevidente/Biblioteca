@@ -34,6 +34,12 @@ import {
 import { generateTagsLocal } from '../lib/tagger';
 import { cleanStoryHtml } from '../lib/cleanStoryHtml';
 import { findOversizedPageIndex } from '../lib/storyImages';
+import {
+  deleteWriterDraft,
+  getWriterDraft,
+  saveWriterDraft,
+  type WriterDraft,
+} from '../lib/offlineStorage';
 
 interface StoryData {
   title: string;
@@ -47,18 +53,84 @@ interface StoryData {
   supporters?: string[] | string;
 }
 
+function getStoryVersion(story: StoryData, pages: string[]): string {
+  const snapshot = JSON.stringify({
+    title: story.title || '',
+    author: story.author || '',
+    storedTotalPages: story.totalPages || 0,
+    totalPages: pages.length,
+    wordCount: story.wordCount || 0,
+    tags: story.tags || [],
+    supporters: story.supporters || [],
+    scheduledReleaseAt: story.scheduledReleaseAt || '',
+    isDraft: story.isDraft ?? true,
+    pages,
+  });
+  let hash = 2166136261;
+  for (let index = 0; index < snapshot.length; index++) {
+    hash = Math.imul(hash ^ snapshot.charCodeAt(index), 16777619);
+  }
+  return `${(hash >>> 0).toString(16)}-${snapshot.length}`;
+}
+
+function buildWriterDraft(
+  storyId: string,
+  ownerUid: string,
+  baseVersion: string,
+  title: string,
+  author: string,
+  scheduledReleaseAt: string,
+  supporters: string,
+  pages: string[],
+  wordCount: number,
+): WriterDraft {
+  return {
+    id: `${ownerUid}:${storyId}`,
+    storyId,
+    ownerUid,
+    title,
+    author,
+    scheduledReleaseAt,
+    supporters,
+    pages: pages.length > 0 ? pages : ['<p></p>'],
+    wordCount,
+    baseVersion,
+    savedAt: Date.now(),
+  };
+}
+
+async function loadCurrentWriterVersion(storyId: string) {
+  const storySnap = await getDoc(doc(db, 'stories', storyId));
+  if (!storySnap.exists()) throw new Error('A história não existe mais.');
+
+  const story = storySnap.data() as StoryData;
+  const pagesSnapshot = await getDocs(
+    query(collection(db, `stories/${storyId}/pages`), orderBy('index', 'asc')),
+  );
+  const loadedPages: string[] = [];
+  pagesSnapshot.forEach((page) => loadedPages.push(page.data().content || ''));
+  const pages = loadedPages.length > 0 ? loadedPages : ['<p></p>'];
+
+  return { story, pages, version: getStoryVersion(story, pages) };
+}
+
 // Grava as páginas e apaga as que sobraram de uma versão anterior maior
 async function savePagesToFirestore(
   storyId: string,
   pages: string[],
   previousTotal: number,
+  previousPages: string[],
 ) {
   await Promise.all(
-    pages.map((html, idx) =>
-      setDoc(doc(db, `stories/${storyId}/pages`, idx.toString()), {
-        content: html,
-        index: idx,
-      }),
+    pages.flatMap((html, idx) =>
+      html === previousPages[idx]
+        ? []
+        : [
+            setDoc(doc(db, `stories/${storyId}/pages`, idx.toString()), {
+              content: html,
+              index: idx,
+            }),
+          ],
     ),
   );
 
@@ -155,6 +227,7 @@ export function Writer() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { t, language } = useLanguage();
+  const basePagesRef = useRef<string[]>([]);
 
   const [story, setStory] = useState<StoryData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -169,8 +242,14 @@ export function Writer() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
-  const [lastAutoSaveTime, setLastAutoSaveTime] = useState<Date | null>(null);
+  const [lastLocalDraftSaveTime, setLastLocalDraftSaveTime] =
+    useState<Date | null>(null);
+  const [lastFirestoreSaveTime, setLastFirestoreSaveTime] =
+    useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [hasDraftConflict, setHasDraftConflict] = useState(false);
+  const [localDraft, setLocalDraft] = useState<WriterDraft | null>(null);
+  const [serverVersion, setServerVersion] = useState('');
   const [message, setMessage] = useState('');
   const [messageIsError, setMessageIsError] = useState(false);
   const [isWriterPanelCollapsed, setIsWriterPanelCollapsed] = useState(false);
@@ -184,48 +263,6 @@ export function Writer() {
     wasCollapsed: boolean;
   } | null>(null);
   const skipPanelToggleRef = useRef(false);
-
-  const autoSaveRef = useRef({
-    id,
-    story,
-    editTitle,
-    editAuthor,
-    scheduledReleaseAt,
-    editSupporters,
-    pages,
-    wordCount,
-    hasUnsavedChanges,
-    isSaving,
-    isAutoSaving,
-  });
-
-  useEffect(() => {
-    autoSaveRef.current = {
-      id,
-      story,
-      editTitle,
-      editAuthor,
-      scheduledReleaseAt,
-      editSupporters,
-      pages,
-      wordCount,
-      hasUnsavedChanges,
-      isSaving,
-      isAutoSaving,
-    };
-  }, [
-    id,
-    story,
-    editTitle,
-    editAuthor,
-    scheduledReleaseAt,
-    editSupporters,
-    pages,
-    wordCount,
-    hasUnsavedChanges,
-    isSaving,
-    isAutoSaving,
-  ]);
 
   useEffect(() => {
     const keepWriterPanelInView = () => {
@@ -308,7 +345,32 @@ export function Writer() {
           pagesSnap.forEach((p) => {
             loadedPages.push(p.data().content || '');
           });
-          setPages(loadedPages.length > 0 ? loadedPages : ['<p></p>']);
+          const remotePages = loadedPages.length > 0 ? loadedPages : ['<p></p>'];
+          basePagesRef.current = remotePages;
+          const currentVersion = getStoryVersion(data, remotePages);
+          setPages(remotePages);
+          setServerVersion(currentVersion);
+
+          try {
+            const draft = await getWriterDraft(user.uid, id);
+            if (draft) {
+              setLocalDraft(draft);
+              if (draft.baseVersion === currentVersion) {
+                setEditTitle(draft.title);
+                setEditAuthor(draft.author);
+                setScheduledReleaseAt(draft.scheduledReleaseAt);
+                setEditSupporters(draft.supporters);
+                setPages(draft.pages);
+                setWordCount(draft.wordCount);
+                setLastLocalDraftSaveTime(new Date(draft.savedAt));
+                setHasUnsavedChanges(true);
+              } else {
+                setHasDraftConflict(true);
+              }
+            }
+          } catch (draftError) {
+            console.warn('Could not load local writer draft:', draftError);
+          }
         } else {
           navigate('/admin');
         }
@@ -321,99 +383,65 @@ export function Writer() {
     loadStory();
   }, [id, user, navigate]);
 
-  // Periodic Auto-Save every 60 seconds (only if unsaved changes exist)
+  // Debounced local draft save; Firestore is written only by explicit save.
   useEffect(() => {
-    const timer = setInterval(async () => {
-      const state = autoSaveRef.current;
-      if (
-        !state.id ||
-        !state.story ||
-        !state.hasUnsavedChanges ||
-        state.isSaving ||
-        state.isAutoSaving
-      ) {
-        return;
-      }
+    if (
+      loading ||
+      !story ||
+      !id ||
+      !user?.uid ||
+      !hasUnsavedChanges ||
+      hasDraftConflict
+    ) {
+      return;
+    }
 
-      setHasUnsavedChanges(false);
+    const timer = setTimeout(async () => {
       setIsAutoSaving(true);
       try {
-        const storyRef = doc(db, 'stories', state.id);
-        const rawPages = state.pages.length > 0 ? state.pages : ['<p></p>'];
-        const cleanPages = rawPages.map((p) => cleanStoryHtml(p));
-
-        if (findOversizedPageIndex(cleanPages) !== -1) {
-          console.warn(
-            'Auto-save ignorado: alguma página passou do limite do Firestore.',
-          );
-          setHasUnsavedChanges(true);
-          return;
-        }
-
-        // Preserve existing tags, only generate if they don't exist
-        let tags = state.story.tags || [];
-        if (tags.length === 0) {
-          const textSample = cleanPages[0].replace(/<[^>]*>?/gm, '');
-          tags = generateTagsLocal(textSample || state.editTitle);
-        }
-
-        const supportersArray = (state.editSupporters || '')
-          .split(',')
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0);
-
-        await savePagesToFirestore(
-          state.id,
-          cleanPages,
-          state.story.totalPages ?? 0,
+        const draft = buildWriterDraft(
+          id,
+          user.uid,
+          serverVersion,
+          editTitle,
+          editAuthor,
+          scheduledReleaseAt,
+          editSupporters,
+          pages,
+          wordCount,
         );
-
-        await updateDoc(storyRef, {
-          title: state.editTitle || state.story.title,
-          author: state.editAuthor || state.story.author,
-          totalPages: cleanPages.length,
-          wordCount: state.wordCount,
-          tags,
-          supporters: supportersArray,
-          scheduledReleaseAt: state.scheduledReleaseAt || '',
-          isDraft: state.story.isDraft ?? true,
-        });
-
-        setStory((prev) =>
-          prev
-            ? {
-                ...prev,
-                totalPages: cleanPages.length,
-                title: state.editTitle || state.story.title,
-                author: state.editAuthor || state.story.author,
-                tags,
-                supporters: supportersArray,
-              }
-            : prev,
-        );
-
-        setLastAutoSaveTime(new Date());
+        await saveWriterDraft(draft);
+        setLocalDraft(draft);
+        setLastLocalDraftSaveTime(new Date(draft.savedAt));
       } catch (err) {
-        console.warn('Auto-save failed (network/quota):', err);
-        setHasUnsavedChanges(true);
-        if (isFirestoreDailyWriteQuotaError(err)) {
-          setMessageIsError(true);
-          setMessage(
-            t('firestoreWriteQuotaExceeded', {
-              resetTime: formatQuotaResetTime(language),
-            }),
-          );
-        }
+        console.warn('Local draft save failed:', err);
+        setMessageIsError(true);
+        setMessage(t('localDraftSaveError'));
       } finally {
         setIsAutoSaving(false);
       }
-    }, 60000);
+    }, 1000);
 
-    return () => clearInterval(timer);
-  }, []);
+    return () => clearTimeout(timer);
+  }, [
+    loading,
+    story,
+    id,
+    user?.uid,
+    hasUnsavedChanges,
+    hasDraftConflict,
+    editTitle,
+    editAuthor,
+    scheduledReleaseAt,
+    editSupporters,
+    pages,
+    wordCount,
+    serverVersion,
+    t,
+  ]);
 
   const handleSave = async (asDraft: boolean) => {
-    if (!story || !id) return;
+    if (!story || !id || hasDraftConflict) return;
     setIsSaving(true);
     setMessage('');
     setMessageIsError(false);
@@ -429,6 +457,57 @@ export function Writer() {
         return;
       }
 
+      const pendingDraft = buildWriterDraft(
+        id,
+        user?.uid || '',
+        serverVersion,
+        editTitle,
+        editAuthor,
+        scheduledReleaseAt,
+        editSupporters,
+        cleanPages,
+        wordCount,
+      );
+      if (user?.uid) {
+        try {
+          await saveWriterDraft(pendingDraft);
+          setLocalDraft(pendingDraft);
+          setLastLocalDraftSaveTime(new Date(pendingDraft.savedAt));
+        } catch (draftError) {
+          console.warn('Could not persist draft before manual save:', draftError);
+        }
+      }
+
+      const currentRemote = await loadCurrentWriterVersion(id);
+      if (currentRemote.version !== serverVersion) {
+        setLocalDraft(pendingDraft);
+        setLastLocalDraftSaveTime(new Date(pendingDraft.savedAt));
+        basePagesRef.current = currentRemote.pages;
+        setServerVersion(currentRemote.version);
+        setStory(currentRemote.story);
+        setEditTitle(currentRemote.story.title || '');
+        setEditAuthor(currentRemote.story.author || '');
+        const remoteSupporters = currentRemote.story.supporters;
+        setEditSupporters(
+          Array.isArray(remoteSupporters)
+            ? remoteSupporters.join(', ')
+            : remoteSupporters || '',
+        );
+        const remoteSchedule = currentRemote.story.scheduledReleaseAt || '';
+        setScheduledReleaseAt(
+          remoteSchedule.includes('Z')
+            ? new Date(remoteSchedule).toISOString().slice(0, 16)
+            : remoteSchedule.length > 16
+              ? remoteSchedule.slice(0, 16)
+              : remoteSchedule,
+        );
+        setPages(currentRemote.pages);
+        setHasDraftConflict(true);
+        setMessageIsError(true);
+        setMessage(t('writerDraftConflict'));
+        return;
+      }
+
       // Preserve existing tags, only generate if they don't exist
       let tags = story.tags || [];
       if (tags.length === 0) {
@@ -441,22 +520,61 @@ export function Writer() {
         .map((s) => s.trim())
         .filter((s) => s.length > 0);
 
+      const currentSupporters = Array.isArray(story.supporters)
+        ? story.supporters
+        : typeof story.supporters === 'string'
+          ? story.supporters
+              .split(',')
+              .map((supporter) => supporter.trim())
+              .filter(Boolean)
+          : [];
+      const metadataChanged =
+        (editTitle || story.title) !== story.title ||
+        (editAuthor || story.author) !== story.author ||
+        (user?.uid || story.authorUid) !== story.authorUid ||
+        cleanPages.length !== story.totalPages ||
+        wordCount !== (story.wordCount || 0) ||
+        JSON.stringify(tags) !== JSON.stringify(story.tags || []) ||
+        JSON.stringify(supportersArray) !== JSON.stringify(currentSupporters) ||
+        (scheduledReleaseAt || '') !== (story.scheduledReleaseAt || '') ||
+        asDraft !== (story.isDraft ?? true);
+
       // 1) páginas primeiro
-      await savePagesToFirestore(id, cleanPages, story.totalPages ?? 0);
+      await savePagesToFirestore(
+        id,
+        cleanPages,
+        story.totalPages ?? 0,
+        basePagesRef.current,
+      );
 
       // 2) depois os dados da história
-      await updateDoc(storyRef, {
+      if (metadataChanged) {
+        await updateDoc(storyRef, {
+          title: editTitle || story.title,
+          author: editAuthor || story.author,
+          authorUid: user?.uid || story.authorUid,
+          totalPages: cleanPages.length,
+          wordCount,
+          tags,
+          supporters: supportersArray,
+          scheduledReleaseAt: scheduledReleaseAt || '',
+          isDraft: asDraft,
+        });
+      }
+
+      const savedStory: StoryData = {
+        ...story,
         title: editTitle || story.title,
         author: editAuthor || story.author,
-        authorUid: user?.uid || story.authorUid,
         totalPages: cleanPages.length,
         wordCount,
         tags,
         supporters: supportersArray,
         scheduledReleaseAt: scheduledReleaseAt || '',
         isDraft: asDraft,
-      });
-
+      };
+      const savedVersion = getStoryVersion(savedStory, cleanPages);
+      basePagesRef.current = cleanPages;
       setStory((prev) =>
         prev
           ? {
@@ -470,8 +588,19 @@ export function Writer() {
             }
           : prev,
       );
+      setServerVersion(savedVersion);
+      setHasDraftConflict(false);
+      setLocalDraft(null);
+      setLastLocalDraftSaveTime(null);
+      setLastFirestoreSaveTime(new Date());
+      if (user?.uid) {
+        try {
+          await deleteWriterDraft(user.uid, id);
+        } catch (draftError) {
+          console.warn('Could not clear local writer draft:', draftError);
+        }
+      }
       setHasUnsavedChanges(false);
-      setLastAutoSaveTime(new Date());
       setMessage(asDraft ? t('draftSavedSuccess') : t('draftPublishedSuccess'));
     } catch (err: any) {
       console.error('Error updating story:', err);
@@ -504,6 +633,37 @@ export function Writer() {
 
   const formatTime = (d: Date) => {
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const recoverLocalDraft = () => {
+    if (!localDraft) return;
+    setEditTitle(localDraft.title);
+    setEditAuthor(localDraft.author);
+    setScheduledReleaseAt(localDraft.scheduledReleaseAt);
+    setEditSupporters(localDraft.supporters);
+    setPages(localDraft.pages);
+    setWordCount(localDraft.wordCount);
+    setHasDraftConflict(false);
+    setHasUnsavedChanges(true);
+    setMessage('');
+    setMessageIsError(false);
+  };
+
+  const useServerVersion = async () => {
+    if (!localDraft || !user?.uid) return;
+    try {
+      await deleteWriterDraft(user.uid, localDraft.storyId);
+      setLocalDraft(null);
+      setHasDraftConflict(false);
+      setHasUnsavedChanges(false);
+      setLastLocalDraftSaveTime(null);
+      setMessage('');
+      setMessageIsError(false);
+    } catch (err) {
+      console.error('Could not discard local writer draft:', err);
+      setMessageIsError(true);
+      setMessage(t('localDraftSaveError'));
+    }
   };
 
   const startPanelDrag = (e: ReactPointerEvent<HTMLButtonElement>) => {
@@ -631,27 +791,36 @@ export function Writer() {
                   <>
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-500" />
                     <span className="text-amber-600 dark:text-amber-400">
-                      {t('autoSaving')}
+                      {t('localDraftSaving')}
                     </span>
                   </>
-                ) : hasUnsavedChanges ? (
+                ) : hasUnsavedChanges && lastLocalDraftSaveTime ? (
+                  <>
+                    <CheckCircle2 className="h-3.5 w-3.5 text-amber-500" />
+                    <span className="text-amber-700 dark:text-amber-300">
+                      {t('localDraftSavedAt', {
+                        time: formatTime(lastLocalDraftSaveTime),
+                      })}
+                    </span>
+                  </>
+                ) : hasUnsavedChanges || hasDraftConflict ? (
                   <>
                     <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                    <span>{t('autoSaveIn')}</span>
+                    <span>{t('localDraftPending')}</span>
                   </>
-                ) : lastAutoSaveTime ? (
+                ) : lastFirestoreSaveTime ? (
                   <>
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                     <span className="text-emerald-700 dark:text-emerald-400">
                       {t('draftSavedAt', {
-                        time: formatTime(lastAutoSaveTime),
+                        time: formatTime(lastFirestoreSaveTime),
                       })}
                     </span>
                   </>
                 ) : (
                   <>
                     <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <span>{t('autoSaveInterval')}</span>
+                    <span>{t('localDraftReady')}</span>
                   </>
                 )}
               </div>
@@ -755,7 +924,7 @@ export function Writer() {
                 <button
                   type="button"
                   onClick={() => handleSave(true)}
-                  disabled={isSaving || isAutoSaving}
+                  disabled={isSaving || isAutoSaving || hasDraftConflict}
                   className="paper-btn-amber flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
                   title={t('saveDraft')}
                 >
@@ -769,7 +938,7 @@ export function Writer() {
                 <button
                   type="button"
                   onClick={() => handleSave(false)}
-                  disabled={isSaving || isAutoSaving}
+                  disabled={isSaving || isAutoSaving || hasDraftConflict}
                   className="paper-btn-dark flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
                   title={story.isDraft ? t('publishNow') : t('saveChanges')}
                 >
@@ -798,6 +967,34 @@ export function Writer() {
             }`}
           >
             {message}
+          </div>
+        )}
+        {hasDraftConflict && localDraft && (
+          <div className="mb-3 flex flex-col gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-bold">{t('writerDraftConflict')}</p>
+              <p className="mt-1 text-xs opacity-80">
+                {t('localDraftSavedAt', {
+                  time: formatTime(new Date(localDraft.savedAt)),
+                })}
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={recoverLocalDraft}
+                className="rounded-lg px-3 py-2 text-xs font-bold paper-btn-amber"
+              >
+                {t('recoverWriterDraft')}
+              </button>
+              <button
+                type="button"
+                onClick={useServerVersion}
+                className="rounded-lg px-3 py-2 text-xs font-bold paper-btn-light"
+              >
+                {t('useServerVersion')}
+              </button>
+            </div>
           </div>
         )}
         <div className="min-w-0 rounded-xl p-1.5 paper-card sm:p-2">
