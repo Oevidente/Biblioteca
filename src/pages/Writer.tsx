@@ -1,4 +1,9 @@
-import { useEffect, useState, useRef } from 'react';
+import {
+  useEffect,
+  useState,
+  useRef,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   db,
@@ -24,6 +29,7 @@ import {
   Heart,
   ChevronLeft,
   ChevronRight,
+  GripVertical,
 } from 'lucide-react';
 import { generateTagsLocal } from '../lib/tagger';
 import { cleanStoryHtml } from '../lib/cleanStoryHtml';
@@ -168,6 +174,16 @@ export function Writer() {
   const [message, setMessage] = useState('');
   const [messageIsError, setMessageIsError] = useState(false);
   const [isWriterPanelCollapsed, setIsWriterPanelCollapsed] = useState(false);
+  const [writerPanelTop, setWriterPanelTop] = useState(96);
+  const writerPanelRef = useRef<HTMLElement>(null);
+  const panelDragRef = useRef<{
+    pointerId: number;
+    startY: number;
+    startTop: number;
+    moved: boolean;
+    wasCollapsed: boolean;
+  } | null>(null);
+  const skipPanelToggleRef = useRef(false);
 
   const autoSaveRef = useRef({
     id,
@@ -210,6 +226,18 @@ export function Writer() {
     isSaving,
     isAutoSaving,
   ]);
+
+  useEffect(() => {
+    const keepWriterPanelInView = () => {
+      const panelHeight =
+        writerPanelRef.current?.getBoundingClientRect().height ?? 240;
+      const maxTop = Math.max(12, window.innerHeight - panelHeight - 12);
+      setWriterPanelTop((top) => Math.min(maxTop, Math.max(12, top)));
+    };
+
+    window.addEventListener('resize', keepWriterPanelInView);
+    return () => window.removeEventListener('resize', keepWriterPanelInView);
+  }, []);
 
   // Track edits to mark unsaved
   const isFirstLoad = useRef(true);
@@ -478,6 +506,51 @@ export function Writer() {
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const startPanelDrag = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    skipPanelToggleRef.current = false;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    panelDragRef.current = {
+      pointerId: e.pointerId,
+      startY: e.clientY,
+      startTop: writerPanelTop,
+      moved: false,
+      wasCollapsed: isWriterPanelCollapsed,
+    };
+  };
+
+  const movePanel = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    const drag = panelDragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
+
+    const deltaY = e.clientY - drag.startY;
+    if (Math.abs(deltaY) > 3) drag.moved = true;
+    if (!drag.moved) return;
+
+    const panelHeight =
+      writerPanelRef.current?.getBoundingClientRect().height ?? 240;
+    const maxTop = Math.max(12, window.innerHeight - panelHeight - 12);
+    setWriterPanelTop(Math.min(maxTop, Math.max(12, drag.startTop + deltaY)));
+  };
+
+  const finishPanelDrag = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    const drag = panelDragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    if (e.type === 'pointerup' && drag.moved && drag.wasCollapsed) {
+      skipPanelToggleRef.current = true;
+    }
+    panelDragRef.current = null;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+
+  const toggleWriterPanel = () => {
+    if (skipPanelToggleRef.current) {
+      skipPanelToggleRef.current = false;
+      return;
+    }
+    setIsWriterPanelCollapsed((collapsed) => !collapsed);
+  };
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
@@ -491,13 +564,19 @@ export function Writer() {
   return (
     <div className="relative w-full max-w-none mx-auto pt-2 pb-0 px-0 animate-in fade-in duration-500">
       <aside
+        ref={writerPanelRef}
         className="fixed left-3 top-24 z-[60] transition-[width] duration-200"
         style={{
           width: isWriterPanelCollapsed ? 48 : 'min(280px, calc(100vw - 24px))',
+          top: writerPanelTop,
           maxHeight: 'calc(100dvh - 112px)',
         }}
       >
-        <div className="max-h-full overflow-y-auto rounded-xl p-3 paper-card shadow-2xl">
+        <div
+          className={`max-h-full overflow-y-auto rounded-xl paper-card shadow-2xl ${
+            isWriterPanelCollapsed ? 'p-1.5' : 'p-3'
+          }`}
+        >
           <div
             className={`flex items-center ${
               isWriterPanelCollapsed ? 'justify-center' : 'justify-between'
@@ -516,23 +595,35 @@ export function Writer() {
             )}
             <button
               type="button"
-              onClick={() =>
-                setIsWriterPanelCollapsed((collapsed) => !collapsed)
+              onPointerDown={startPanelDrag}
+              onPointerMove={movePanel}
+              onPointerUp={finishPanelDrag}
+              onPointerCancel={finishPanelDrag}
+              onClick={
+                isWriterPanelCollapsed ? toggleWriterPanel : undefined
               }
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
-              title={
-                isWriterPanelCollapsed ? t('expandTools') : t('collapseTools')
-              }
-              aria-label={
-                isWriterPanelCollapsed ? t('expandTools') : t('collapseTools')
-              }
+              className={`flex h-9 shrink-0 touch-none items-center justify-center rounded-lg hover:bg-black/5 active:cursor-grabbing dark:hover:bg-white/10 ${
+                isWriterPanelCollapsed ? 'w-9 cursor-grab' : 'w-8 cursor-grab'
+              }`}
+              title={t('moveWriterPanel')}
+              aria-label={t('moveWriterPanel')}
             >
-              {isWriterPanelCollapsed ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
-                <ChevronLeft className="h-4 w-4" />
+              <GripVertical className="h-4 w-4" />
+              {isWriterPanelCollapsed && (
+                <ChevronRight className="h-3.5 w-3.5" />
               )}
             </button>
+            {!isWriterPanelCollapsed && (
+              <button
+                type="button"
+                onClick={toggleWriterPanel}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
+                title={t('collapseTools')}
+                aria-label={t('collapseTools')}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
           {!isWriterPanelCollapsed && (
