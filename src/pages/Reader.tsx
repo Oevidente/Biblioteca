@@ -70,6 +70,7 @@ import { logUserActivity } from '../lib/social';
 import { translateStoryPageHtml } from '../lib/storyTranslator';
 import { cleanStoryHtml } from '../lib/cleanStoryHtml';
 import { TranslatedText } from '../components/TranslatedText';
+import { StoryContent } from '../components/StoryContent';
 import { extractStoryId } from '../utils/urlUtils';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -1749,22 +1750,15 @@ export function Reader() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
               ref={containerRef}
-              className={cn(
-                'prose prose-lg prose-neutral mx-auto prose-p:mb-6 prose-p:text-base sm:prose-p:text-lg prose-headings:tracking-tight break-words',
-                readerMode === 'dark' ? 'dark:prose-invert text-[#F5F5F0]' : 'text-[#1A1A1A]',
-                fontFamily === 'opendyslexic'
-                  ? 'font-opendyslexic'
-                  : fontFamily === 'sans'
-                    ? 'font-sans'
-                    : 'font-serif',
-                lineSpacing === 'compact'
-                  ? 'prose-p:leading-[1.4]'
-                  : lineSpacing === 'loose'
-                    ? 'prose-p:leading-[2.2]'
-                    : 'prose-p:leading-[1.8]',
-              )}
-              dangerouslySetInnerHTML={{ __html: displayContent }}
-            />
+              className="w-full"
+            >
+              <StoryContent
+                html={displayContent}
+                readerMode={readerMode}
+                fontFamily={fontFamily}
+                lineSpacing={lineSpacing}
+              />
+            </motion.div>
           )}
         </AnimatePresence>
       </div>

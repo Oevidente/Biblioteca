@@ -599,9 +599,7 @@ export function Writer() {
               onPointerMove={movePanel}
               onPointerUp={finishPanelDrag}
               onPointerCancel={finishPanelDrag}
-              onClick={
-                isWriterPanelCollapsed ? toggleWriterPanel : undefined
-              }
+              onClick={isWriterPanelCollapsed ? toggleWriterPanel : undefined}
               className={`flex h-9 shrink-0 touch-none items-center justify-center rounded-lg hover:bg-black/5 active:cursor-grabbing dark:hover:bg-white/10 ${
                 isWriterPanelCollapsed ? 'w-9 cursor-grab' : 'w-8 cursor-grab'
               }`}

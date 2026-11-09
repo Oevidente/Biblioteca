@@ -64,6 +64,7 @@ import {
   IssueCategory,
 } from '../lib/spellChecker';
 import { cleanStoryHtml } from '../lib/cleanStoryHtml';
+import { StoryContent } from './StoryContent';
 import {
   compressImageToDataUrl,
   buildImageHtml,
@@ -2429,14 +2430,14 @@ export function StoryEditor({
                 onClick={handleEditorClick}
                 className={cn(
                   'w-full overflow-y-auto p-4 sm:p-8 bg-white dark:bg-[#1A1A1A] border border-[#1A1A1A]/15 dark:border-white/15 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white font-serif text-base sm:text-lg leading-relaxed text-[#1A1A1A] dark:text-[#F5F5F0] shadow-inner prose dark:prose-invert max-w-none transition-all duration-300',
-                  '[&_img]:mx-auto [&_img]:rounded-lg [&_img]:max-w-full [&_img]:h-auto',
+                  '[&>*]:mx-auto [&>*]:max-w-[65ch] [&_img]:mx-auto [&_img]:rounded-lg [&_img]:max-w-full [&_img]:h-auto',
                   '[&_img.story-image-selected]:outline [&_img.story-image-selected]:outline-2 [&_img.story-image-selected]:outline-offset-2 [&_img.story-image-selected]:outline-amber-500',
                   isToolbarCollapsed
                     ? 'min-h-[550px] max-h-[850px]'
                     : 'min-h-[380px] max-h-[850px]',
                 )}
                 style={{
-                  height: 'clamp(380px, calc(100dvh - 340px), 850px)',
+                  height: 'clamp(380px, calc(100dvh - 280px), 850px)',
                   minHeight: isToolbarCollapsed ? '550px' : '380px',
                 }}
               />
@@ -2692,8 +2693,7 @@ export function StoryEditor({
             /* Preview Mode Page View */
             <div
               className={cn(
-                'relative p-6 sm:p-12 rounded-2xl transition-all overflow-hidden w-full break-words shadow-lg border border-black/5',
-                isToolbarCollapsed ? 'min-h-[550px]' : 'min-h-[380px]',
+                'relative mx-auto min-h-[50vh] w-full max-w-[800px] overflow-hidden rounded-2xl p-6 shadow-lg transition-all sm:p-10',
                 readerMode === 'dark'
                   ? 'paper-card text-[#F5F5F0]'
                   : 'bg-[#FDFCF9] text-[#1A1A1A]',
@@ -2825,28 +2825,14 @@ export function StoryEditor({
                 </div>
               </div>
 
-              <div
-                className={cn(
-                  'prose prose-lg prose-neutral mx-auto prose-p:mb-6 prose-p:text-base sm:prose-p:text-lg prose-headings:tracking-tight break-words',
-                  readerMode === 'dark'
-                    ? 'dark:prose-invert text-[#F5F5F0]'
-                    : 'text-[#1A1A1A]',
-                  fontFamily === 'opendyslexic'
-                    ? 'font-opendyslexic'
-                    : fontFamily === 'sans'
-                      ? 'font-sans'
-                      : 'font-serif',
-                  lineSpacing === 'compact'
-                    ? 'prose-p:leading-[1.4]'
-                    : lineSpacing === 'loose'
-                      ? 'prose-p:leading-[2.2]'
-                      : 'prose-p:leading-[1.8]',
-                )}
-                dangerouslySetInnerHTML={{
-                  __html:
-                    computedPages[previewPageIdx] ||
-                    `<p class='opacity-40 italic'>${t('emptyPage')}</p>`,
-                }}
+              <StoryContent
+                html={
+                  computedPages[previewPageIdx] ||
+                  `<p class='opacity-40 italic'>${t('emptyPage')}</p>`
+                }
+                readerMode={readerMode}
+                fontFamily={fontFamily}
+                lineSpacing={lineSpacing}
               />
             </div>
           )}
