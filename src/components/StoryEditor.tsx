@@ -2194,73 +2194,9 @@ export function StoryEditor({
             </div>
           </>
         )}
-
-        {/* Pagination Controls & Stats Bar */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2 cursor-pointer font-bold select-none">
-              <input
-                type="checkbox"
-                checked={autoPagination}
-                onChange={(e) => setAutoPagination(e.target.checked)}
-                className="rounded border-[#1A1A1A]/20 dark:border-white/20 text-[#1A1A1A] focus:ring-0"
-              />
-              <span>{t('autoPageBreak')}</span>
-            </label>
-
-            {autoPagination && (
-              <div className="flex items-center gap-1.5 opacity-80">
-                <span className="text-[10px] font-bold uppercase tracking-wider">
-                  {t('wordsPerPage')}:
-                </span>
-                <select
-                  value={wordsPerPage}
-                  onChange={(e) => setWordsPerPage(Number(e.target.value))}
-                  className="bg-white dark:bg-[#1A1A1A] border border-[#1A1A1A]/20 dark:border-white/20 rounded-lg px-2 py-1 text-xs font-mono font-bold"
-                >
-                  <option value={200}>200</option>
-                  <option value={300}>300</option>
-                  <option value={400}>400</option>
-                  <option value={500}>500</option>
-                </select>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3 select-none shrink-0">
-            <div className="flex items-center gap-3 font-mono text-[11px] opacity-70">
-              <span>{t('wordsCount', { count: totalWords })}</span>
-              <span>
-                {t('readTimeEstimate', { count: Math.ceil(totalWords / 250) })}
-              </span>
-              <span className="px-2 py-0.5 bg-[#1A1A1A]/10 dark:bg-white/10 rounded-full font-bold">
-                {t('pagesCount', { count: computedPages.length || 1 })}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsToolbarCollapsed(!isToolbarCollapsed)}
-              className="flex items-center gap-1 py-1 px-2.5 rounded-lg bg-[#1A1A1A]/5 dark:bg-white/5 hover:bg-[#1A1A1A]/10 dark:hover:bg-white/10 border border-[#1A1A1A]/10 dark:border-white/10 font-bold text-[10px] uppercase tracking-wider transition-all text-[#1A1A1A] dark:text-[#F8FAFC]"
-              title={isToolbarCollapsed ? t('expandTools') : t('collapseTools')}
-            >
-              {isToolbarCollapsed ? (
-                <>
-                  <ChevronDown className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">{t('expandTools')}</span>
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="w-3.5 h-3.5 transform rotate-180" />
-                  <span className="hidden sm:inline">{t('collapseTools')}</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
       </div>
       {/* Editor / Preview Mode Tabs */}
-      <div className="flex items-center justify-between border-b border-[#1A1A1A]/10 dark:border-white/10 pb-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#1A1A1A]/10 pb-2 text-xs dark:border-white/10">
         <div className="flex gap-2">
           <button
             type="button"
@@ -2289,6 +2225,67 @@ export function StoryEditor({
           >
             <BookOpen className="w-3.5 h-3.5" /> {t('previewPages')}
           </button>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+          {activeTab === 'edit' && (
+            <>
+              <label className="flex items-center gap-1.5 whitespace-nowrap font-bold select-none">
+                <input
+                  type="checkbox"
+                  checked={autoPagination}
+                  onChange={(e) => setAutoPagination(e.target.checked)}
+                  className="rounded border-[#1A1A1A]/20 text-[#1A1A1A] focus:ring-0 dark:border-white/20"
+                />
+                <span>{t('autoPageBreak')}</span>
+              </label>
+              {autoPagination && (
+                <label className="flex items-center gap-1.5 whitespace-nowrap opacity-80">
+                  <span className="text-[10px] font-bold uppercase tracking-wider">
+                    {t('wordsPerPage')}:
+                  </span>
+                  <select
+                    value={wordsPerPage}
+                    onChange={(e) => setWordsPerPage(Number(e.target.value))}
+                    className="rounded-lg border border-[#1A1A1A]/20 bg-white px-2 py-1 text-xs font-mono font-bold dark:border-white/20 dark:bg-[#1A1A1A]"
+                  >
+                    <option value={200}>200</option>
+                    <option value={300}>300</option>
+                    <option value={400}>400</option>
+                    <option value={500}>500</option>
+                  </select>
+                </label>
+              )}
+              <div className="flex items-center gap-2 whitespace-nowrap font-mono text-[10px] opacity-70 select-none">
+                <span>{t('wordsCount', { count: totalWords })}</span>
+                <span>
+                  {t('readTimeEstimate', {
+                    count: Math.ceil(totalWords / 250),
+                  })}
+                </span>
+                <span className="rounded-full bg-[#1A1A1A]/10 px-2 py-0.5 font-bold dark:bg-white/10">
+                  {t('pagesCount', { count: computedPages.length || 1 })}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsToolbarCollapsed(!isToolbarCollapsed)}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#1A1A1A]/10 bg-[#1A1A1A]/5 text-[#1A1A1A] transition-all hover:bg-[#1A1A1A]/10 dark:border-white/10 dark:bg-white/5 dark:text-[#F8FAFC] dark:hover:bg-white/10"
+                title={
+                  isToolbarCollapsed ? t('expandTools') : t('collapseTools')
+                }
+                aria-label={
+                  isToolbarCollapsed ? t('expandTools') : t('collapseTools')
+                }
+              >
+                {isToolbarCollapsed ? (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5 rotate-180" />
+                )}
+              </button>
+            </>
+          )}
         </div>
 
         {activeTab === 'preview' && computedPages.length > 1 && (
@@ -2436,9 +2433,12 @@ export function StoryEditor({
                   '[&_img.story-image-selected]:outline [&_img.story-image-selected]:outline-2 [&_img.story-image-selected]:outline-offset-2 [&_img.story-image-selected]:outline-amber-500',
                   isToolbarCollapsed
                     ? 'min-h-[550px] max-h-[850px]'
-                    : 'min-h-[380px] max-h-[650px]',
+                    : 'min-h-[380px] max-h-[850px]',
                 )}
-                style={{ minHeight: isToolbarCollapsed ? '550px' : '380px' }}
+                style={{
+                  height: 'clamp(380px, calc(100dvh - 340px), 850px)',
+                  minHeight: isToolbarCollapsed ? '550px' : '380px',
+                }}
               />
               {totalWords === 0 &&
                 !computedPages.some((p) => p.includes('<img')) && (
