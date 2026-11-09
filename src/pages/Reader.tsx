@@ -1188,12 +1188,12 @@ export function Reader() {
         </aside>
 
         <div className="min-w-0">
-      <Link
-        to="/"
-        className="mb-6 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest opacity-60 transition-opacity hover:opacity-100"
-      >
-        <ArrowLeft className="h-4 w-4" /> {t('backToLibrary')}
-      </Link>
+          <Link
+            to="/"
+            className="mb-6 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest opacity-60 transition-opacity hover:opacity-100"
+          >
+            <ArrowLeft className="h-4 w-4" /> {t('backToLibrary')}
+          </Link>
           <header className="mb-10 text-center lg:text-left">
             <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold mb-3 tracking-tight leading-tight">
               <TranslatedText text={story.title} />
