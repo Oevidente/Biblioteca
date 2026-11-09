@@ -465,7 +465,7 @@ export function Reader() {
     }
   }, [readerMode]);
 
-  // Eye Comfort yellow filter intensity state (0 to 100)
+  // Eye comfort blue filter intensity state (0 to 100)
   const [eyeComfortIntensity, setEyeComfortIntensity] = useState<number>(() => {
     try {
       const saved = localStorage.getItem('inkora_eye_comfort_intensity');
@@ -931,7 +931,7 @@ export function Reader() {
     const releaseDate = new Date(story.scheduledReleaseAt!);
     return (
       <div className="max-w-[600px] mx-auto py-20 px-6 text-center font-serif space-y-6 animate-in fade-in duration-500">
-        <div className="w-16 h-16 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+        <div className="w-16 h-16 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
           <Clock className="w-8 h-8" />
         </div>
         <h2 className="text-2xl sm:text-3xl font-bold text-[#1A1A1A] dark:text-[#F5F5F0]">
@@ -947,7 +947,7 @@ export function Reader() {
           Esta obra está agendada e será lançada em breve! Prepare-se para
           embarcar nesta leitura no dia:
         </p>
-        <div className="inline-block px-4 py-2 bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/20 rounded-xl font-mono text-sm font-bold">
+        <div className="inline-block px-4 py-2 bg-blue-500/10 text-blue-800 dark:text-blue-400 border border-blue-500/20 rounded-xl font-mono text-sm font-bold">
           {releaseDate.toLocaleString()}
         </div>
         <div className="pt-6">
@@ -1539,7 +1539,7 @@ export function Reader() {
                       className={cn(
                         'flex-1 min-w-[100px] sm:flex-none px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all font-opendyslexic text-center truncate',
                         fontFamily === 'opendyslexic'
-                          ? 'paper-btn-amber font-extrabold shadow-sm'
+                          ? 'paper-btn-accent font-extrabold shadow-sm'
                           : 'opacity-70 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
                       )}
                       title={t('openDyslexic')}
@@ -1555,7 +1555,7 @@ export function Reader() {
                     {readerMode === 'dark' ? (
                       <Moon className="w-4 h-4 opacity-60 text-indigo-400" />
                     ) : (
-                      <Sun className="w-4 h-4 opacity-60 text-amber-500" />
+                      <Sun className="w-4 h-4 opacity-60 text-blue-500" />
                     )}
                     <span className="text-xs font-bold uppercase tracking-wider opacity-70">
                       {t('readingTheme')}
@@ -1567,11 +1567,11 @@ export function Reader() {
                       className={cn(
                         'flex-1 min-w-[100px] sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5',
                         readerMode === 'light'
-                          ? 'bg-amber-100 text-amber-900 border border-amber-200 shadow-sm'
+                          ? 'bg-blue-100 text-blue-900 border border-blue-200 shadow-sm'
                           : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
                       )}
                     >
-                      <Sun className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
+                      <Sun className="w-3.5 h-3.5 text-blue-500 fill-blue-500/20" />
                       <span>{t('lightTheme').split(' ')[0]}</span>
                     </button>
                     <button
@@ -1653,7 +1653,7 @@ export function Reader() {
                       className={cn(
                         'p-2 rounded-xl transition-colors shrink-0 flex items-center justify-center',
                         eyeComfortIntensity > 0
-                          ? 'bg-amber-400/20 text-amber-700 dark:text-amber-300'
+                          ? 'bg-blue-400/20 text-blue-700 dark:text-blue-300'
                           : 'bg-[#1A1A1A]/5 dark:bg-white/5 opacity-60',
                       )}
                     >
@@ -1665,7 +1665,7 @@ export function Reader() {
                           {t('eyeComfort')}
                         </h3>
                         {eyeComfortIntensity > 0 && (
-                          <span className="text-[9px] bg-amber-400/25 text-amber-900 dark:text-amber-200 font-mono font-bold px-2 py-0.5 rounded-full">
+                          <span className="text-[9px] bg-blue-400/25 text-blue-900 dark:text-blue-200 font-mono font-bold px-2 py-0.5 rounded-full">
                             {eyeComfortIntensity}%
                           </span>
                         )}
@@ -1676,7 +1676,7 @@ export function Reader() {
                   <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto min-w-0">
                     {/* Slider */}
                     <div className="flex items-center gap-2.5 w-full sm:flex-1 sm:min-w-[180px] px-3 py-1.5 rounded-xl paper-card">
-                      <Sun className="w-3.5 h-3.5 opacity-50 shrink-0 text-amber-500" />
+                      <Sun className="w-3.5 h-3.5 opacity-50 shrink-0 text-blue-500" />
                       <input
                         type="range"
                         min="0"
@@ -1686,7 +1686,7 @@ export function Reader() {
                         onChange={(e) =>
                           setEyeComfortIntensity(Number(e.target.value))
                         }
-                        className="w-full h-1.5 bg-[#1A1A1A]/10 dark:bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                        className="w-full h-1.5 bg-[#1A1A1A]/10 dark:bg-white/20 rounded-lg appearance-none cursor-pointer accent-blue-500"
                         title={t('filterIntensity')}
                         aria-label={t('filterIntensity')}
                       />
@@ -1709,7 +1709,7 @@ export function Reader() {
                           className={cn(
                             'text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all',
                             eyeComfortIntensity === preset.val
-                              ? 'paper-btn-amber font-extrabold shadow-sm'
+                              ? 'paper-btn-accent font-extrabold shadow-sm'
                               : 'opacity-70 hover:opacity-100 paper-btn-light text-[#1A1A1A] dark:text-[#F5F5F0]',
                           )}
                         >
@@ -1743,7 +1743,7 @@ export function Reader() {
                 )}
               >
                 <div className="flex items-center gap-2">
-                    <Languages className="w-4 h-4 text-violet-400 shrink-0" />
+                  <Languages className="w-4 h-4 text-violet-400 shrink-0" />
                   <span>
                     {t('storyTranslationActive', {
                       lang: language.toUpperCase(),
@@ -1763,15 +1763,12 @@ export function Reader() {
               </div>
             )}
 
-            {/* Eye Comfort Warm Yellow Filter Overlay */}
+            {/* Eye Comfort Blue Filter Overlay */}
             {eyeComfortIntensity > 0 && (
               <div
                 className="absolute inset-0 rounded-2xl pointer-events-none z-20 transition-colors duration-200"
                 style={{
-                  backgroundColor:
-                    readerMode === 'dark'
-                      ? `rgba(251, 191, 36, ${(eyeComfortIntensity / 100) * 0.22})`
-                      : `rgba(245, 180, 0, ${(eyeComfortIntensity / 100) * 0.36})`,
+                  backgroundColor: `rgba(59, 130, 246, ${(eyeComfortIntensity / 100) * (readerMode === 'dark' ? 0.22 : 0.36)})`,
                   mixBlendMode: readerMode === 'dark' ? 'screen' : 'multiply',
                 }}
               />

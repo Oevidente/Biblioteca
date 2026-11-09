@@ -808,15 +808,15 @@ export function Writer() {
               <div className="flex min-h-8 items-center gap-2 px-2 text-[10px] font-mono">
                 {isAutoSaving ? (
                   <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-500" />
-                    <span className="text-amber-600 dark:text-amber-400">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" />
+                    <span className="text-blue-600 dark:text-blue-400">
                       {t('localDraftSaving')}
                     </span>
                   </>
                 ) : hasUnsavedChanges && lastLocalDraftSaveTime ? (
                   <>
-                    <CheckCircle2 className="h-3.5 w-3.5 text-amber-500" />
-                    <span className="text-amber-700 dark:text-amber-300">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
+                    <span className="text-blue-700 dark:text-blue-300">
                       {t('localDraftSavedAt', {
                         time: formatTime(lastLocalDraftSaveTime),
                       })}
@@ -824,7 +824,7 @@ export function Writer() {
                   </>
                 ) : hasUnsavedChanges || hasDraftConflict ? (
                   <>
-                    <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                    <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
                     <span>{t('localDraftPending')}</span>
                   </>
                 ) : lastFirestoreSaveTime ? (
@@ -944,7 +944,7 @@ export function Writer() {
                   type="button"
                   onClick={() => handleSave(true)}
                   disabled={isSaving || isAutoSaving || hasDraftConflict}
-                  className="paper-btn-amber flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+                  className="paper-btn-accent flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
                   title={t('saveDraft')}
                 >
                   {isSaving ? (
@@ -991,9 +991,9 @@ export function Writer() {
           </div>
         )}
         {hasUnsavedChanges && !hasDraftConflict && (
-          <div className="sticky top-2 z-30 mb-3 flex flex-col gap-3 rounded-xl border border-amber-500/30 bg-[#211b11]/95 p-3 text-sm text-amber-100 shadow-xl backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
+          <div className="sticky top-2 z-30 mb-3 flex flex-col gap-3 rounded-xl border border-blue-500/30 bg-[#211b11]/95 p-3 text-sm text-blue-100 shadow-xl backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-start gap-2">
-              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-amber-400 animate-pulse" />
+              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-blue-400 animate-pulse" />
               <div className="min-w-0">
                 <p className="font-bold">
                   {localDraftSaveFailed
@@ -1015,7 +1015,7 @@ export function Writer() {
               type="button"
               onClick={() => handleSave(story.isDraft ?? true)}
               disabled={isSaving || isAutoSaving}
-              className="paper-btn-amber flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold disabled:opacity-50"
+              className="paper-btn-accent flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold disabled:opacity-50"
             >
               {isSaving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1027,7 +1027,7 @@ export function Writer() {
           </div>
         )}
         {hasDraftConflict && localDraft && (
-          <div className="mb-3 flex flex-col gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mb-3 flex flex-col gap-3 rounded-xl border border-blue-500/30 bg-blue-500/10 p-4 text-sm text-blue-900 dark:text-blue-200 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-bold">{t('writerDraftConflict')}</p>
               <p className="mt-1 text-xs opacity-80">
@@ -1040,7 +1040,7 @@ export function Writer() {
               <button
                 type="button"
                 onClick={recoverLocalDraft}
-                className="rounded-lg px-3 py-2 text-xs font-bold paper-btn-amber"
+                className="rounded-lg px-3 py-2 text-xs font-bold paper-btn-accent"
               >
                 {t('recoverWriterDraft')}
               </button>

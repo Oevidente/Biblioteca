@@ -289,30 +289,30 @@ html.dark {
     background-color: #381414 !important;
   }
 
-  .paper-btn-amber {
+  .paper-btn-accent {
     border: none !important;
     outline: none !important;
-    background-color: #FEF3C7 !important; /* Soft pastel amber */
-    color: #92400E !important;
+    background-color: #E2ECFC !important;
+    color: #1E40AF !important;
     background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.35) 0%, rgba(0, 0, 0, 0.01) 100%) !important;
-    box-shadow: 0 2px 6px -1px rgba(146, 64, 14, 0.08), 0 1px 2px 0 rgba(146, 64, 14, 0.04) !important;
+    box-shadow: 0 2px 6px -1px rgba(30, 64, 175, 0.08), 0 1px 2px 0 rgba(30, 64, 175, 0.04) !important;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
   }
-  .paper-btn-amber:hover {
-    box-shadow: inset 0 2px 4px rgba(146, 64, 14, 0.1) !important;
+  .paper-btn-accent:hover {
+    box-shadow: inset 0 2px 4px rgba(30, 64, 175, 0.1) !important;
     background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.01) 0%, rgba(0, 0, 0, 0.03) 100%) !important;
-    background-color: #FDE68A !important;
+    background-color: #D3E4FC !important;
   }
-  .dark .paper-btn-amber {
-    background-color: #452A10 !important;
-    color: #FDE68A !important;
+  .dark .paper-btn-accent {
+    background-color: #1D2A44 !important;
+    color: #93C5FD !important;
     background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.15) 100%) !important;
     box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.2) !important;
   }
-  .dark .paper-btn-amber:hover {
+  .dark .paper-btn-accent:hover {
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
     background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.2) 100%) !important;
-    background-color: #38210C !important;
+    background-color: #18233A !important;
   }
 
   .paper-btn-emerald {

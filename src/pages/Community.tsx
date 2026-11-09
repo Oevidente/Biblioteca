@@ -103,10 +103,10 @@ export function Community() {
       {/* 1. COMMUNITY HERO HEADER */}
       <div className="relative rounded-3xl overflow-hidden paper-card p-6 sm:p-8 md:p-10 shadow-lg">
         {/* Decorative Cover Accent */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-r from-amber-500/20 via-indigo-500/20 to-purple-500/20 dark:from-amber-500/10 dark:via-indigo-500/10 dark:to-purple-500/10 border-b border-[#1A1A1A]/5 dark:border-white/5" />
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-purple-500/20 dark:from-blue-500/10 dark:via-indigo-500/10 dark:to-purple-500/10 border-b border-[#1A1A1A]/5 dark:border-white/5" />
         
         <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-end gap-6 pt-8">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold shadow-md shrink-0 border border-amber-500/10">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold shadow-md shrink-0 border border-blue-500/10">
             <Users className="w-8 h-8" />
           </div>
           <div className="flex-1 text-center sm:text-left space-y-1">
@@ -167,7 +167,7 @@ export function Community() {
 
           {isSearching ? (
             <div className="text-center py-16 paper-card rounded-2xl border border-black/5 dark:border-white/5">
-              <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
               <p className="text-xs uppercase font-bold tracking-widest opacity-60">{t("searchingReaders")}</p>
             </div>
           ) : searchResults.length > 0 ? (
@@ -175,12 +175,12 @@ export function Community() {
               {searchResults.map((u) => (
                 <div 
                   key={u.uid} 
-                  className="paper-card rounded-2xl p-4 flex items-center justify-between gap-4 shadow-sm hover:border-amber-500/40 dark:hover:border-amber-400/40 transition-all duration-300"
+                  className="paper-card rounded-2xl p-4 flex items-center justify-between gap-4 shadow-sm hover:border-blue-500/40 dark:hover:border-blue-400/40 transition-all duration-300"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div 
                       onClick={() => navigate(u.username ? `/user/${u.username}` : `/profile/${u.uid}`)}
-                      className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center font-serif font-bold overflow-hidden shrink-0 border border-black/10 dark:border-white/10 cursor-pointer hover:scale-105 transition-transform"
+                      className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center font-serif font-bold overflow-hidden shrink-0 border border-black/10 dark:border-white/10 cursor-pointer hover:scale-105 transition-transform"
                     >
                       {u.photoURL ? (
                         <img 
@@ -207,7 +207,7 @@ export function Community() {
                           u.role === "admin" 
                             ? "bg-purple-500/20 text-purple-700 dark:text-purple-300"
                             : u.role === "author"
-                            ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
+                            ? "bg-blue-500/20 text-blue-700 dark:text-blue-300"
                             : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                         }`}>
                           {u.role === "admin" ? t("roleAdmin") : u.role === "author" ? t("roleAuthor") : t("roleReader")}
@@ -230,7 +230,7 @@ export function Community() {
             </div>
           ) : (
             <div className="text-center py-16 paper-card rounded-2xl space-y-3 border border-black/5 dark:border-white/5 animate-in fade-in">
-              <Users className="w-8 h-8 mx-auto opacity-40 text-amber-500/60" />
+              <Users className="w-8 h-8 mx-auto opacity-40 text-blue-500/60" />
               <p className="text-xs uppercase font-bold tracking-widest opacity-60">{t("noReadersFound")}</p>
               <button 
                 onClick={handleClearSearch}
@@ -261,12 +261,12 @@ export function Community() {
 
           {loadingGlobalActivities && globalActivities.length === 0 ? (
             <div className="text-center py-20 paper-card rounded-2xl space-y-4 border border-black/5 dark:border-white/5">
-              <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
               <p className="text-xs font-serif opacity-60">{t("loadingCommunity")}</p>
             </div>
           ) : globalActivities.length === 0 ? (
             <div className="text-center py-16 paper-card rounded-2xl space-y-3 border border-black/5 dark:border-white/5">
-              <Sparkles className="w-8 h-8 mx-auto text-amber-500/60 animate-pulse" />
+              <Sparkles className="w-8 h-8 mx-auto text-blue-500/60 animate-pulse" />
               <p className="text-xs uppercase font-bold tracking-widest opacity-65">{t("wallQuiet")}</p>
               <p className="text-[11px] opacity-55 max-w-xs mx-auto">
                 {t("wallEmptyHint")}
@@ -277,12 +277,12 @@ export function Community() {
               {globalActivities.map((act, i) => (
                 <div 
                   key={act.id || i} 
-                  className="paper-card rounded-2xl p-5 flex gap-4 items-start border-l-4 border-amber-500/30 dark:border-amber-400/30 hover:border-amber-500 dark:hover:border-amber-400 transition-all duration-300 shadow-sm"
+                  className="paper-card rounded-2xl p-5 flex gap-4 items-start border-l-4 border-blue-500/30 dark:border-blue-400/30 hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-300 shadow-sm"
                 >
                   {/* USER AVATAR */}
                   <button 
                     onClick={() => navigate(act.userUsername ? `/user/${act.userUsername}` : `/profile/${act.uid}`)}
-                    className="w-11 h-11 rounded-full bg-amber-500/10 flex items-center justify-center font-serif font-bold overflow-hidden shrink-0 border border-black/5 dark:border-white/5 hover:scale-105 transition-transform"
+                    className="w-11 h-11 rounded-full bg-blue-500/10 flex items-center justify-center font-serif font-bold overflow-hidden shrink-0 border border-black/5 dark:border-white/5 hover:scale-105 transition-transform"
                   >
                     {act.userPhoto ? (
                       <img 
@@ -318,7 +318,7 @@ export function Community() {
 
                     {/* DETAILS BLOCK FOR COMMENTS / SAVES */}
                     {act.details && (
-                      <div className="mt-2.5 text-[11px] italic opacity-80 pl-3 border-l-2 border-amber-500/30 dark:border-amber-400/30 py-0.5 bg-[#1A1A1A]/5 dark:bg-white/5 rounded-r-lg pr-2 max-w-prose">
+                      <div className="mt-2.5 text-[11px] italic opacity-80 pl-3 border-l-2 border-blue-500/30 dark:border-blue-400/30 py-0.5 bg-[#1A1A1A]/5 dark:bg-white/5 rounded-r-lg pr-2 max-w-prose">
                         "{act.details}"
                       </div>
                     )}
@@ -337,7 +337,7 @@ export function Community() {
                         ) : (
                           <button 
                             onClick={() => { navigate(`${getStoryLink(act.targetId, act.targetTitle)}`); }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 hover:scale-[1.02] active:scale-95 transition-all"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all"
                           >
                             <BookOpen className="w-3.5 h-3.5" />
                             <span>{t("readStory")}</span>

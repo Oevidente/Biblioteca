@@ -2178,7 +2178,7 @@ export function StoryEditor({
                     showReviewPanel
                       ? 'bg-red-600 text-white shadow-md'
                       : issues.length > 0
-                        ? 'bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/20'
+                        ? 'bg-blue-500/10 text-blue-800 dark:text-blue-300 border border-blue-500/30 hover:bg-blue-500/20'
                         : 'bg-white dark:bg-[#1A1A1A] border border-[#1A1A1A]/10 dark:border-white/10 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5',
                   )}
                   title={t('reviewButton')}
@@ -2816,7 +2816,7 @@ export function StoryEditor({
                       }
                     >
                       {readerMode === 'dark' ? (
-                        <Sun className="w-3.5 h-3.5 text-amber-500" />
+                        <Sun className="w-3.5 h-3.5 text-blue-500" />
                       ) : (
                         <Moon className="w-3.5 h-3.5 text-indigo-500" />
                       )}
@@ -2884,16 +2884,16 @@ export function StoryEditor({
                     Motor:
                   </span>
                   {isCheckingLanguageTool ? (
-                    <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-extrabold animate-pulse">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+                    <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-extrabold animate-pulse">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" />
                       {t('checkingProgress')}
                     </span>
                   ) : isFallbackMode ? (
                     <span
-                      className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-extrabold"
+                      className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-extrabold"
                       title="Fallback ativado devido a limite de cota ou sem conexão"
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                       {t('fallbackModeActive')}
                     </span>
                   ) : (
@@ -3115,7 +3115,7 @@ export function StoryEditor({
                                 issue.category === 'spelling'
                                   ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
                                   : issue.category === 'grammar'
-                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                                    ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
                                     : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20',
                               )}
                             >

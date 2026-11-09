@@ -586,12 +586,11 @@ export function Home() {
           </div>
 
           <div className="absolute top-2.5 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full text-white text-[10px] font-bold paper-glass">
-            <Star className="w-3 h-3 fill-blue-400 text-blue-400" />{' '}
-            {avgRating}
+            <Star className="w-3 h-3 fill-blue-400 text-blue-400" /> {avgRating}
           </div>
 
           {isScheduledFuture && (
-            <div className="absolute bottom-2.5 left-2.5 right-2.5 text-black px-2.5 py-1 rounded-xl text-[9px] font-bold uppercase tracking-widest flex items-center justify-center gap-1 paper-btn-amber opacity-90 backdrop-blur-md">
+            <div className="absolute bottom-2.5 left-2.5 right-2.5 text-black px-2.5 py-1 rounded-xl text-[9px] font-bold uppercase tracking-widest flex items-center justify-center gap-1 paper-btn-accent opacity-90 backdrop-blur-md">
               <Calendar className="w-3 h-3" />
               <span>
                 {t('isScheduledBadge')} (
