@@ -290,6 +290,10 @@ export const translations = {
     alignCenter: 'Centralizar',
     alignRight: 'Direita',
     alignJustify: 'Justificar',
+    imageSizeSmall: 'Pequeno',
+    imageSizeMedium: 'Médio',
+    imageSizeLarge: 'Grande',
+    imageWidth: 'Largura da imagem',
     bulletList: 'Marcadores',
     insertImage: 'Inserir imagem',
     imageInsertError:
@@ -888,6 +892,10 @@ export const translations = {
     alignCenter: 'Centrar',
     alignRight: 'Derecha',
     alignJustify: 'Justificar',
+    imageSizeSmall: 'Pequeño',
+    imageSizeMedium: 'Mediano',
+    imageSizeLarge: 'Grande',
+    imageWidth: 'Ancho de imagen',
     bulletList: 'Viñetas',
     insertImage: 'Insertar imagen',
     imageInsertError:
@@ -1483,6 +1491,10 @@ export const translations = {
     alignCenter: 'Center',
     alignRight: 'Right',
     alignJustify: 'Justify',
+    imageSizeSmall: 'Small',
+    imageSizeMedium: 'Medium',
+    imageSizeLarge: 'Large',
+    imageWidth: 'Image width',
     bulletList: 'Bullet List',
     insertImage: 'Insert image',
     imageInsertError:

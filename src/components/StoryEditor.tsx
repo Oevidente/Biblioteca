@@ -95,6 +95,7 @@ export function StoryEditor({
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(
     null,
   );
+  const [selectedImageWidth, setSelectedImageWidth] = useState(55);
   const [selectionToolbarPosition, setSelectionToolbarPosition] = useState<{
     top: number;
     left: number;
@@ -690,6 +691,9 @@ export function StoryEditor({
         false,
         dataUrls.map(buildImageHtml).join(''),
       );
+      editorRef.current.querySelectorAll('img').forEach((image) => {
+        image.draggable = true;
+      });
       handleContentChange();
     } finally {
       setIsInsertingImage(false);
@@ -727,6 +731,9 @@ export function StoryEditor({
       const editor = editorRef.current;
       if (!editor) return;
       const changed = await normalizeEditorImages(editor);
+      editor.querySelectorAll('img').forEach((image) => {
+        image.draggable = true;
+      });
       if (changed) handleContentChange();
     }, 0);
   };
@@ -809,6 +816,7 @@ export function StoryEditor({
     target.draggable = true;
     draggedImageRef.current = target;
     setSelectedImage(target);
+    setSelectedImageWidth(getImageWidthPercent(target));
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', 'story-image');
   };
@@ -823,6 +831,9 @@ export function StoryEditor({
     if (editorRef.current && !isInitialized.current) {
       const html = getInitialHtml();
       editorRef.current.innerHTML = html;
+      editorRef.current.querySelectorAll('img').forEach((image) => {
+        image.draggable = true;
+      });
       isInitialized.current = true;
       const { pages, wordCount, cleanText } = processHtmlIntoPages(html);
       setComputedPages(pages);
@@ -997,8 +1008,46 @@ export function StoryEditor({
     const target = e.target;
     if (target instanceof HTMLImageElement) {
       target.draggable = true;
+      setSelectedImageWidth(getImageWidthPercent(target));
+    } else {
+      setSelectedImageWidth(55);
     }
     setSelectedImage(target instanceof HTMLImageElement ? target : null);
+  };
+
+  const getImageWidthPercent = (image: HTMLImageElement) => {
+    const inlineWidth = Number.parseFloat(image.style.width);
+    if (image.style.width.endsWith('%') && Number.isFinite(inlineWidth)) {
+      return Math.max(15, Math.min(100, Math.round(inlineWidth)));
+    }
+
+    const editor = editorRef.current;
+    if (!editor) return 55;
+    const editorStyle = window.getComputedStyle(editor);
+    const contentWidth =
+      editor.clientWidth -
+      Number.parseFloat(editorStyle.paddingLeft) -
+      Number.parseFloat(editorStyle.paddingRight);
+    if (!contentWidth) return 55;
+    return Math.max(
+      15,
+      Math.min(
+        100,
+        Math.round((image.getBoundingClientRect().width / contentWidth) * 100),
+      ),
+    );
+  };
+
+  const applySelectedImageWidth = (width: number, save = true) => {
+    const image = selectedImage;
+    if (!image || !editorRef.current?.contains(image)) return;
+    const safeWidth = Math.max(15, Math.min(100, Math.round(width)));
+    image.draggable = true;
+    image.style.width = `${safeWidth}%`;
+    image.style.maxWidth = '100%';
+    setSelectedImageWidth(safeWidth);
+    if (save) handleContentChange();
+    updateSelectionToolbar();
   };
 
   const setSelectedImagePosition = (position: 'left' | 'center' | 'right') => {
@@ -1007,7 +1056,7 @@ export function StoryEditor({
 
     image.draggable = true;
     image.style.float = position === 'center' ? 'none' : position;
-    image.style.width = position === 'center' ? 'auto' : '55%';
+    image.style.width = `${selectedImageWidth}%`;
     image.style.margin =
       position === 'left'
         ? '0.5rem 1rem 0.75rem 0'
@@ -2307,7 +2356,11 @@ export function StoryEditor({
                       left: selectionToolbarPosition.left,
                       transform: 'translateX(-50%)',
                     }}
-                    onMouseDown={(e) => e.preventDefault()}
+                    onMouseDown={(e) => {
+                      if (!(e.target instanceof HTMLInputElement)) {
+                        e.preventDefault();
+                      }
+                    }}
                   >
                     {selectedImage ? (
                       <>
@@ -2338,6 +2391,48 @@ export function StoryEditor({
                         >
                           <AlignRight className="h-4 w-4" />
                         </button>
+                        <div className="mx-1 h-5 w-px shrink-0 bg-[#1A1A1A]/10 dark:bg-white/15" />
+                        {[
+                          { label: t('imageSizeSmall'), width: 25 },
+                          { label: t('imageSizeMedium'), width: 40 },
+                          { label: t('imageSizeLarge'), width: 65 },
+                        ].map((preset) => (
+                          <button
+                            key={preset.label}
+                            type="button"
+                            onClick={() =>
+                              applySelectedImageWidth(preset.width)
+                            }
+                            className="flex h-8 shrink-0 items-center justify-center rounded-lg px-2 text-[10px] font-bold tabular-nums hover:bg-[#1A1A1A]/5 dark:hover:bg-white/10"
+                            title={`${preset.label} (${preset.width}%)`}
+                            aria-label={`${preset.label} (${preset.width}%)`}
+                          >
+                            {preset.width}%
+                          </button>
+                        ))}
+                        <div className="mx-1 h-5 w-px shrink-0 bg-[#1A1A1A]/10 dark:bg-white/15" />
+                        <input
+                          type="range"
+                          min="15"
+                          max="100"
+                          step="1"
+                          value={selectedImageWidth}
+                          onChange={(e) =>
+                            applySelectedImageWidth(
+                              Number(e.currentTarget.value),
+                              false,
+                            )
+                          }
+                          onPointerUp={handleContentChange}
+                          onKeyUp={handleContentChange}
+                          onBlur={handleContentChange}
+                          className="w-20 shrink-0 accent-[#1A1A1A] dark:accent-white"
+                          title={t('imageWidth')}
+                          aria-label={t('imageWidth')}
+                        />
+                        <span className="w-9 shrink-0 text-right text-[10px] font-mono tabular-nums">
+                          {selectedImageWidth}%
+                        </span>
                       </>
                     ) : (
                       <>
