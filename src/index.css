@@ -48,6 +48,56 @@ html.dark {
   scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
 }
 
+.home-page {
+  color: #f5f5f5;
+}
+
+.home-hero {
+  background:
+    radial-gradient(ellipse at 80% 75%, rgba(41, 101, 255, 0.22), transparent 30%),
+    radial-gradient(ellipse at 70% 100%, rgba(177, 42, 255, 0.17), transparent 35%),
+    linear-gradient(115deg, #090a0d 0%, #0c0d13 65%, #10121a 100%);
+}
+
+.home-hero-art {
+  position: absolute;
+  z-index: 0;
+  width: min(58vw, 700px);
+  aspect-ratio: 1.15;
+  right: -7%;
+  top: 4%;
+  border: 1px solid rgba(114, 154, 255, 0.8);
+  border-left-color: rgba(190, 85, 255, 0.8);
+  border-bottom-color: rgba(89, 49, 201, 0.25);
+  border-radius: 50%;
+  transform: rotate(-24deg);
+  box-shadow: 0 -7px 28px -17px rgba(80, 135, 255, 0.9), 0 0 40px -28px rgba(197, 72, 255, 0.95);
+  pointer-events: none;
+}
+
+.home-hero-art::after {
+  content: "";
+  position: absolute;
+  inset: 18% -10% -12% 18%;
+  border: 1px solid rgba(136, 72, 255, 0.55);
+  border-top-color: rgba(206, 93, 255, 0.8);
+  border-radius: 50%;
+  box-shadow: 0 -5px 25px -18px rgba(205, 70, 255, 0.95);
+}
+
+.home-feature-card {
+  background: #101115;
+}
+
+@media (max-width: 640px) {
+  .home-hero-art {
+    width: 90vw;
+    right: -42%;
+    top: 18%;
+    opacity: 0.75;
+  }
+}
+
 /* Custom Scrollbars across Webkit browsers */
 ::-webkit-scrollbar {
   width: 6px;

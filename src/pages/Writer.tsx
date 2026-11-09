@@ -740,18 +740,19 @@ export function Writer() {
   if (!story) return null;
 
   return (
-    <div className="relative w-full max-w-none mx-auto pt-2 pb-0 px-0 animate-in fade-in duration-500">
+    <div className="relative w-full max-w-none mx-auto pt-2 pb-0 px-0 animate-in fade-in duration-500 md:pl-[300px]">
       <aside
         ref={writerPanelRef}
-        className="fixed left-3 top-24 z-[60] transition-[width] duration-200"
+        className="fixed top-24 z-[60] transition-[width] duration-200"
         style={{
           width: isWriterPanelCollapsed ? 48 : 'min(280px, calc(100vw - 24px))',
+          left: 'max(12px, calc((100vw - 1400px) / 2 - 4px))',
           top: writerPanelTop,
           maxHeight: 'calc(100dvh - 112px)',
         }}
       >
         <div
-          className={`max-h-full overflow-y-auto rounded-xl paper-card shadow-2xl ${
+          className={`max-h-full overflow-y-auto rounded-xl border border-white/10 bg-[#090a0d]/95 shadow-2xl backdrop-blur-xl ${
             isWriterPanelCollapsed ? 'p-1.5' : 'p-3'
           }`}
         >
@@ -975,7 +976,7 @@ export function Writer() {
         </div>
       </aside>
 
-      <main className="min-w-0 w-full">
+      <main className="min-w-0 w-full rounded-xl border border-white/10 bg-[#090a0d] p-2 sm:p-4">
         {message && (
           <div
             role={messageIsError ? 'alert' : 'status'}

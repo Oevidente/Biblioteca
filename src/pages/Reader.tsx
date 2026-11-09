@@ -71,6 +71,7 @@ import { translateStoryPageHtml } from '../lib/storyTranslator';
 import { cleanStoryHtml } from '../lib/cleanStoryHtml';
 import { TranslatedText } from '../components/TranslatedText';
 import { StoryContent } from '../components/StoryContent';
+import { BookCoverImage } from '../components/BookCoverImage';
 import { extractStoryId } from '../utils/urlUtils';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -965,7 +966,7 @@ export function Reader() {
   const hasPrev = currentPage > 0;
 
   return (
-    <div className="max-w-[800px] mx-auto pb-20 pt-4 relative">
+    <div className="max-w-[1280px] mx-auto pb-20 pt-4 relative">
       {/* Floating TOC Sidebar Trigger Button (when closed on desktop) */}
       {!showTocSidebar && (
         <button
@@ -1143,13 +1144,6 @@ export function Reader() {
         />
       </div>
 
-      <Link
-        to="/"
-        className="inline-flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest opacity-60 hover:opacity-100 mb-8 transition-opacity"
-      >
-        <ArrowLeft className="w-4 h-4" /> {t('backToLibrary')}
-      </Link>
-
       {/* Resume Progress Prompt */}
       {promptProgress && (
         <div className="rounded-2xl p-4 sm:p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in duration-300 paper-card">
@@ -1181,661 +1175,693 @@ export function Reader() {
         </div>
       )}
 
-      <header className="mb-10 text-center">
-        <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold mb-3 tracking-tight leading-tight">
-          <TranslatedText text={story.title} />
-        </h1>
-        {story.author && (
-          <div className="flex flex-col items-center gap-2 mb-6 opacity-60">
-            <Link
-              to={
-                story.authorUid
-                  ? `/profile/${story.authorUid}`
-                  : `/user/${story.author}`
-              }
-              className="text-xs sm:text-sm font-bold uppercase tracking-widest hover:underline hover:opacity-100 transition-opacity"
-            >
-              {t('by')} {story.author}
-            </Link>
-            <p className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5" />
-              {Math.ceil(
-                (story.wordCount || story.totalPages * 250) / 250,
-              )}{' '}
-              {t('readTime')}
-            </p>
+      <div className="reader-layout grid grid-cols-1 gap-5 rounded-xl border border-white/10 bg-[#090a0d] p-3 sm:p-5 lg:grid-cols-[minmax(260px,0.78fr)_minmax(0,1.22fr)] lg:gap-8 lg:p-7">
+        <aside className="self-start lg:sticky lg:top-8">
+          <div className="overflow-hidden rounded-lg border border-white/10 bg-[#101115]">
+            <BookCoverImage
+              src={story.coverImage}
+              alt={story.title}
+              title={story.title}
+              className="aspect-[2/3] max-h-[72vh] w-full object-cover"
+            />
           </div>
-        )}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
-          <div className="flex items-center justify-center gap-4 text-[10px] font-bold uppercase tracking-widest opacity-40">
-            <span className="w-12 h-[1px] bg-current"></span>
-            <span>
-              {t('pageOf', { page: currentPage + 1, total: story.totalPages })}
-            </span>
-            <span className="w-12 h-[1px] bg-current"></span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
-              {t('goTo')}
-            </span>
-            <select
-              value={currentPage}
-              onChange={(e) => setCurrentPage(parseInt(e.target.value, 10))}
-              className="rounded-xl px-3 py-1 text-xs font-bold focus:outline-none cursor-pointer paper-card"
-            >
-              {Array.from({ length: story.totalPages }, (_, i) => (
-                <option key={i} value={i}>
-                  {
-                    t('pageOf', { page: i + 1, total: story.totalPages })
-                      .split(' de ')[0]
-                      .split(' of ')[0]
-                      .split(' dari ')[0]
+        </aside>
+
+        <div className="min-w-0">
+      <Link
+        to="/"
+        className="mb-6 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest opacity-60 transition-opacity hover:opacity-100"
+      >
+        <ArrowLeft className="h-4 w-4" /> {t('backToLibrary')}
+      </Link>
+          <header className="mb-10 text-center lg:text-left">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold mb-3 tracking-tight leading-tight">
+              <TranslatedText text={story.title} />
+            </h1>
+            {story.author && (
+              <div className="flex flex-col items-center gap-2 mb-6 opacity-60 lg:items-start">
+                <Link
+                  to={
+                    story.authorUid
+                      ? `/profile/${story.authorUid}`
+                      : `/user/${story.author}`
                   }
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </header>
-
-      {/* Compact Apple-style Customization Toolbar */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between p-2 rounded-2xl paper-card shadow-sm select-none gap-2 relative z-30">
-        {/* Left: Reading stats / progress status badge */}
-        <div className="flex items-center gap-2 px-3 py-1.5 opacity-80">
-          <FileText className="w-4 h-4 text-amber-500 shrink-0" />
-          <span className="text-[10px] font-bold uppercase tracking-wider font-mono">
-            {t('pageOf', { page: currentPage + 1, total: story.totalPages })}
-          </span>
-        </div>
-
-        {/* Right: Compact control buttons */}
-        <div className="flex items-center gap-1.5 justify-end w-full sm:w-auto">
-          {/* Table of Contents Button */}
-          <button
-            onClick={() => {
-              setShowTocSidebar(!showTocSidebar);
-              setShowFormattingPanel(false);
-              setShowMoreMenu(false);
-            }}
-            className={cn(
-              'w-11 h-11 flex items-center justify-center rounded-xl transition-all relative group shadow-sm border border-black/5 dark:border-white/5',
-              showTocSidebar
-                ? 'paper-btn-dark font-extrabold'
-                : 'paper-btn-light opacity-80 hover:opacity-100',
+                  className="text-xs sm:text-sm font-bold uppercase tracking-widest hover:underline hover:opacity-100 transition-opacity"
+                >
+                  {t('by')} {story.author}
+                </Link>
+                <p className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  {Math.ceil(
+                    (story.wordCount || story.totalPages * 250) / 250,
+                  )}{' '}
+                  {t('readTime')}
+                </p>
+              </div>
             )}
-            title={t('tableOfContents')}
-            aria-label={t('tableOfContents')}
-          >
-            <List className="w-5 h-5" />
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[#1a1a1a] dark:bg-[#f5f5f0] text-white dark:text-[#1a1a1a] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 shadow-md whitespace-nowrap z-50 font-sans">
-              {t('tableOfContents')}
-            </span>
-          </button>
-
-          {/* Typography & Design Formatting Panel Button (AA) */}
-          <button
-            onClick={() => {
-              setShowFormattingPanel(!showFormattingPanel);
-              setShowMoreMenu(false);
-            }}
-            className={cn(
-              'w-11 h-11 flex items-center justify-center rounded-xl transition-all relative group shadow-sm border border-black/5 dark:border-white/5',
-              showFormattingPanel
-                ? 'paper-btn-dark font-extrabold'
-                : 'paper-btn-light opacity-80 hover:opacity-100',
-            )}
-            title={t('fontFamily')}
-            aria-label={t('fontFamily')}
-          >
-            <Type className="w-5 h-5" />
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[#1a1a1a] dark:bg-[#f5f5f0] text-white dark:text-[#1a1a1a] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 shadow-md whitespace-nowrap z-50 font-sans">
-              {t('fontFamily')}
-            </span>
-          </button>
-
-          {/* Bookmarks & Private Notes Button */}
-          <button
-            onClick={() => {
-              setShowNotesDrawer(true);
-              setShowFormattingPanel(false);
-              setShowMoreMenu(false);
-            }}
-            className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-all relative group shadow-sm border border-black/5 dark:border-white/5 paper-btn-light opacity-80 hover:opacity-100"
-            title={t('bookmarks')}
-            aria-label={t('bookmarks')}
-          >
-            <div className="relative">
-              <Bookmark className="w-5 h-5 text-amber-500" />
-              {notesList.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white dark:text-black font-mono text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-[#1A1A1A]">
-                  {notesList.length}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 lg:justify-start">
+              <div className="flex items-center justify-center gap-4 text-[10px] font-bold uppercase tracking-widest opacity-40">
+                <span className="w-12 h-[1px] bg-current"></span>
+                <span>
+                  {t('pageOf', {
+                    page: currentPage + 1,
+                    total: story.totalPages,
+                  })}
                 </span>
-              )}
+                <span className="w-12 h-[1px] bg-current"></span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                  {t('goTo')}
+                </span>
+                <select
+                  value={currentPage}
+                  onChange={(e) => setCurrentPage(parseInt(e.target.value, 10))}
+                  className="rounded-xl px-3 py-1 text-xs font-bold focus:outline-none cursor-pointer paper-card"
+                >
+                  {Array.from({ length: story.totalPages }, (_, i) => (
+                    <option key={i} value={i}>
+                      {
+                        t('pageOf', { page: i + 1, total: story.totalPages })
+                          .split(' de ')[0]
+                          .split(' of ')[0]
+                          .split(' dari ')[0]
+                      }
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[#1a1a1a] dark:bg-[#f5f5f0] text-white dark:text-[#1a1a1a] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 shadow-md whitespace-nowrap z-50 font-sans">
-              {t('bookmarks')} ({notesList.length})
-            </span>
-          </button>
+          </header>
 
-          {/* More Actions Context Menu (Three Dots) */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowMoreMenu(!showMoreMenu);
-                setShowFormattingPanel(false);
-              }}
-              className={cn(
-                'w-11 h-11 flex items-center justify-center rounded-xl transition-all relative group shadow-sm border border-black/5 dark:border-white/5',
-                showMoreMenu
-                  ? 'paper-btn-dark font-extrabold'
-                  : 'paper-btn-light opacity-80 hover:opacity-100',
-              )}
-              title="Mais Opções"
-              aria-label="Mais opções"
-            >
-              <MoreHorizontal className="w-5 h-5" />
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[#1a1a1a] dark:bg-[#f5f5f0] text-white dark:text-[#1a1a1a] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 shadow-md whitespace-nowrap z-50 font-sans">
-                Mais Opções
+          {/* Compact Apple-style Customization Toolbar */}
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between p-2 rounded-2xl paper-card shadow-sm select-none gap-2 relative z-30">
+            {/* Left: Reading stats / progress status badge */}
+            <div className="flex items-center gap-2 px-3 py-1.5 opacity-80">
+              <FileText className="w-4 h-4 text-amber-500 shrink-0" />
+              <span className="text-[10px] font-bold uppercase tracking-wider font-mono">
+                {t('pageOf', {
+                  page: currentPage + 1,
+                  total: story.totalPages,
+                })}
               </span>
-            </button>
+            </div>
 
-            {/* Dropdown Menu */}
-            <AnimatePresence>
-              {showMoreMenu && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowMoreMenu(false)}
-                  />
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 w-56 p-1.5 rounded-2xl paper-card shadow-2xl border border-black/10 dark:border-white/10 z-50 flex flex-col gap-1"
-                  >
-                    {/* Offline Download Option */}
-                    <button
-                      onClick={async () => {
-                        setShowMoreMenu(false);
-                        if (!user) {
-                          window.dispatchEvent(
-                            new CustomEvent('open-auth-modal', {
-                              detail: { mode: 'login' },
-                            }),
-                          );
-                          return;
-                        }
-                        if (!id || !story) return;
-                        if (isDownloaded) {
-                          await removeOfflineStory(id);
-                          setIsDownloaded(false);
-                        } else {
-                          setIsDownloading(true);
-                          const pagesMap: { [pageIndex: number]: string } = {};
-                          try {
-                            const pSnap = await getDocs(
-                              query(
-                                collection(db, `stories/${id}/pages`),
-                                orderBy('index', 'asc'),
-                              ),
-                            );
-                            pSnap.docs.forEach((d) => {
-                              const data = d.data();
-                              pagesMap[data.index || 0] = cleanStoryHtml(
-                                data.content || '',
+            {/* Right: Compact control buttons */}
+            <div className="flex items-center gap-1.5 justify-end w-full sm:w-auto">
+              {/* Table of Contents Button */}
+              <button
+                onClick={() => {
+                  setShowTocSidebar(!showTocSidebar);
+                  setShowFormattingPanel(false);
+                  setShowMoreMenu(false);
+                }}
+                className={cn(
+                  'w-11 h-11 flex items-center justify-center rounded-xl transition-all relative group shadow-sm border border-black/5 dark:border-white/5',
+                  showTocSidebar
+                    ? 'paper-btn-dark font-extrabold'
+                    : 'paper-btn-light opacity-80 hover:opacity-100',
+                )}
+                title={t('tableOfContents')}
+                aria-label={t('tableOfContents')}
+              >
+                <List className="w-5 h-5" />
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[#1a1a1a] dark:bg-[#f5f5f0] text-white dark:text-[#1a1a1a] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 shadow-md whitespace-nowrap z-50 font-sans">
+                  {t('tableOfContents')}
+                </span>
+              </button>
+
+              {/* Typography & Design Formatting Panel Button (AA) */}
+              <button
+                onClick={() => {
+                  setShowFormattingPanel(!showFormattingPanel);
+                  setShowMoreMenu(false);
+                }}
+                className={cn(
+                  'w-11 h-11 flex items-center justify-center rounded-xl transition-all relative group shadow-sm border border-black/5 dark:border-white/5',
+                  showFormattingPanel
+                    ? 'paper-btn-dark font-extrabold'
+                    : 'paper-btn-light opacity-80 hover:opacity-100',
+                )}
+                title={t('fontFamily')}
+                aria-label={t('fontFamily')}
+              >
+                <Type className="w-5 h-5" />
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[#1a1a1a] dark:bg-[#f5f5f0] text-white dark:text-[#1a1a1a] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 shadow-md whitespace-nowrap z-50 font-sans">
+                  {t('fontFamily')}
+                </span>
+              </button>
+
+              {/* Bookmarks & Private Notes Button */}
+              <button
+                onClick={() => {
+                  setShowNotesDrawer(true);
+                  setShowFormattingPanel(false);
+                  setShowMoreMenu(false);
+                }}
+                className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-all relative group shadow-sm border border-black/5 dark:border-white/5 paper-btn-light opacity-80 hover:opacity-100"
+                title={t('bookmarks')}
+                aria-label={t('bookmarks')}
+              >
+                <div className="relative">
+                  <Bookmark className="w-5 h-5 text-amber-500" />
+                  {notesList.length > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white dark:text-black font-mono text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-[#1A1A1A]">
+                      {notesList.length}
+                    </span>
+                  )}
+                </div>
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[#1a1a1a] dark:bg-[#f5f5f0] text-white dark:text-[#1a1a1a] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 shadow-md whitespace-nowrap z-50 font-sans">
+                  {t('bookmarks')} ({notesList.length})
+                </span>
+              </button>
+
+              {/* More Actions Context Menu (Three Dots) */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setShowMoreMenu(!showMoreMenu);
+                    setShowFormattingPanel(false);
+                  }}
+                  className={cn(
+                    'w-11 h-11 flex items-center justify-center rounded-xl transition-all relative group shadow-sm border border-black/5 dark:border-white/5',
+                    showMoreMenu
+                      ? 'paper-btn-dark font-extrabold'
+                      : 'paper-btn-light opacity-80 hover:opacity-100',
+                  )}
+                  title="Mais Opções"
+                  aria-label="Mais opções"
+                >
+                  <MoreHorizontal className="w-5 h-5" />
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[#1a1a1a] dark:bg-[#f5f5f0] text-white dark:text-[#1a1a1a] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 shadow-md whitespace-nowrap z-50 font-sans">
+                    Mais Opções
+                  </span>
+                </button>
+
+                {/* Dropdown Menu */}
+                <AnimatePresence>
+                  {showMoreMenu && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowMoreMenu(false)}
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-2 w-56 p-1.5 rounded-2xl paper-card shadow-2xl border border-black/10 dark:border-white/10 z-50 flex flex-col gap-1"
+                      >
+                        {/* Offline Download Option */}
+                        <button
+                          onClick={async () => {
+                            setShowMoreMenu(false);
+                            if (!user) {
+                              window.dispatchEvent(
+                                new CustomEvent('open-auth-modal', {
+                                  detail: { mode: 'login' },
+                                }),
                               );
-                            });
-                            await saveStoryOffline({
-                              id,
-                              title: story.title,
-                              author: story.author,
-                              coverImage: story.coverImage,
-                              totalPages: story.totalPages,
-                              wordCount: story.wordCount,
-                              pages: pagesMap,
-                              downloadedAt: new Date().toISOString(),
-                            });
-                            setIsDownloaded(true);
-                          } catch (e) {
-                            console.error('Error saving offline:', e);
-                          } finally {
-                            setIsDownloading(false);
-                          }
-                        }
-                      }}
-                      disabled={isDownloading}
+                              return;
+                            }
+                            if (!id || !story) return;
+                            if (isDownloaded) {
+                              await removeOfflineStory(id);
+                              setIsDownloaded(false);
+                            } else {
+                              setIsDownloading(true);
+                              const pagesMap: { [pageIndex: number]: string } =
+                                {};
+                              try {
+                                const pSnap = await getDocs(
+                                  query(
+                                    collection(db, `stories/${id}/pages`),
+                                    orderBy('index', 'asc'),
+                                  ),
+                                );
+                                pSnap.docs.forEach((d) => {
+                                  const data = d.data();
+                                  pagesMap[data.index || 0] = cleanStoryHtml(
+                                    data.content || '',
+                                  );
+                                });
+                                await saveStoryOffline({
+                                  id,
+                                  title: story.title,
+                                  author: story.author,
+                                  coverImage: story.coverImage,
+                                  totalPages: story.totalPages,
+                                  wordCount: story.wordCount,
+                                  pages: pagesMap,
+                                  downloadedAt: new Date().toISOString(),
+                                });
+                                setIsDownloaded(true);
+                              } catch (e) {
+                                console.error('Error saving offline:', e);
+                              } finally {
+                                setIsDownloading(false);
+                              }
+                            }
+                          }}
+                          disabled={isDownloading}
+                          className={cn(
+                            'w-full px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 text-left',
+                            isDownloaded
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                              : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
+                          )}
+                        >
+                          <Download className="w-4 h-4 shrink-0 text-emerald-500" />
+                          <span className="truncate">
+                            {isDownloading
+                              ? '...'
+                              : isDownloaded
+                                ? t('downloadedOffline')
+                                : t('downloadForOffline')}
+                          </span>
+                        </button>
+
+                        {/* Add to Playlist Option */}
+                        <button
+                          onClick={() => {
+                            setShowMoreMenu(false);
+                            if (!user) {
+                              window.dispatchEvent(
+                                new CustomEvent('open-auth-modal', {
+                                  detail: { mode: 'login' },
+                                }),
+                              );
+                              return;
+                            }
+                            loadPlaylists();
+                            setShowPlaylistModal(true);
+                          }}
+                          className="w-full px-3 py-2.5 rounded-xl text-xs font-bold hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 transition-all flex items-center gap-3 text-left text-[#1A1A1A] dark:text-[#F5F5F0]"
+                        >
+                          <ListPlus className="w-4 h-4 text-blue-500 shrink-0" />
+                          <span>{t('addToPlaylist')}</span>
+                        </button>
+
+                        {/* Translation Toggle Option */}
+                        {language !== 'pt' && (
+                          <button
+                            onClick={() => {
+                              setShowMoreMenu(false);
+                              setIsTranslationEnabled(!isTranslationEnabled);
+                            }}
+                            className={cn(
+                              'w-full px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 text-left',
+                              isTranslationEnabled
+                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold'
+                                : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
+                            )}
+                          >
+                            <Languages className="w-4 h-4 shrink-0 text-amber-500" />
+                            <span className="truncate">
+                              {isTranslationEnabled
+                                ? t('showOriginalText')
+                                : t('translateStory')}
+                            </span>
+                          </button>
+                        )}
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </div>
+
+          {/* Collapsible Apple-style Formatting Panel (AA) */}
+          <AnimatePresence>
+            {showFormattingPanel && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="mb-6 rounded-2xl p-4 sm:p-5 space-y-4 paper-card overflow-hidden shadow-md"
+              >
+                {/* 1. Font Family */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-black/5 dark:border-white/5">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Type className="w-4 h-4 opacity-60 text-amber-500" />
+                    <span className="text-xs font-bold uppercase tracking-wider opacity-70">
+                      {t('fontFamily')}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1 p-1 rounded-xl w-full sm:w-auto paper-card">
+                    <button
+                      onClick={() => setFontFamily('serif')}
                       className={cn(
-                        'w-full px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 text-left',
-                        isDownloaded
-                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                          : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
+                        'flex-1 min-w-[80px] sm:flex-none px-3 py-1.5 rounded-lg text-xs font-serif font-bold transition-all text-center',
+                        fontFamily === 'serif'
+                          ? 'paper-btn-dark shadow-sm'
+                          : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
                       )}
                     >
-                      <Download className="w-4 h-4 shrink-0 text-emerald-500" />
-                      <span className="truncate">
-                        {isDownloading
-                          ? '...'
-                          : isDownloaded
-                            ? t('downloadedOffline')
-                            : t('downloadForOffline')}
-                      </span>
+                      Serif
                     </button>
-
-                    {/* Add to Playlist Option */}
                     <button
-                      onClick={() => {
-                        setShowMoreMenu(false);
-                        if (!user) {
-                          window.dispatchEvent(
-                            new CustomEvent('open-auth-modal', {
-                              detail: { mode: 'login' },
-                            }),
-                          );
-                          return;
-                        }
-                        loadPlaylists();
-                        setShowPlaylistModal(true);
-                      }}
-                      className="w-full px-3 py-2.5 rounded-xl text-xs font-bold hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 transition-all flex items-center gap-3 text-left text-[#1A1A1A] dark:text-[#F5F5F0]"
+                      onClick={() => setFontFamily('sans')}
+                      className={cn(
+                        'flex-1 min-w-[80px] sm:flex-none px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition-all text-center',
+                        fontFamily === 'sans'
+                          ? 'paper-btn-dark shadow-sm'
+                          : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
+                      )}
                     >
-                      <ListPlus className="w-4 h-4 text-blue-500 shrink-0" />
-                      <span>{t('addToPlaylist')}</span>
+                      Sans
                     </button>
+                    <button
+                      onClick={() => setFontFamily('opendyslexic')}
+                      className={cn(
+                        'flex-1 min-w-[100px] sm:flex-none px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all font-opendyslexic text-center truncate',
+                        fontFamily === 'opendyslexic'
+                          ? 'paper-btn-amber font-extrabold shadow-sm'
+                          : 'opacity-70 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
+                      )}
+                      title={t('openDyslexic')}
+                    >
+                      Dyslexic
+                    </button>
+                  </div>
+                </div>
 
-                    {/* Translation Toggle Option */}
-                    {language !== 'pt' && (
-                      <button
-                        onClick={() => {
-                          setShowMoreMenu(false);
-                          setIsTranslationEnabled(!isTranslationEnabled);
-                        }}
-                        className={cn(
-                          'w-full px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 text-left',
-                          isTranslationEnabled
-                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold'
-                            : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
-                        )}
-                      >
-                        <Languages className="w-4 h-4 shrink-0 text-amber-500" />
-                        <span className="truncate">
-                          {isTranslationEnabled
-                            ? t('showOriginalText')
-                            : t('translateStory')}
-                        </span>
-                      </button>
+                {/* 2. Reading Theme */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-black/5 dark:border-white/5">
+                  <div className="flex items-center gap-2 shrink-0">
+                    {readerMode === 'dark' ? (
+                      <Moon className="w-4 h-4 opacity-60 text-indigo-400" />
+                    ) : (
+                      <Sun className="w-4 h-4 opacity-60 text-amber-500" />
                     )}
-                  </motion.div>
-                </>
+                    <span className="text-xs font-bold uppercase tracking-wider opacity-70">
+                      {t('readingTheme')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 p-1 rounded-xl w-full sm:w-auto paper-card">
+                    <button
+                      onClick={() => setReaderMode('light')}
+                      className={cn(
+                        'flex-1 min-w-[100px] sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5',
+                        readerMode === 'light'
+                          ? 'bg-amber-100 text-amber-900 border border-amber-200 shadow-sm'
+                          : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
+                      )}
+                    >
+                      <Sun className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
+                      <span>{t('lightTheme').split(' ')[0]}</span>
+                    </button>
+                    <button
+                      onClick={() => setReaderMode('dark')}
+                      className={cn(
+                        'flex-1 min-w-[100px] sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5',
+                        readerMode === 'dark'
+                          ? 'paper-btn-dark shadow-sm'
+                          : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
+                      )}
+                    >
+                      <Moon className="w-3.5 h-3.5 text-indigo-300 fill-indigo-300/20" />
+                      <span>{t('darkTheme').split(' ')[0]}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3. Margins & Line Spacing */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-black/5 dark:border-white/5 font-sans">
+                  {/* Margins */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 flex-1">
+                    <span className="text-xs font-bold uppercase tracking-wider opacity-70">
+                      {t('marginSize')}
+                    </span>
+                    <div className="flex items-center gap-1 p-1 rounded-xl paper-card w-full sm:w-auto">
+                      {[
+                        { label: t('narrowMargin'), val: 'narrow' },
+                        { label: t('normalMargin'), val: 'normal' },
+                        { label: t('wideMargin'), val: 'wide' },
+                      ].map((m) => (
+                        <button
+                          key={m.val}
+                          onClick={() => setMarginSize(m.val as any)}
+                          className={cn(
+                            'flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all',
+                            marginSize === m.val
+                              ? 'paper-btn-dark shadow-sm'
+                              : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
+                          )}
+                        >
+                          {m.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Line Spacing */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 flex-1 font-sans">
+                    <span className="text-xs font-bold uppercase tracking-wider opacity-70">
+                      {t('lineSpacing')}
+                    </span>
+                    <div className="flex items-center gap-1 p-1 rounded-xl paper-card w-full sm:w-auto">
+                      {[
+                        { label: '1.4', val: 'compact' },
+                        { label: '1.8', val: 'relaxed' },
+                        { label: '2.2', val: 'loose' },
+                      ].map((ls) => (
+                        <button
+                          key={ls.val}
+                          onClick={() => setLineSpacing(ls.val as any)}
+                          className={cn(
+                            'flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all',
+                            lineSpacing === ls.val
+                              ? 'paper-btn-dark shadow-sm'
+                              : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
+                          )}
+                        >
+                          {ls.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Eye Comfort */}
+                <div className="flex flex-col md:flex-row items-center justify-between gap-3 font-sans">
+                  <div className="flex items-center gap-2.5 w-full md:w-auto min-w-0">
+                    <div
+                      className={cn(
+                        'p-2 rounded-xl transition-colors shrink-0 flex items-center justify-center',
+                        eyeComfortIntensity > 0
+                          ? 'bg-amber-400/20 text-amber-700 dark:text-amber-300'
+                          : 'bg-[#1A1A1A]/5 dark:bg-white/5 opacity-60',
+                      )}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xs font-bold font-serif uppercase tracking-wider">
+                          {t('eyeComfort')}
+                        </h3>
+                        {eyeComfortIntensity > 0 && (
+                          <span className="text-[9px] bg-amber-400/25 text-amber-900 dark:text-amber-200 font-mono font-bold px-2 py-0.5 rounded-full">
+                            {eyeComfortIntensity}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto min-w-0">
+                    {/* Slider */}
+                    <div className="flex items-center gap-2.5 w-full sm:flex-1 sm:min-w-[180px] px-3 py-1.5 rounded-xl paper-card">
+                      <Sun className="w-3.5 h-3.5 opacity-50 shrink-0 text-amber-500" />
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={eyeComfortIntensity}
+                        onChange={(e) =>
+                          setEyeComfortIntensity(Number(e.target.value))
+                        }
+                        className="w-full h-1.5 bg-[#1A1A1A]/10 dark:bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                        title={t('filterIntensity')}
+                        aria-label={t('filterIntensity')}
+                      />
+                      <span className="text-[10px] font-mono font-bold w-9 text-right shrink-0">
+                        {eyeComfortIntensity}%
+                      </span>
+                    </div>
+
+                    {/* Quick Presets */}
+                    <div className="flex items-center gap-1 w-full sm:w-auto justify-start sm:justify-end">
+                      {[
+                        { label: t('off'), val: 0 },
+                        { label: '25%', val: 25 },
+                        { label: '50%', val: 50 },
+                        { label: '75%', val: 75 },
+                      ].map((preset) => (
+                        <button
+                          key={preset.val}
+                          onClick={() => setEyeComfortIntensity(preset.val)}
+                          className={cn(
+                            'text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all',
+                            eyeComfortIntensity === preset.val
+                              ? 'paper-btn-amber font-extrabold shadow-sm'
+                              : 'opacity-70 hover:opacity-100 paper-btn-light text-[#1A1A1A] dark:text-[#F5F5F0]',
+                          )}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Reader Page Frame */}
+          <div
+            className={cn(
+              'relative min-h-[50vh] p-6 sm:p-10 rounded-2xl transition-all overflow-hidden w-full break-words shadow-lg border border-black/5',
+              readerMode === 'dark'
+                ? 'bg-transparent text-[#F5F5F0]'
+                : 'rounded-2xl bg-[#FDFCF9] text-[#1A1A1A] shadow-lg border border-black/5',
+            )}
+          >
+            {/* Active Translation Indicator */}
+            {language !== 'pt' && isTranslationEnabled && (
+              <div
+                className={cn(
+                  'mb-6 px-3.5 py-2 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider',
+                  readerMode === 'dark'
+                    ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                    : 'bg-amber-500/5 text-amber-800 border-amber-500/15',
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <Languages className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span>
+                    {t('storyTranslationActive', {
+                      lang: language.toUpperCase(),
+                    })}
+                  </span>
+                </div>
+                {isTranslating ? (
+                  <span className="opacity-80 animate-pulse flex items-center gap-1.5 font-mono text-amber-600 dark:text-amber-400">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping inline-block" />
+                    {t('translatingStoryPage')}
+                  </span>
+                ) : (
+                  <span className="opacity-70 font-mono text-[9px]">
+                    {t('naturalTranslationNotice')}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Eye Comfort Warm Yellow Filter Overlay */}
+            {eyeComfortIntensity > 0 && (
+              <div
+                className="absolute inset-0 rounded-2xl pointer-events-none z-20 transition-colors duration-200"
+                style={{
+                  backgroundColor:
+                    readerMode === 'dark'
+                      ? `rgba(251, 191, 36, ${(eyeComfortIntensity / 100) * 0.22})`
+                      : `rgba(245, 180, 0, ${(eyeComfortIntensity / 100) * 0.36})`,
+                  mixBlendMode: readerMode === 'dark' ? 'screen' : 'multiply',
+                }}
+              />
+            )}
+            <AnimatePresence mode="wait">
+              {loadingPage ? (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex justify-center py-20"
+                >
+                  <div className="animate-pulse text-sm font-serif opacity-50">
+                    {t('loadingPage')}
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={currentPage}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                  ref={containerRef}
+                  className="w-full"
+                >
+                  <StoryContent
+                    html={displayContent}
+                    readerMode={readerMode}
+                    fontFamily={fontFamily}
+                    lineSpacing={lineSpacing}
+                  />
+                </motion.div>
               )}
             </AnimatePresence>
           </div>
-        </div>
-      </div>
 
-      {/* Collapsible Apple-style Formatting Panel (AA) */}
-      <AnimatePresence>
-        {showFormattingPanel && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="mb-6 rounded-2xl p-4 sm:p-5 space-y-4 paper-card overflow-hidden shadow-md"
-          >
-            {/* 1. Font Family */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-black/5 dark:border-white/5">
-              <div className="flex items-center gap-2 shrink-0">
-                <Type className="w-4 h-4 opacity-60 text-amber-500" />
-                <span className="text-xs font-bold uppercase tracking-wider opacity-70">
-                  {t('fontFamily')}
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-1 p-1 rounded-xl w-full sm:w-auto paper-card">
-                <button
-                  onClick={() => setFontFamily('serif')}
-                  className={cn(
-                    'flex-1 min-w-[80px] sm:flex-none px-3 py-1.5 rounded-lg text-xs font-serif font-bold transition-all text-center',
-                    fontFamily === 'serif'
-                      ? 'paper-btn-dark shadow-sm'
-                      : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
-                  )}
-                >
-                  Serif
-                </button>
-                <button
-                  onClick={() => setFontFamily('sans')}
-                  className={cn(
-                    'flex-1 min-w-[80px] sm:flex-none px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition-all text-center',
-                    fontFamily === 'sans'
-                      ? 'paper-btn-dark shadow-sm'
-                      : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
-                  )}
-                >
-                  Sans
-                </button>
-                <button
-                  onClick={() => setFontFamily('opendyslexic')}
-                  className={cn(
-                    'flex-1 min-w-[100px] sm:flex-none px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all font-opendyslexic text-center truncate',
-                    fontFamily === 'opendyslexic'
-                      ? 'paper-btn-amber font-extrabold shadow-sm'
-                      : 'opacity-70 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
-                  )}
-                  title={t('openDyslexic')}
-                >
-                  Dyslexic
-                </button>
-              </div>
-            </div>
+          {/* Reader Controls */}
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-between border-t border-[#1A1A1A]/10 dark:border-white/10 pt-6 gap-4">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+              disabled={!hasPrev}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed paper-btn-light"
+            >
+              <ChevronLeft className="w-4 h-4" /> {t('previous')}
+            </button>
 
-            {/* 2. Reading Theme */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-black/5 dark:border-white/5">
-              <div className="flex items-center gap-2 shrink-0">
-                {readerMode === 'dark' ? (
-                  <Moon className="w-4 h-4 opacity-60 text-indigo-400" />
-                ) : (
-                  <Sun className="w-4 h-4 opacity-60 text-amber-500" />
-                )}
-                <span className="text-xs font-bold uppercase tracking-wider opacity-70">
-                  {t('readingTheme')}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 p-1 rounded-xl w-full sm:w-auto paper-card">
-                <button
-                  onClick={() => setReaderMode('light')}
-                  className={cn(
-                    'flex-1 min-w-[100px] sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5',
-                    readerMode === 'light'
-                      ? 'bg-amber-100 text-amber-900 border border-amber-200 shadow-sm'
-                      : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
-                  )}
-                >
-                  <Sun className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
-                  <span>{t('lightTheme').split(' ')[0]}</span>
-                </button>
-                <button
-                  onClick={() => setReaderMode('dark')}
-                  className={cn(
-                    'flex-1 min-w-[100px] sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5',
-                    readerMode === 'dark'
-                      ? 'paper-btn-dark shadow-sm'
-                      : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
-                  )}
-                >
-                  <Moon className="w-3.5 h-3.5 text-indigo-300 fill-indigo-300/20" />
-                  <span>{t('darkTheme').split(' ')[0]}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* 3. Margins & Line Spacing */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-black/5 dark:border-white/5 font-sans">
-              {/* Margins */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 flex-1">
-                <span className="text-xs font-bold uppercase tracking-wider opacity-70">
-                  {t('marginSize')}
-                </span>
-                <div className="flex items-center gap-1 p-1 rounded-xl paper-card w-full sm:w-auto">
-                  {[
-                    { label: t('narrowMargin'), val: 'narrow' },
-                    { label: t('normalMargin'), val: 'normal' },
-                    { label: t('wideMargin'), val: 'wide' },
-                  ].map((m) => (
-                    <button
-                      key={m.val}
-                      onClick={() => setMarginSize(m.val as any)}
-                      className={cn(
-                        'flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all',
-                        marginSize === m.val
-                          ? 'paper-btn-dark shadow-sm'
-                          : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
-                      )}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Line Spacing */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 flex-1 font-sans">
-                <span className="text-xs font-bold uppercase tracking-wider opacity-70">
-                  {t('lineSpacing')}
-                </span>
-                <div className="flex items-center gap-1 p-1 rounded-xl paper-card w-full sm:w-auto">
-                  {[
-                    { label: '1.4', val: 'compact' },
-                    { label: '1.8', val: 'relaxed' },
-                    { label: '2.2', val: 'loose' },
-                  ].map((ls) => (
-                    <button
-                      key={ls.val}
-                      onClick={() => setLineSpacing(ls.val as any)}
-                      className={cn(
-                        'flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all',
-                        lineSpacing === ls.val
-                          ? 'paper-btn-dark shadow-sm'
-                          : 'opacity-60 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
-                      )}
-                    >
-                      {ls.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* 4. Eye Comfort */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-3 font-sans">
-              <div className="flex items-center gap-2.5 w-full md:w-auto min-w-0">
-                <div
-                  className={cn(
-                    'p-2 rounded-xl transition-colors shrink-0 flex items-center justify-center',
-                    eyeComfortIntensity > 0
-                      ? 'bg-amber-400/20 text-amber-700 dark:text-amber-300'
-                      : 'bg-[#1A1A1A]/5 dark:bg-white/5 opacity-60',
-                  )}
-                >
-                  <Eye className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xs font-bold font-serif uppercase tracking-wider">
-                      {t('eyeComfort')}
-                    </h3>
-                    {eyeComfortIntensity > 0 && (
-                      <span className="text-[9px] bg-amber-400/25 text-amber-900 dark:text-amber-200 font-mono font-bold px-2 py-0.5 rounded-full">
-                        {eyeComfortIntensity}%
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto min-w-0">
-                {/* Slider */}
-                <div className="flex items-center gap-2.5 w-full sm:flex-1 sm:min-w-[180px] px-3 py-1.5 rounded-xl paper-card">
-                  <Sun className="w-3.5 h-3.5 opacity-50 shrink-0 text-amber-500" />
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="5"
-                    value={eyeComfortIntensity}
+            {(() => {
+              const parts = t('pageOf', { total: story.totalPages }).split(
+                '{page}',
+              );
+              const prefix = parts[0]?.trim() || '';
+              const suffix = parts[1]?.trim() || '';
+              return (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                    {prefix}
+                  </span>
+                  <select
+                    value={currentPage}
                     onChange={(e) =>
-                      setEyeComfortIntensity(Number(e.target.value))
+                      setCurrentPage(parseInt(e.target.value, 10))
                     }
-                    className="w-full h-1.5 bg-[#1A1A1A]/10 dark:bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-500"
-                    title={t('filterIntensity')}
-                    aria-label={t('filterIntensity')}
-                  />
-                  <span className="text-[10px] font-mono font-bold w-9 text-right shrink-0">
-                    {eyeComfortIntensity}%
+                    className="rounded-xl px-3 py-1.5 text-xs font-bold font-mono focus:outline-none paper-card cursor-pointer"
+                  >
+                    {Array.from({ length: story.totalPages }, (_, i) => (
+                      <option key={i} value={i}>
+                        {i + 1}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                    {suffix}
                   </span>
                 </div>
+              );
+            })()}
 
-                {/* Quick Presets */}
-                <div className="flex items-center gap-1 w-full sm:w-auto justify-start sm:justify-end">
-                  {[
-                    { label: t('off'), val: 0 },
-                    { label: '25%', val: 25 },
-                    { label: '50%', val: 50 },
-                    { label: '75%', val: 75 },
-                  ].map((preset) => (
-                    <button
-                      key={preset.val}
-                      onClick={() => setEyeComfortIntensity(preset.val)}
-                      className={cn(
-                        'text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all',
-                        eyeComfortIntensity === preset.val
-                          ? 'paper-btn-amber font-extrabold shadow-sm'
-                          : 'opacity-70 hover:opacity-100 paper-btn-light text-[#1A1A1A] dark:text-[#F5F5F0]',
-                      )}
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Reader Page Frame */}
-      <div
-        className={cn(
-          'relative min-h-[50vh] p-6 sm:p-10 rounded-2xl transition-all overflow-hidden w-full break-words shadow-lg border border-black/5',
-          readerMode === 'dark'
-            ? 'paper-card text-[#F5F5F0]'
-            : 'bg-[#FDFCF9] text-[#1A1A1A]',
-        )}
-      >
-        {/* Active Translation Indicator */}
-        {language !== 'pt' && isTranslationEnabled && (
-          <div
-            className={cn(
-              'mb-6 px-3.5 py-2 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider',
-              readerMode === 'dark'
-                ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
-                : 'bg-amber-500/5 text-amber-800 border-amber-500/15',
-            )}
-          >
-            <div className="flex items-center gap-2">
-              <Languages className="w-4 h-4 text-amber-500 shrink-0" />
-              <span>
-                {t('storyTranslationActive', { lang: language.toUpperCase() })}
-              </span>
-            </div>
-            {isTranslating ? (
-              <span className="opacity-80 animate-pulse flex items-center gap-1.5 font-mono text-amber-600 dark:text-amber-400">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping inline-block" />
-                {t('translatingStoryPage')}
-              </span>
-            ) : (
-              <span className="opacity-70 font-mono text-[9px]">
-                {t('naturalTranslationNotice')}
-              </span>
-            )}
+            <button
+              onClick={() =>
+                setCurrentPage((p) => Math.min(story.totalPages - 1, p + 1))
+              }
+              disabled={!hasNext}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed paper-btn-dark"
+            >
+              {t('next')} <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
-        )}
-
-        {/* Eye Comfort Warm Yellow Filter Overlay */}
-        {eyeComfortIntensity > 0 && (
-          <div
-            className="absolute inset-0 rounded-2xl pointer-events-none z-20 transition-colors duration-200"
-            style={{
-              backgroundColor:
-                readerMode === 'dark'
-                  ? `rgba(251, 191, 36, ${(eyeComfortIntensity / 100) * 0.22})`
-                  : `rgba(245, 180, 0, ${(eyeComfortIntensity / 100) * 0.36})`,
-              mixBlendMode: readerMode === 'dark' ? 'screen' : 'multiply',
-            }}
-          />
-        )}
-        <AnimatePresence mode="wait">
-          {loadingPage ? (
-            <motion.div
-              key="loading"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex justify-center py-20"
-            >
-              <div className="animate-pulse text-sm font-serif opacity-50">
-                {t('loadingPage')}
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key={currentPage}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              ref={containerRef}
-              className="w-full"
-            >
-              <StoryContent
-                html={displayContent}
-                readerMode={readerMode}
-                fontFamily={fontFamily}
-                lineSpacing={lineSpacing}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Reader Controls */}
-      <div className="mt-8 flex flex-col sm:flex-row items-center justify-between border-t border-[#1A1A1A]/10 dark:border-white/10 pt-6 gap-4">
-        <button
-          onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-          disabled={!hasPrev}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed paper-btn-light"
-        >
-          <ChevronLeft className="w-4 h-4" /> {t('previous')}
-        </button>
-
-        {(() => {
-          const parts = t('pageOf', { total: story.totalPages }).split(
-            '{page}',
-          );
-          const prefix = parts[0]?.trim() || '';
-          const suffix = parts[1]?.trim() || '';
-          return (
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
-                {prefix}
-              </span>
-              <select
-                value={currentPage}
-                onChange={(e) => setCurrentPage(parseInt(e.target.value, 10))}
-                className="rounded-xl px-3 py-1.5 text-xs font-bold font-mono focus:outline-none paper-card cursor-pointer"
-              >
-                {Array.from({ length: story.totalPages }, (_, i) => (
-                  <option key={i} value={i}>
-                    {i + 1}
-                  </option>
-                ))}
-              </select>
-              <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
-                {suffix}
-              </span>
-            </div>
-          );
-        })()}
-
-        <button
-          onClick={() =>
-            setCurrentPage((p) => Math.min(story.totalPages - 1, p + 1))
-          }
-          disabled={!hasNext}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed paper-btn-dark"
-        >
-          {t('next')} <ChevronRight className="w-4 h-4" />
-        </button>
+        </div>
       </div>
 
       {/* APPROVED COMMENTS SECTION */}

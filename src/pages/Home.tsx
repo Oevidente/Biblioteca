@@ -1,21 +1,58 @@
-import { useEffect, useState, type MouseEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { BookCoverImage } from "../components/BookCoverImage";
-import { getStoryLink } from "../utils/urlUtils";
-import { TranslatedText } from "../components/TranslatedText";
-import { ConfirmModal } from "../components/ConfirmModal";
-import { db, collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, updateDoc, getDocs, deleteDoc, writeBatch } from "../lib/firebase";
-import { BookOpen, Search, Heart, Clock, Library, Star, UserCheck, ListPlus, Download, Calendar, Plus, Trash2 } from "lucide-react";
-import { useAuth, ADMIN_EMAIL } from "../contexts/AuthContext";
-import { useLanguage } from "../contexts/LanguageContext";
-import { getCanonicalTag, getLocalizedTag } from "../lib/tagger";
-import { getAllOfflineStories, OfflineStory, removeOfflineStory } from "../lib/offlineStorage";
-import { fetchPublicPlaylists, fetchUserPlaylists, ReadingList, createOrUpdatePlaylist, deletePlaylist, toggleStoryInPlaylist } from "../lib/playlists";
-import { unlockAchievement } from "../lib/achievements";
-import { Check, Edit3, FolderPlus, X, ExternalLink } from "lucide-react";
-import { logUserActivity } from "../lib/social";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { useEffect, useState, type MouseEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { BookCoverImage } from '../components/BookCoverImage';
+import { getStoryLink } from '../utils/urlUtils';
+import { TranslatedText } from '../components/TranslatedText';
+import { ConfirmModal } from '../components/ConfirmModal';
+import {
+  db,
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  getDocs,
+  deleteDoc,
+  writeBatch,
+} from '../lib/firebase';
+import {
+  BookOpen,
+  Search,
+  Heart,
+  Clock,
+  Library,
+  Star,
+  UserCheck,
+  ListPlus,
+  Download,
+  Calendar,
+  Plus,
+  Trash2,
+} from 'lucide-react';
+import { useAuth, ADMIN_EMAIL } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import { getCanonicalTag, getLocalizedTag } from '../lib/tagger';
+import {
+  getAllOfflineStories,
+  OfflineStory,
+  removeOfflineStory,
+} from '../lib/offlineStorage';
+import {
+  fetchPublicPlaylists,
+  fetchUserPlaylists,
+  ReadingList,
+  createOrUpdatePlaylist,
+  deletePlaylist,
+  toggleStoryInPlaylist,
+} from '../lib/playlists';
+import { unlockAchievement } from '../lib/achievements';
+import { Check, Edit3, FolderPlus, X, ExternalLink } from 'lucide-react';
+import { logUserActivity } from '../lib/social';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -51,10 +88,17 @@ export function Home() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { t, language } = useLanguage();
-  
+  const heroSlogan: Record<string, string> = {
+    pt: 'Leia. Escreva. Pertença.',
+    en: 'Read. Write. Belong.',
+    es: 'Lee. Escribe. Pertenece.',
+    id: 'Baca. Menulis. Menjadi bagian.',
+    zh: '阅读。写作。归属。',
+  };
+
   const [stories, setStories] = useState<Story[]>(() => {
     try {
-      const cached = localStorage.getItem("inkora_cached_stories");
+      const cached = localStorage.getItem('inkora_cached_stories');
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -68,32 +112,39 @@ export function Home() {
   });
 
   const [loading, setLoading] = useState(() => stories.length === 0);
-  const [activeTab, setActiveTab] = useState<"library" | "history" | "favorites" | "playlists" | "offline">("library");
-  
+  const [activeTab, setActiveTab] = useState<
+    'library' | 'history' | 'favorites' | 'playlists' | 'offline'
+  >('library');
+
   // Filters and search
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedGenre, setSelectedGenre] = useState<string>("All");
-  const [sortBy, setSortBy] = useState<"recent" | "popular">("popular");
-  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedGenre, setSelectedGenre] = useState<string>('All');
+  const [sortBy, setSortBy] = useState<'recent' | 'popular'>('popular');
+
   const [favorites, setFavorites] = useState<string[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [offlineStories, setOfflineStories] = useState<OfflineStory[]>([]);
   const [playlists, setPlaylists] = useState<ReadingList[]>([]);
-  const [playlistFilter, setPlaylistFilter] = useState<"mine" | "public">("mine");
-  
+  const [playlistFilter, setPlaylistFilter] = useState<'mine' | 'public'>(
+    'mine',
+  );
+
   // Playlist Modal State
   const [showCreatePlaylistModal, setShowCreatePlaylistModal] = useState(false);
-  const [newPlaylistTitle, setNewPlaylistTitle] = useState("");
-  const [newPlaylistDesc, setNewPlaylistDesc] = useState("");
+  const [newPlaylistTitle, setNewPlaylistTitle] = useState('');
+  const [newPlaylistDesc, setNewPlaylistDesc] = useState('');
   const [newPlaylistPublic, setNewPlaylistPublic] = useState(true);
 
   // Detailed Playlist View/Edit Modal State
-  const [selectedPlaylistForDetail, setSelectedPlaylistForDetail] = useState<ReadingList | null>(null);
-  const [showAddStoriesToPlaylistModal, setShowAddStoriesToPlaylistModal] = useState(false);
-  const [playlistPickerSearch, setPlaylistPickerSearch] = useState("");
+  const [selectedPlaylistForDetail, setSelectedPlaylistForDetail] =
+    useState<ReadingList | null>(null);
+  const [showAddStoriesToPlaylistModal, setShowAddStoriesToPlaylistModal] =
+    useState(false);
+  const [playlistPickerSearch, setPlaylistPickerSearch] = useState('');
 
   // Story Card -> Playlist Selector Modal State
-  const [storyForPlaylistModal, setStoryForPlaylistModal] = useState<Story | null>(null);
+  const [storyForPlaylistModal, setStoryForPlaylistModal] =
+    useState<Story | null>(null);
 
   // Confirm Modal State
   const [confirmModalConfig, setConfirmModalConfig] = useState<{
@@ -103,8 +154,8 @@ export function Home() {
     onConfirm: () => void;
   }>({
     isOpen: false,
-    title: "",
-    message: "",
+    title: '',
+    message: '',
     onConfirm: () => {},
   });
 
@@ -118,14 +169,14 @@ export function Home() {
       const list = await getAllOfflineStories();
       setOfflineStories(list);
     } catch (e) {
-      console.error("Error loading offline stories:", e);
+      console.error('Error loading offline stories:', e);
     }
   };
 
   // Load playlists
   const loadPlaylistsData = async () => {
     try {
-      if (playlistFilter === "mine") {
+      if (playlistFilter === 'mine') {
         if (!user) {
           setPlaylists([]);
           return;
@@ -137,7 +188,7 @@ export function Home() {
         setPlaylists(publicLists);
       }
     } catch (e) {
-      console.error("Error loading playlists:", e);
+      console.error('Error loading playlists:', e);
     }
   };
 
@@ -151,43 +202,48 @@ export function Home() {
 
   // Load stories real-time from Firestore
   useEffect(() => {
-    const q = query(collection(db, "stories"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
-      const loaded: Story[] = [];
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        if (data.isDraft) {
-          // Do not display draft stories on public home catalog
-          return;
-        }
-        loaded.push({
-          id: docSnap.id,
-          title: data.title,
-          author: data.author,
-          coverImage: data.coverImage,
-          tags: data.tags || [],
-          rating: data.rating || 0,
-          ratingsCount: data.ratingsCount || 0,
-          wordCount: data.wordCount,
-          totalPages: data.totalPages,
-          createdAt: data.createdAt,
-          publicationDate: data.publicationDate || "",
-          scheduledReleaseAt: data.scheduledReleaseAt || "",
-          authorUid: data.authorUid,
-          isDraft: data.isDraft || false
+    const q = query(collection(db, 'stories'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(
+      q,
+      { includeMetadataChanges: true },
+      (snapshot) => {
+        const loaded: Story[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.isDraft) {
+            // Do not display draft stories on public home catalog
+            return;
+          }
+          loaded.push({
+            id: docSnap.id,
+            title: data.title,
+            author: data.author,
+            coverImage: data.coverImage,
+            tags: data.tags || [],
+            rating: data.rating || 0,
+            ratingsCount: data.ratingsCount || 0,
+            wordCount: data.wordCount,
+            totalPages: data.totalPages,
+            createdAt: data.createdAt,
+            publicationDate: data.publicationDate || '',
+            scheduledReleaseAt: data.scheduledReleaseAt || '',
+            authorUid: data.authorUid,
+            isDraft: data.isDraft || false,
+          });
         });
-      });
-      setStories(loaded);
-      setLoading(false);
-      try {
-        localStorage.setItem("inkora_cached_stories", JSON.stringify(loaded));
-      } catch (e) {
-        console.error("Cache save error", e);
-      }
-    }, (err) => {
-      console.error("Failed to load stories", err);
-      setLoading(false);
-    });
+        setStories(loaded);
+        setLoading(false);
+        try {
+          localStorage.setItem('inkora_cached_stories', JSON.stringify(loaded));
+        } catch (e) {
+          console.error('Cache save error', e);
+        }
+      },
+      (err) => {
+        console.error('Failed to load stories', err);
+        setLoading(false);
+      },
+    );
 
     return () => unsubscribe();
   }, []);
@@ -198,13 +254,16 @@ export function Home() {
       if (user) {
         // Load favorites from user profile in Firestore
         try {
-          const userDocRef = doc(db, "users", user.uid);
+          const userDocRef = doc(db, 'users', user.uid);
           const userSnap = await getDoc(userDocRef);
           if (userSnap.exists()) {
             const data = userSnap.data();
             if (Array.isArray(data.favorites)) {
               setFavorites(data.favorites);
-              localStorage.setItem(`favorites_${user.uid}`, JSON.stringify(data.favorites));
+              localStorage.setItem(
+                `favorites_${user.uid}`,
+                JSON.stringify(data.favorites),
+              );
             } else {
               const cachedFavs = localStorage.getItem(`favorites_${user.uid}`);
               if (cachedFavs) setFavorites(JSON.parse(cachedFavs));
@@ -214,51 +273,67 @@ export function Home() {
             if (cachedFavs) setFavorites(JSON.parse(cachedFavs));
           }
         } catch (e) {
-          console.error("Error loading user favorites from Firestore:", e);
+          console.error('Error loading user favorites from Firestore:', e);
           const cachedFavs = localStorage.getItem(`favorites_${user.uid}`);
           if (cachedFavs) setFavorites(JSON.parse(cachedFavs));
         }
 
         // Load progress history from Firestore
         try {
-          const progSnap = await getDocs(collection(db, `users/${user.uid}/progress`));
+          const progSnap = await getDocs(
+            collection(db, `users/${user.uid}/progress`),
+          );
           const firestoreHistory: HistoryItem[] = [];
           progSnap.forEach((docSnap) => {
             const data = docSnap.data();
             firestoreHistory.push({
               id: docSnap.id,
-              title: data.storyTitle || "História",
-              coverImage: data.coverImage || "",
+              title: data.storyTitle || 'História',
+              coverImage: data.coverImage || '',
               page: data.page || 0,
               totalPages: data.totalPages || 1,
-              timestamp: data.updatedAt || new Date().toISOString()
+              timestamp: data.updatedAt || new Date().toISOString(),
             });
           });
 
           if (firestoreHistory.length > 0) {
-            firestoreHistory.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            firestoreHistory.sort(
+              (a, b) =>
+                new Date(b.timestamp).getTime() -
+                new Date(a.timestamp).getTime(),
+            );
             setHistory(firestoreHistory);
-            localStorage.setItem(`reading_history_${user.uid}`, JSON.stringify(firestoreHistory));
+            localStorage.setItem(
+              `reading_history_${user.uid}`,
+              JSON.stringify(firestoreHistory),
+            );
           } else {
-            const cachedHist = localStorage.getItem(`reading_history_${user.uid}`);
+            const cachedHist = localStorage.getItem(
+              `reading_history_${user.uid}`,
+            );
             if (cachedHist) setHistory(JSON.parse(cachedHist));
           }
         } catch (e) {
-          console.error("Error loading user reading history from Firestore:", e);
-          const cachedHist = localStorage.getItem(`reading_history_${user.uid}`);
+          console.error(
+            'Error loading user reading history from Firestore:',
+            e,
+          );
+          const cachedHist = localStorage.getItem(
+            `reading_history_${user.uid}`,
+          );
           if (cachedHist) setHistory(JSON.parse(cachedHist));
         }
       } else {
         setFavorites([]);
         try {
-          const cachedHist = localStorage.getItem("reading_history");
+          const cachedHist = localStorage.getItem('reading_history');
           if (cachedHist) {
             setHistory(JSON.parse(cachedHist));
           } else {
             setHistory([]);
           }
         } catch (e) {
-          console.error("Error loading guest reading history:", e);
+          console.error('Error loading guest reading history:', e);
           setHistory([]);
         }
       }
@@ -272,14 +347,16 @@ export function Home() {
     e.stopPropagation();
 
     if (!user) {
-      window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
+      window.dispatchEvent(
+        new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }),
+      );
       return;
     }
 
     let newFavs: string[];
     const isAdding = !favorites.includes(id);
     if (favorites.includes(id)) {
-      newFavs = favorites.filter(f => f !== id);
+      newFavs = favorites.filter((f) => f !== id);
     } else {
       newFavs = [...favorites, id];
     }
@@ -290,30 +367,30 @@ export function Home() {
     // Sync to Firestore if user is logged in
     if (user) {
       try {
-        const userRef = doc(db, "users", user.uid);
+        const userRef = doc(db, 'users', user.uid);
         await updateDoc(userRef, { favorites: newFavs }).catch(async () => {
           await setDoc(userRef, { favorites: newFavs }, { merge: true });
         });
 
         // Log social activity if they are favoriting a story
         if (isAdding && profile) {
-          const story = stories.find(s => s.id === id);
+          const story = stories.find((s) => s.id === id);
           if (story) {
             await logUserActivity({
               uid: user.uid,
-              userName: profile.displayName || profile.email.split("@")[0],
-              userUsername: profile.username || "",
-              userPhoto: profile.photoURL || "",
-              type: "read",
+              userName: profile.displayName || profile.email.split('@')[0],
+              userUsername: profile.username || '',
+              userPhoto: profile.photoURL || '',
+              type: 'read',
               title: `Adicionou "${story.title}" aos favoritos`,
               targetId: id,
               targetTitle: story.title,
-              createdAt: new Date().toISOString()
+              createdAt: new Date().toISOString(),
             });
           }
         }
       } catch (err) {
-        console.error("Failed to update user favorites in Firestore:", err);
+        console.error('Failed to update user favorites in Firestore:', err);
       }
     }
   };
@@ -322,19 +399,22 @@ export function Home() {
     e.preventDefault();
     e.stopPropagation();
 
-    const updated = history.filter(item => item.id !== storyId);
+    const updated = history.filter((item) => item.id !== storyId);
     setHistory(updated);
     if (user) {
       try {
-        localStorage.setItem(`reading_history_${user.uid}`, JSON.stringify(updated));
+        localStorage.setItem(
+          `reading_history_${user.uid}`,
+          JSON.stringify(updated),
+        );
       } catch (err) {
-        console.error("Error updating local reading history:", err);
+        console.error('Error updating local reading history:', err);
       }
 
       try {
         await deleteDoc(doc(db, `users/${user.uid}/progress`, storyId));
       } catch (err) {
-        console.error("Error deleting reading progress from Firestore:", err);
+        console.error('Error deleting reading progress from Firestore:', err);
       }
     }
   };
@@ -342,68 +422,96 @@ export function Home() {
   const handleClearAllHistory = async () => {
     setConfirmModalConfig({
       isOpen: true,
-      title: t("clearHistory") || "Limpar Histórico",
-      message: t("confirmClearHistory") || "Tem certeza que deseja limpar todo o histórico de leitura?",
+      title: t('clearHistory') || 'Limpar Histórico',
+      message:
+        t('confirmClearHistory') ||
+        'Tem certeza que deseja limpar todo o histórico de leitura?',
       onConfirm: async () => {
         setHistory([]);
         if (user) {
           try {
-            localStorage.setItem(`reading_history_${user.uid}`, JSON.stringify([]));
+            localStorage.setItem(
+              `reading_history_${user.uid}`,
+              JSON.stringify([]),
+            );
           } catch (err) {
-            console.error("Error clearing local reading history:", err);
+            console.error('Error clearing local reading history:', err);
           }
 
           try {
-            const progSnap = await getDocs(collection(db, `users/${user.uid}/progress`));
+            const progSnap = await getDocs(
+              collection(db, `users/${user.uid}/progress`),
+            );
             const batch = writeBatch(db);
             progSnap.forEach((docSnap) => {
               batch.delete(docSnap.ref);
             });
             await batch.commit();
           } catch (err) {
-            console.error("Error clearing reading history from Firestore:", err);
+            console.error(
+              'Error clearing reading history from Firestore:',
+              err,
+            );
           }
         }
-      }
+      },
     });
   };
 
   // Derive genres
   const canonicalGenres = new Set<string>();
-  stories.forEach(s => {
+  stories.forEach((s) => {
     if (s.tags) {
-      s.tags.forEach(t => canonicalGenres.add(getCanonicalTag(t)));
+      s.tags.forEach((t) => canonicalGenres.add(getCanonicalTag(t)));
     }
   });
-  const allGenres = ["All", ...Array.from(canonicalGenres).sort((a, b) => getLocalizedTag(a, language).localeCompare(getLocalizedTag(b, language)))].slice(0, 16);
+  const allGenres = [
+    'All',
+    ...Array.from(canonicalGenres).sort((a, b) =>
+      getLocalizedTag(a, language).localeCompare(getLocalizedTag(b, language)),
+    ),
+  ].slice(0, 16);
 
   // Filter & Sort stories
-  const filteredStories = stories.filter(story => {
-    const isScheduledFuture = story.scheduledReleaseAt && new Date(story.scheduledReleaseAt).getTime() > Date.now();
-    const isAdmin = profile?.role === "admin" || (user?.email || "").toLowerCase().trim() === ADMIN_EMAIL;
-    const isAuthor = story.authorUid === user?.uid;
-    
-    if (isScheduledFuture && !isAdmin && !isAuthor) {
-      return false; // Hide future-scheduled stories from general reader catalog
-    }
+  const filteredStories = stories
+    .filter((story) => {
+      const isScheduledFuture =
+        story.scheduledReleaseAt &&
+        new Date(story.scheduledReleaseAt).getTime() > Date.now();
+      const isAdmin =
+        profile?.role === 'admin' ||
+        (user?.email || '').toLowerCase().trim() === ADMIN_EMAIL;
+      const isAuthor = story.authorUid === user?.uid;
 
-    const matchSearch = story.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                        (story.author && story.author.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                        story.tags.some(t => {
-                          const canonical = getCanonicalTag(t);
-                          const localized = getLocalizedTag(canonical, language);
-                          return localized.toLowerCase().includes(searchQuery.toLowerCase()) || canonical.toLowerCase().includes(searchQuery.toLowerCase());
-                        });
-    const matchGenre = selectedGenre === "All" || story.tags.some(t => getCanonicalTag(t) === selectedGenre);
-    return matchSearch && matchGenre;
-  }).sort((a, b) => {
-    if (sortBy === "popular") {
-      const aAvg = a.ratingsCount ? a.rating! / a.ratingsCount : 0;
-      const bAvg = b.ratingsCount ? b.rating! / b.ratingsCount : 0;
-      return bAvg - aAvg;
-    }
-    return 0; // Default is already sorted by recent via Firestore
-  });
+      if (isScheduledFuture && !isAdmin && !isAuthor) {
+        return false; // Hide future-scheduled stories from general reader catalog
+      }
+
+      const matchSearch =
+        story.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (story.author &&
+          story.author.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        story.tags.some((t) => {
+          const canonical = getCanonicalTag(t);
+          const localized = getLocalizedTag(canonical, language);
+          return (
+            localized.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            canonical.toLowerCase().includes(searchQuery.toLowerCase())
+          );
+        });
+      const matchGenre =
+        selectedGenre === 'All' ||
+        story.tags.some((t) => getCanonicalTag(t) === selectedGenre);
+      return matchSearch && matchGenre;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'popular') {
+        const aAvg = a.ratingsCount ? a.rating! / a.ratingsCount : 0;
+        const bAvg = b.ratingsCount ? b.rating! / b.ratingsCount : 0;
+        return bAvg - aAvg;
+      }
+      return 0; // Default is already sorted by recent via Firestore
+    });
 
   const renderSkeletonCard = (i: number) => (
     <div key={i} className="flex flex-col h-full animate-pulse">
@@ -417,60 +525,78 @@ export function Home() {
 
   const renderStoryCard = (story: Story) => {
     const isFav = favorites.includes(story.id);
-    const avgRating = story.ratingsCount && story.ratingsCount > 0 
-      ? (story.rating! / story.ratingsCount).toFixed(1) 
-      : "0";
-    
-    const isScheduledFuture = story.scheduledReleaseAt && new Date(story.scheduledReleaseAt).getTime() > Date.now();
-    
+    const avgRating =
+      story.ratingsCount && story.ratingsCount > 0
+        ? (story.rating! / story.ratingsCount).toFixed(1)
+        : '0';
+
+    const isScheduledFuture =
+      story.scheduledReleaseAt &&
+      new Date(story.scheduledReleaseAt).getTime() > Date.now();
+
     return (
-      <div 
-        key={story.id} 
-        onClick={() => navigate(`${getStoryLink(story.id, story.title)}`)} 
+      <div
+        key={story.id}
+        onClick={() => navigate(`${getStoryLink(story.id, story.title)}`)}
         className="group flex flex-col h-full cursor-pointer"
       >
         {/* Cover Image Container */}
         <div className="relative aspect-[2/3] w-full rounded-[22px] overflow-hidden transition-all duration-300 group-hover:-translate-y-1 paper-card">
-          <BookCoverImage 
-            src={story.coverImage} 
-            alt={story.title} 
+          <BookCoverImage
+            src={story.coverImage}
+            alt={story.title}
             title={story.title}
             className="w-full h-full object-cover rounded-[22px] transition-transform duration-300 group-hover:scale-105"
           />
-          
+
           <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
-            <button 
+            <button
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 if (!user) {
-                  window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
+                  window.dispatchEvent(
+                    new CustomEvent('open-auth-modal', {
+                      detail: { mode: 'login' },
+                    }),
+                  );
                   return;
                 }
                 setStoryForPlaylistModal(story);
               }}
               className="p-2 rounded-full text-white paper-glass"
-              title={t("addToPlaylist")}
+              title={t('addToPlaylist')}
             >
               <ListPlus className="w-3.5 h-3.5" />
             </button>
-            <button 
+            <button
               onClick={(e) => toggleFavorite(e, story.id)}
               className="p-2 rounded-full paper-glass"
-              title={isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+              title={
+                isFav ? 'Remover dos favoritos' : 'Adicionar aos favoritos'
+              }
             >
-              <Heart className={cn("w-3.5 h-3.5 transition-transform hover:scale-110", isFav ? "fill-red-500 text-red-500" : "text-white")} />
+              <Heart
+                className={cn(
+                  'w-3.5 h-3.5 transition-transform hover:scale-110',
+                  isFav ? 'fill-red-500 text-red-500' : 'text-white',
+                )}
+              />
             </button>
           </div>
 
           <div className="absolute top-2.5 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full text-white text-[10px] font-bold paper-glass">
-            <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {avgRating}
+            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />{' '}
+            {avgRating}
           </div>
 
           {isScheduledFuture && (
             <div className="absolute bottom-2.5 left-2.5 right-2.5 text-black px-2.5 py-1 rounded-xl text-[9px] font-bold uppercase tracking-widest flex items-center justify-center gap-1 paper-btn-amber opacity-90 backdrop-blur-md">
               <Calendar className="w-3 h-3" />
-              <span>{t("isScheduledBadge")} ({new Date(story.scheduledReleaseAt!).toLocaleDateString()})</span>
+              <span>
+                {t('isScheduledBadge')} (
+                {new Date(story.scheduledReleaseAt!).toLocaleDateString()})
+              </span>
             </div>
           )}
         </div>
@@ -483,17 +609,24 @@ export function Home() {
             </h3>
             {story.author && (
               <p className="text-[10px] uppercase font-bold tracking-widest opacity-60 mt-1 truncate flex items-center gap-1.5 flex-wrap">
-                <Link 
-                  to={story.authorUid ? `/profile/${story.authorUid}` : `/user/${story.author}`}
+                <Link
+                  to={
+                    story.authorUid
+                      ? `/profile/${story.authorUid}`
+                      : `/user/${story.author}`
+                  }
                   onClick={(e) => e.stopPropagation()}
                   className="hover:underline hover:opacity-100 transition-opacity inline-flex items-center gap-1"
                 >
-                  {t("by")} {story.author}
+                  {t('by')} {story.author}
                 </Link>
                 <span className="w-1 h-1 rounded-full bg-current opacity-40"></span>
                 <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> 
-                  {Math.ceil((story.wordCount || ((story.totalPages || 1) * 250)) / 250)} {t("readTime")}
+                  <Clock className="w-3 h-3" />
+                  {Math.ceil(
+                    (story.wordCount || (story.totalPages || 1) * 250) / 250,
+                  )}{' '}
+                  {t('readTime')}
                 </span>
               </p>
             )}
@@ -501,144 +634,246 @@ export function Home() {
               let pubDateStr = story.publicationDate;
               if (!pubDateStr && story.createdAt) {
                 try {
-                  const d = story.createdAt.toDate ? story.createdAt.toDate() : new Date(story.createdAt);
+                  const d = story.createdAt.toDate
+                    ? story.createdAt.toDate()
+                    : new Date(story.createdAt);
                   pubDateStr = d.toISOString().split('T')[0];
                 } catch (e) {}
               }
               if (pubDateStr) {
                 return (
                   <p className="text-[8px] font-mono opacity-40 mt-1 uppercase tracking-wider">
-                    {t("publishedOn")} {pubDateStr.split('-').reverse().join('/')}
+                    {t('publishedOn')}{' '}
+                    {pubDateStr.split('-').reverse().join('/')}
                   </p>
                 );
               }
               return null;
             })()}
           </div>
-          {story.tags && story.tags.length > 0 && (() => {
-            const displayTags = Array.from(new Set(story.tags.map(t => getCanonicalTag(t))))
-                                     .map(c => getLocalizedTag(c, language))
-                                     .slice(0, 4);
-            return (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {displayTags.map(tag => (
-                  <span key={tag} className="text-[8px] bg-[#1A1A1A]/5 dark:bg-white/10 text-[#1A1A1A] dark:text-[#F5F5F0] px-2 py-0.5 rounded-md uppercase font-bold tracking-wider">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            );
-          })()}
+          {story.tags &&
+            story.tags.length > 0 &&
+            (() => {
+              const displayTags = Array.from(
+                new Set(story.tags.map((t) => getCanonicalTag(t))),
+              )
+                .map((c) => getLocalizedTag(c, language))
+                .slice(0, 4);
+              return (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {displayTags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-[8px] bg-[#1A1A1A]/5 dark:bg-white/10 text-[#1A1A1A] dark:text-[#F5F5F0] px-2 py-0.5 rounded-md uppercase font-bold tracking-wider"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              );
+            })()}
         </div>
       </div>
     );
   };
 
   return (
-    <div className="pb-28 md:pb-20">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
-        <div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold tracking-tight">{t("archive")}</h1>
-          <p className="opacity-60 text-xs sm:text-sm mt-1.5 font-serif">
-            {user ? t("welcomeUser", { name: profile?.username ? `@${profile.username}` : (profile?.displayName || user.email?.split("@")[0] || "") }) : t("exploreStories")}
+    <div className="home-page pb-28 md:pb-20">
+      <section className="home-hero relative isolate flex min-h-[310px] items-center overflow-hidden rounded-xl border border-white/10 px-6 py-10 sm:px-10 md:min-h-[350px] md:px-12">
+        <div className="home-hero-art" aria-hidden="true" />
+        <div className="relative z-10 max-w-xl">
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/55">
+            {t('appBrand')}
+          </p>
+          <h1 className="font-sans text-5xl font-semibold leading-none text-white sm:text-6xl md:text-7xl">
+            Inkora
+          </h1>
+          <p className="mt-3 font-serif text-xl text-white/85 sm:text-2xl">
+            {heroSlogan[language] || heroSlogan.pt}
+          </p>
+          <p className="mt-3 max-w-md text-sm leading-relaxed text-white/65">
+            {t('exploreStories')}
           </p>
         </div>
-        
+      </section>
+
+      {filteredStories.length > 0 && (
+        <section className="mt-8" aria-label={t('mostPopular')}>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-white">
+              {t('mostPopular')}
+            </h2>
+            <span className="text-xs text-white/50">
+              {filteredStories.length}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {filteredStories.slice(0, 4).map((story) => (
+              <button
+                key={`featured-${story.id}`}
+                type="button"
+                onClick={() => navigate(getStoryLink(story.id, story.title))}
+                className="home-feature-card group relative aspect-[1.25/1] overflow-hidden rounded-lg border border-white/10 text-left sm:aspect-[1/1.05]"
+              >
+                <BookCoverImage
+                  src={story.coverImage}
+                  alt={story.title}
+                  title={story.title}
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <span className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
+                <span className="absolute inset-x-3 bottom-3 z-10">
+                  <span className="block line-clamp-2 text-sm font-semibold text-white">
+                    <TranslatedText text={story.title} />
+                  </span>
+                  <span className="mt-1 block truncate text-[10px] text-white/60">
+                    {story.author || t('unknownAuthor')}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <div
+        id="home-library"
+        className="mt-10 flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6 scroll-mt-6"
+      >
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight">
+            {t('archive')}
+          </h2>
+          <p className="opacity-60 text-xs sm:text-sm mt-1.5 font-serif">
+            {user
+              ? t('welcomeUser', {
+                  name: profile?.username
+                    ? `@${profile.username}`
+                    : profile?.displayName || user.email?.split('@')[0] || '',
+                })
+              : t('exploreStories')}
+          </p>
+        </div>
+
         {/* Navigation Tabs - Desktop Inline / Mobile iOS Floating Bottom Bar */}
-        <div className="fixed bottom-3 left-3 right-3 z-40 md:static md:bottom-auto md:left-auto md:right-auto paper-card p-1 sm:p-1.5 rounded-2xl md:rounded-full shadow-2xl md:shadow-sm grid grid-cols-5 md:flex md:justify-start items-center gap-1">
-          <button 
-            onClick={() => setActiveTab("library")}
+        <div className="fixed bottom-3 left-3 right-3 z-40 md:static md:bottom-auto md:left-auto md:right-auto md:w-full lg:w-auto paper-card p-1 sm:p-1.5 rounded-2xl md:rounded-2xl lg:rounded-full shadow-2xl md:shadow-sm grid grid-cols-5 lg:flex lg:justify-start items-center gap-1">
+          <button
+            onClick={() => setActiveTab('library')}
             className={cn(
-              "flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-full text-[9px] md:text-[10px] uppercase font-bold tracking-wider md:tracking-widest transition-all", 
-              activeTab === "library" ? "paper-btn-dark" : "paper-btn-light opacity-60 hover:opacity-100"
+              'flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 lg:px-5 py-2 md:py-2.5 rounded-xl md:rounded-full text-[9px] md:text-[10px] uppercase font-bold tracking-wider md:tracking-widest transition-all',
+              activeTab === 'library'
+                ? 'paper-btn-dark'
+                : 'paper-btn-light opacity-60 hover:opacity-100',
             )}
-            title={t("library")}
-            aria-label={t("library")}
+            title={t('library')}
+            aria-label={t('library')}
           >
             <Library className="w-4 h-4 shrink-0" />
-            <span className="truncate max-w-[55px] md:max-w-none text-[8px] md:text-[10px]">{t("library")}</span>
+            <span className="truncate max-w-[55px] md:max-w-[100px] lg:max-w-none text-[8px] md:text-[10px]">
+              {t('library')}
+            </span>
           </button>
-          <button 
-            onClick={() => setActiveTab("history")}
+          <button
+            onClick={() => setActiveTab('history')}
             className={cn(
-              "flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-full text-[9px] md:text-[10px] uppercase font-bold tracking-wider md:tracking-widest transition-all", 
-              activeTab === "history" ? "paper-btn-dark" : "paper-btn-light opacity-60 hover:opacity-100"
+              'flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 lg:px-5 py-2 md:py-2.5 rounded-xl md:rounded-full text-[9px] md:text-[10px] uppercase font-bold tracking-wider md:tracking-widest transition-all',
+              activeTab === 'history'
+                ? 'paper-btn-dark'
+                : 'paper-btn-light opacity-60 hover:opacity-100',
             )}
-            title={t("history")}
-            aria-label={t("history")}
+            title={t('history')}
+            aria-label={t('history')}
           >
             <Clock className="w-4 h-4 shrink-0" />
-            <span className="truncate max-w-[55px] md:max-w-none text-[8px] md:text-[10px]">{t("history")}</span>
+            <span className="truncate max-w-[55px] md:max-w-[100px] lg:max-w-none text-[8px] md:text-[10px]">
+              {t('history')}
+            </span>
           </button>
-          <button 
-            onClick={() => setActiveTab("favorites")}
+          <button
+            onClick={() => setActiveTab('favorites')}
             className={cn(
-              "flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-full text-[9px] md:text-[10px] uppercase font-bold tracking-wider md:tracking-widest transition-all", 
-              activeTab === "favorites" ? "paper-btn-dark" : "paper-btn-light opacity-60 hover:opacity-100"
+              'flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 lg:px-5 py-2 md:py-2.5 rounded-xl md:rounded-full text-[9px] md:text-[10px] uppercase font-bold tracking-wider md:tracking-widest transition-all',
+              activeTab === 'favorites'
+                ? 'paper-btn-dark'
+                : 'paper-btn-light opacity-60 hover:opacity-100',
             )}
-            title={t("favorites")}
-            aria-label={t("favorites")}
+            title={t('favorites')}
+            aria-label={t('favorites')}
           >
             <Heart className="w-4 h-4 shrink-0" />
-            <span className="truncate max-w-[55px] md:max-w-none text-[8px] md:text-[10px]">{t("favorites")}</span>
+            <span className="truncate max-w-[55px] md:max-w-[100px] lg:max-w-none text-[8px] md:text-[10px]">
+              {t('favorites')}
+            </span>
           </button>
-          <button 
-            onClick={() => setActiveTab("playlists")}
+          <button
+            onClick={() => setActiveTab('playlists')}
             className={cn(
-              "flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-full text-[9px] md:text-[10px] uppercase font-bold tracking-wider md:tracking-widest transition-all", 
-              activeTab === "playlists" ? "paper-btn-dark" : "paper-btn-light opacity-60 hover:opacity-100"
+              'flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 lg:px-5 py-2 md:py-2.5 rounded-xl md:rounded-full text-[9px] md:text-[10px] uppercase font-bold tracking-wider md:tracking-widest transition-all',
+              activeTab === 'playlists'
+                ? 'paper-btn-dark'
+                : 'paper-btn-light opacity-60 hover:opacity-100',
             )}
-            title={t("playlists")}
-            aria-label={t("playlists")}
+            title={t('playlists')}
+            aria-label={t('playlists')}
           >
             <ListPlus className="w-4 h-4 shrink-0" />
-            <span className="truncate max-w-[55px] md:max-w-none text-[8px] md:text-[10px]">{t("playlists")}</span>
+            <span className="truncate max-w-[55px] md:max-w-[100px] lg:max-w-none text-[8px] md:text-[10px]">
+              {t('playlists')}
+            </span>
           </button>
-          <button 
-            onClick={() => setActiveTab("offline")}
+          <button
+            onClick={() => setActiveTab('offline')}
             className={cn(
-              "flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-full text-[9px] md:text-[10px] uppercase font-bold tracking-wider md:tracking-widest transition-all", 
-              activeTab === "offline" ? "paper-btn-dark" : "paper-btn-light opacity-60 hover:opacity-100"
+              'flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 lg:px-5 py-2 md:py-2.5 rounded-xl md:rounded-full text-[9px] md:text-[10px] uppercase font-bold tracking-wider md:tracking-widest transition-all',
+              activeTab === 'offline'
+                ? 'paper-btn-dark'
+                : 'paper-btn-light opacity-60 hover:opacity-100',
             )}
-            title={t("offlineMode")}
-            aria-label={t("offlineMode")}
+            title={t('offlineMode')}
+            aria-label={t('offlineMode')}
           >
             <Download className="w-4 h-4 shrink-0" />
-            <span className="truncate max-w-[55px] md:max-w-none text-[8px] md:text-[10px]">{t("offlineMode")}</span>
+            <span className="truncate max-w-[55px] md:max-w-[100px] lg:max-w-none text-[8px] md:text-[10px]">
+              {t('offlineMode')}
+            </span>
           </button>
         </div>
       </div>
 
-      {activeTab === "library" && (
+      {activeTab === 'library' && (
         <>
           <div className="mb-8 flex flex-col sm:flex-row gap-4 items-center">
             <div className="relative w-full sm:flex-1 md:w-96">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40" />
-              <input 
-                type="text" 
-                placeholder={t("searchPlaceholder")} 
-                value={searchQuery || ""}
-                onChange={e => setSearchQuery(e.target.value)}
+              <input
+                type="text"
+                placeholder={t('searchPlaceholder')}
+                value={searchQuery || ''}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 rounded-full focus:outline-none text-xs sm:text-sm paper-card placeholder:text-stone-500/80 dark:placeholder:text-stone-400/80 placeholder:opacity-100"
               />
             </div>
-            
+
             <div className="flex gap-3 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
-              <select 
+              <select
                 value={selectedGenre}
-                onChange={e => setSelectedGenre(e.target.value)}
+                onChange={(e) => setSelectedGenre(e.target.value)}
                 className="rounded-full px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none cursor-pointer paper-card"
               >
-                {allGenres.map(g => <option key={g} value={g}>{g === "All" ? t("any") : getLocalizedTag(g, language)}</option>)}
+                {allGenres.map((g) => (
+                  <option key={g} value={g}>
+                    {g === 'All' ? t('any') : getLocalizedTag(g, language)}
+                  </option>
+                ))}
               </select>
-              
-              <select 
+
+              <select
                 value={sortBy}
-                onChange={e => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as any)}
                 className="rounded-full px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none cursor-pointer paper-card"
               >
-                <option value="recent">{t("mostRecent")}</option>
-                <option value="popular">{t("mostPopular")}</option>
+                <option value="recent">{t('mostRecent')}</option>
+                <option value="popular">{t('mostPopular')}</option>
               </select>
             </div>
           </div>
@@ -651,7 +886,7 @@ export function Home() {
                 {filteredStories.map(renderStoryCard)}
                 {filteredStories.length === 0 && (
                   <div className="col-span-full text-center py-20 opacity-50 font-serif border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl">
-                    {t("noStoriesFound")}
+                    {t('noStoriesFound')}
                   </div>
                 )}
               </>
@@ -660,62 +895,62 @@ export function Home() {
         </>
       )}
 
-      {activeTab === "favorites" && (
+      {activeTab === 'favorites' && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
-          {stories.filter(s => favorites.includes(s.id)).map(renderStoryCard)}
+          {stories.filter((s) => favorites.includes(s.id)).map(renderStoryCard)}
           {favorites.length === 0 && (
             <div className="col-span-full text-center py-20 opacity-50 font-serif border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl">
-              {t("noFavoritesFound")}
+              {t('noFavoritesFound')}
             </div>
           )}
         </div>
       )}
 
-      {activeTab === "history" && (
+      {activeTab === 'history' && (
         <div className="max-w-3xl mx-auto space-y-6">
           <div className="flex justify-between items-center pb-2 border-b border-black/5 dark:border-white/5">
             <div>
-              <h2 className="font-serif font-bold text-2xl">{t("history")}</h2>
-              <p className="text-xs opacity-60 mt-0.5">{t("exploreArchive")}</p>
+              <h2 className="font-serif font-bold text-2xl">{t('history')}</h2>
+              <p className="text-xs opacity-60 mt-0.5">{t('exploreArchive')}</p>
             </div>
             {history.length > 0 && (
               <button
                 onClick={handleClearAllHistory}
                 className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all paper-btn-red"
-                title={t("clearHistory")}
-                aria-label={t("clearHistory")}
+                title={t('clearHistory')}
+                aria-label={t('clearHistory')}
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>{t("clearHistory")}</span>
+                <span>{t('clearHistory')}</span>
               </button>
             )}
           </div>
 
           {history.length === 0 ? (
             <div className="text-center py-20 opacity-50 font-serif border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl">
-              {t("noHistoryFound")}
+              {t('noHistoryFound')}
             </div>
           ) : (
             <div className="space-y-4">
               {history.map((item, idx) => {
-                const matchedStory = stories.find(s => s.id === item.id);
+                const matchedStory = stories.find((s) => s.id === item.id);
                 const cover = item.coverImage || matchedStory?.coverImage;
 
                 return (
-                  <div 
-                    key={`${item.id}-${idx}`} 
+                  <div
+                    key={`${item.id}-${idx}`}
                     className="flex items-center justify-between gap-3 sm:gap-6 p-4 rounded-2xl hover:-translate-y-0.5 transition-all group paper-card"
                   >
-                    <Link 
-                      to={`${getStoryLink(item.id, item.title)}`} 
+                    <Link
+                      to={`${getStoryLink(item.id, item.title)}`}
                       className="flex items-center gap-3 sm:gap-5 flex-1 min-w-0"
                     >
                       <div className="w-14 sm:w-16 aspect-[2/3] h-auto bg-[#EAE8E2] dark:bg-[#2A2A2A] rounded-lg overflow-hidden shrink-0">
-                        <BookCoverImage 
-                          src={cover} 
-                          alt={item.title} 
-                          title={item.title} 
-                          className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" 
+                        <BookCoverImage
+                          src={cover}
+                          alt={item.title}
+                          title={item.title}
+                          className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
                         />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -724,7 +959,10 @@ export function Home() {
                         </h3>
                         <div className="flex items-center gap-2 sm:gap-3 mt-1.5 flex-wrap">
                           <span className="text-[10px] uppercase font-bold tracking-widest opacity-60">
-                            {t("pageOf", { page: item.page + 1, total: item.totalPages })}
+                            {t('pageOf', {
+                              page: item.page + 1,
+                              total: item.totalPages,
+                            })}
                           </span>
                           <span className="text-[10px] uppercase font-bold tracking-widest opacity-40">
                             {new Date(item.timestamp).toLocaleDateString()}
@@ -734,17 +972,17 @@ export function Home() {
                     </Link>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <Link 
+                      <Link
                         to={`${getStoryLink(item.id, item.title)}`}
                         className="px-3 sm:px-4 py-2 rounded-full font-bold text-[9px] sm:text-[10px] uppercase tracking-widest paper-btn-dark shrink-0"
                       >
-                        {t("continueReading")}
+                        {t('continueReading')}
                       </Link>
                       <button
                         onClick={(e) => handleRemoveFromHistory(item.id, e)}
                         className="p-2 sm:p-2.5 rounded-full transition-all paper-btn-red shrink-0"
-                        title={t("removeFromHistory")}
-                        aria-label={t("removeFromHistory")}
+                        title={t('removeFromHistory')}
+                        aria-label={t('removeFromHistory')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -758,38 +996,44 @@ export function Home() {
       )}
 
       {/* PLAYLISTS TAB */}
-      {activeTab === "playlists" && (
+      {activeTab === 'playlists' && (
         <div className="space-y-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h2 className="font-serif font-bold text-2xl">{t("playlists")}</h2>
+              <h2 className="font-serif font-bold text-2xl">
+                {t('playlists')}
+              </h2>
               <div className="flex items-center gap-2 mt-2 bg-[#F5F5F0] dark:bg-[#2A2A2A] p-1 rounded-full w-fit">
                 <button
-                  onClick={() => setPlaylistFilter("mine")}
+                  onClick={() => setPlaylistFilter('mine')}
                   className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
-                    playlistFilter === "mine"
-                      ? "bg-white dark:bg-[#1A1A1A] shadow-sm opacity-100"
-                      : "opacity-60 hover:opacity-100"
+                    playlistFilter === 'mine'
+                      ? 'bg-white dark:bg-[#1A1A1A] shadow-sm opacity-100'
+                      : 'opacity-60 hover:opacity-100'
                   }`}
                 >
-                  {t("myPlaylists") || "Minhas Playlists"}
+                  {t('myPlaylists') || 'Minhas Playlists'}
                 </button>
                 <button
-                  onClick={() => setPlaylistFilter("public")}
+                  onClick={() => setPlaylistFilter('public')}
                   className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
-                    playlistFilter === "public"
-                      ? "bg-white dark:bg-[#1A1A1A] shadow-sm opacity-100"
-                      : "opacity-60 hover:opacity-100"
+                    playlistFilter === 'public'
+                      ? 'bg-white dark:bg-[#1A1A1A] shadow-sm opacity-100'
+                      : 'opacity-60 hover:opacity-100'
                   }`}
                 >
-                  {t("publicPlaylists") || "Playlists Públicas"}
+                  {t('publicPlaylists') || 'Playlists Públicas'}
                 </button>
               </div>
             </div>
             <button
               onClick={() => {
                 if (!user) {
-                  window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
+                  window.dispatchEvent(
+                    new CustomEvent('open-auth-modal', {
+                      detail: { mode: 'login' },
+                    }),
+                  );
                   return;
                 }
                 setShowCreatePlaylistModal(true);
@@ -797,28 +1041,40 @@ export function Home() {
               className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest paper-btn-dark"
             >
               <Plus className="w-4 h-4" />
-              <span>{t("createPlaylist")}</span>
+              <span>{t('createPlaylist')}</span>
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {playlists.length === 0 ? (
               <div className="col-span-full text-center py-16 opacity-50 font-serif border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl">
-                {t("emptyPlaylist")}
+                {t('emptyPlaylist')}
               </div>
             ) : (
               playlists.map((pl) => {
-                const plStories = stories.filter(s => pl.storyIds.includes(s.id));
+                const plStories = stories.filter((s) =>
+                  pl.storyIds.includes(s.id),
+                );
                 return (
-                  <div key={pl.id} className="p-5 rounded-2xl space-y-4 flex flex-col justify-between hover:-translate-y-0.5 transition-all paper-card">
+                  <div
+                    key={pl.id}
+                    className="p-5 rounded-2xl space-y-4 flex flex-col justify-between hover:-translate-y-0.5 transition-all paper-card"
+                  >
                     <div className="space-y-3">
                       <div className="flex justify-between items-start gap-2">
                         <div>
-                          <h3 className="font-serif font-bold text-lg leading-tight">{pl.title}</h3>
-                          <p className="text-xs opacity-60 line-clamp-2 mt-1">{pl.description || t("defaultPlaylistDescription")}</p>
+                          <h3 className="font-serif font-bold text-lg leading-tight">
+                            {pl.title}
+                          </h3>
+                          <p className="text-xs opacity-60 line-clamp-2 mt-1">
+                            {pl.description || t('defaultPlaylistDescription')}
+                          </p>
                         </div>
                         <span className="text-[9px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 paper-btn-light">
-                          {t("storiesCount").replace("{count}", String(pl.storyIds.length))}
+                          {t('storiesCount').replace(
+                            '{count}',
+                            String(pl.storyIds.length),
+                          )}
                         </span>
                       </div>
 
@@ -826,52 +1082,69 @@ export function Home() {
                       {plStories.length > 0 ? (
                         <div className="flex items-center gap-2 pt-1 overflow-x-auto py-1">
                           {plStories.slice(0, 4).map((s) => (
-                            <div key={s.id} className="w-12 aspect-[2/3] rounded-lg overflow-hidden shrink-0 shadow-sm paper-card">
-                              <BookCoverImage src={s.coverImage} alt={s.title} title={s.title} className="w-full h-full object-cover" />
+                            <div
+                              key={s.id}
+                              className="w-12 aspect-[2/3] rounded-lg overflow-hidden shrink-0 shadow-sm paper-card"
+                            >
+                              <BookCoverImage
+                                src={s.coverImage}
+                                alt={s.title}
+                                title={s.title}
+                                className="w-full h-full object-cover"
+                              />
                             </div>
                           ))}
                           {plStories.length > 4 && (
-                          <div className="w-12 aspect-[2/3] rounded-lg flex items-center justify-center text-[10px] font-bold opacity-60 shrink-0 paper-card">
-                            +{plStories.length - 4}
-                          </div>
+                            <div className="w-12 aspect-[2/3] rounded-lg flex items-center justify-center text-[10px] font-bold opacity-60 shrink-0 paper-card">
+                              +{plStories.length - 4}
+                            </div>
                           )}
                         </div>
                       ) : (
                         <div className="py-3 px-4 rounded-xl text-[11px] opacity-50 italic paper-card">
-                          {t("emptyPlaylist")}
+                          {t('emptyPlaylist')}
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="pt-3 border-t border-black/5 dark:border-white/5 space-y-2">
                       <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider opacity-60">
-                        <span>{t("by")} {pl.userName || t("defaultReaderName")}</span>
-                        <span>{new Date(pl.createdAt).toLocaleDateString()}</span>
+                        <span>
+                          {t('by')} {pl.userName || t('defaultReaderName')}
+                        </span>
+                        <span>
+                          {new Date(pl.createdAt).toLocaleDateString()}
+                        </span>
                       </div>
-                      
+
                       <div className="flex gap-2 pt-1">
                         <button
                           onClick={() => setSelectedPlaylistForDetail(pl)}
                           className="flex-1 py-2 px-3 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 paper-btn-dark"
                         >
                           <FolderPlus className="w-3.5 h-3.5" />
-                          <span>{user?.uid === pl.userId ? t("managePlaylist") : t("viewPlaylist")}</span>
+                          <span>
+                            {user?.uid === pl.userId
+                              ? t('managePlaylist')
+                              : t('viewPlaylist')}
+                          </span>
                         </button>
                         {user?.uid === pl.userId && (
                           <button
                             onClick={() => {
                               setConfirmModalConfig({
                                 isOpen: true,
-                                title: t("deletePlaylist") || "Excluir Playlist",
+                                title:
+                                  t('deletePlaylist') || 'Excluir Playlist',
                                 message: `Deseja excluir a playlist "${pl.title}"?`,
                                 onConfirm: async () => {
                                   await deletePlaylist(pl.id);
                                   await loadPlaylistsData();
-                                }
+                                },
                               });
                             }}
                             className="p-2 rounded-xl transition-colors paper-btn-red"
-                            title={t("deletePlaylist") || "Excluir Playlist"}
+                            title={t('deletePlaylist') || 'Excluir Playlist'}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -887,43 +1160,55 @@ export function Home() {
       )}
 
       {/* OFFLINE MODE TAB */}
-      {activeTab === "offline" && (
+      {activeTab === 'offline' && (
         <div className="space-y-6">
           <div>
-            <h2 className="font-serif font-bold text-2xl">{t("savedOfflineStories")}</h2>
-            <p className="text-xs opacity-60 mt-0.5">{t("offlineAvailable")}</p>
+            <h2 className="font-serif font-bold text-2xl">
+              {t('savedOfflineStories')}
+            </h2>
+            <p className="text-xs opacity-60 mt-0.5">{t('offlineAvailable')}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {offlineStories.length === 0 ? (
               <div className="col-span-full text-center py-16 opacity-50 font-serif border border-dashed border-[#1A1A1A]/20 dark:border-white/20 rounded-2xl px-4">
-                {t("noOfflineStories")}
+                {t('noOfflineStories')}
               </div>
             ) : (
               offlineStories.map((item) => (
-                <div key={item.id} className="p-4 rounded-2xl flex items-center gap-4 paper-card">
+                <div
+                  key={item.id}
+                  className="p-4 rounded-2xl flex items-center gap-4 paper-card"
+                >
                   <div className="w-16 aspect-[2/3] bg-[#EAE8E2] dark:bg-[#2A2A2A] rounded-xl overflow-hidden shrink-0">
-                    <BookCoverImage src={item.coverImage} alt={item.title} title={item.title} className="w-full h-full object-cover" />
+                    <BookCoverImage
+                      src={item.coverImage}
+                      alt={item.title}
+                      title={item.title}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-serif font-bold text-base truncate">
                       <TranslatedText text={item.title} />
                     </h3>
-                    <p className="text-[10px] opacity-60 uppercase font-bold tracking-widest mt-1">{item.totalPages} {t("pagesSaved")}</p>
+                    <p className="text-[10px] opacity-60 uppercase font-bold tracking-widest mt-1">
+                      {item.totalPages} {t('pagesSaved')}
+                    </p>
                     <div className="flex items-center gap-2 mt-3">
-                      <Link 
-                        to={`${getStoryLink(item.id, item.title)}`} 
+                      <Link
+                        to={`${getStoryLink(item.id, item.title)}`}
                         className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest paper-btn-dark"
                       >
-                        {t("readOffline")}
+                        {t('readOffline')}
                       </Link>
-                      <button 
+                      <button
                         onClick={async () => {
                           await removeOfflineStory(item.id);
                           await loadOfflineData();
                         }}
                         className="p-1.5 rounded-full transition-all paper-btn-red"
-                        title={t("removeOffline")}
+                        title={t('removeOffline')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -940,13 +1225,17 @@ export function Home() {
       {showCreatePlaylistModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-md rounded-2xl p-6 space-y-4 paper-card">
-            <h3 className="font-serif font-bold text-xl">{t("createPlaylist")}</h3>
-            
+            <h3 className="font-serif font-bold text-xl">
+              {t('createPlaylist')}
+            </h3>
+
             <div>
-              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("playlistTitle")}</label>
-              <input 
-                type="text" 
-                value={newPlaylistTitle || ""} 
+              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">
+                {t('playlistTitle')}
+              </label>
+              <input
+                type="text"
+                value={newPlaylistTitle || ''}
                 onChange={(e) => setNewPlaylistTitle(e.target.value)}
                 className="w-full p-3 text-xs rounded-xl focus:outline-none paper-card"
                 placeholder="Ex: Melhores Romances de Fantasia"
@@ -954,9 +1243,11 @@ export function Home() {
             </div>
 
             <div>
-              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">{t("playlistDescription")}</label>
-              <textarea 
-                value={newPlaylistDesc || ""} 
+              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">
+                {t('playlistDescription')}
+              </label>
+              <textarea
+                value={newPlaylistDesc || ''}
                 onChange={(e) => setNewPlaylistDesc(e.target.value)}
                 className="w-full p-3 text-xs rounded-xl focus:outline-none h-20 paper-card"
                 placeholder="Descrição opcional..."
@@ -964,64 +1255,70 @@ export function Home() {
             </div>
 
             <div className="flex items-center gap-2">
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 id="publicCheck"
-                checked={newPlaylistPublic} 
+                checked={newPlaylistPublic}
                 onChange={(e) => setNewPlaylistPublic(e.target.checked)}
                 className="rounded border-black/20"
               />
-              <label htmlFor="publicCheck" className="text-xs font-bold uppercase tracking-wider opacity-80 cursor-pointer">
-                {t("isPublicList")}
+              <label
+                htmlFor="publicCheck"
+                className="text-xs font-bold uppercase tracking-wider opacity-80 cursor-pointer"
+              >
+                {t('isPublicList')}
               </label>
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
-              <button 
+              <button
                 onClick={() => setShowCreatePlaylistModal(false)}
                 className="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest paper-btn-light"
               >
-                {t("cancel")}
+                {t('cancel')}
               </button>
-              <button 
+              <button
                 onClick={async () => {
                   if (!newPlaylistTitle.trim()) return;
                   const newPl: ReadingList = {
                     id: `pl_${Date.now()}`,
                     title: newPlaylistTitle,
                     description: newPlaylistDesc,
-                    userId: user?.uid || "guest",
-                    userName: profile?.username ? `@${profile.username}` : (profile?.displayName || t("defaultReaderName")),
+                    userId: user?.uid || 'guest',
+                    userName: profile?.username
+                      ? `@${profile.username}`
+                      : profile?.displayName || t('defaultReaderName'),
                     isPublic: newPlaylistPublic,
                     storyIds: [],
                     createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
+                    updatedAt: new Date().toISOString(),
                   };
                   await createOrUpdatePlaylist(newPl);
                   if (user) {
-                    unlockAchievement("playlist_curator", user.uid);
+                    unlockAchievement('playlist_curator', user.uid);
                   }
                   if (newPl.isPublic && user && profile) {
                     await logUserActivity({
                       uid: user.uid,
-                      userName: profile.displayName || profile.email.split("@")[0],
-                      userUsername: profile.username || "",
-                      userPhoto: profile.photoURL || "",
-                      type: "published",
+                      userName:
+                        profile.displayName || profile.email.split('@')[0],
+                      userUsername: profile.username || '',
+                      userPhoto: profile.photoURL || '',
+                      type: 'published',
                       title: `Criou a playlist pública "${newPl.title}"`,
                       targetId: newPl.id,
                       targetTitle: newPl.title,
-                      createdAt: new Date().toISOString()
+                      createdAt: new Date().toISOString(),
                     });
                   }
-                  setNewPlaylistTitle("");
-                  setNewPlaylistDesc("");
+                  setNewPlaylistTitle('');
+                  setNewPlaylistDesc('');
                   setShowCreatePlaylistModal(false);
                   await loadPlaylistsData();
                 }}
                 className="px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest paper-btn-dark"
               >
-                {t("saveChanges")}
+                {t('saveChanges')}
               </button>
             </div>
           </div>
@@ -1038,13 +1335,21 @@ export function Home() {
                 <span className="text-[9px] bg-blue-500/10 text-blue-600 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
                   Playlist
                 </span>
-                <h2 className="font-serif font-bold text-2xl mt-1">{selectedPlaylistForDetail.title}</h2>
-                <p className="text-xs opacity-60 mt-0.5">{selectedPlaylistForDetail.description || t("noDescription")}</p>
+                <h2 className="font-serif font-bold text-2xl mt-1">
+                  {selectedPlaylistForDetail.title}
+                </h2>
+                <p className="text-xs opacity-60 mt-0.5">
+                  {selectedPlaylistForDetail.description || t('noDescription')}
+                </p>
                 <p className="text-[10px] font-mono opacity-50 mt-1 uppercase">
-                  {t("by")} {selectedPlaylistForDetail.userName} • {t("storiesCount").replace("{count}", String(selectedPlaylistForDetail.storyIds.length))}
+                  {t('by')} {selectedPlaylistForDetail.userName} •{' '}
+                  {t('storiesCount').replace(
+                    '{count}',
+                    String(selectedPlaylistForDetail.storyIds.length),
+                  )}
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedPlaylistForDetail(null)}
                 className="p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10"
               >
@@ -1055,18 +1360,19 @@ export function Home() {
             {/* Action Bar */}
             <div className="flex justify-between items-center gap-3">
               <h3 className="font-serif font-bold text-sm uppercase tracking-wider opacity-80">
-                Histórias {t("included")}s ({selectedPlaylistForDetail.storyIds.length})
+                Histórias {t('included')}s (
+                {selectedPlaylistForDetail.storyIds.length})
               </h3>
               {user?.uid === selectedPlaylistForDetail.userId && (
                 <button
                   onClick={() => {
-                    setPlaylistPickerSearch("");
+                    setPlaylistPickerSearch('');
                     setShowAddStoriesToPlaylistModal(true);
                   }}
                   className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>{t("addStories")}</span>
+                  <span>{t('addStories')}</span>
                 </button>
               )}
             </div>
@@ -1075,37 +1381,52 @@ export function Home() {
             <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar min-h-[200px]">
               {selectedPlaylistForDetail.storyIds.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-black/10 dark:border-white/10 rounded-xl space-y-3">
-                  <p className="text-sm opacity-60 font-serif">{t("emptyPlaylist")}</p>
+                  <p className="text-sm opacity-60 font-serif">
+                    {t('emptyPlaylist')}
+                  </p>
                   {user?.uid === selectedPlaylistForDetail.userId && (
                     <button
                       onClick={() => {
-                        setPlaylistPickerSearch("");
+                        setPlaylistPickerSearch('');
                         setShowAddStoriesToPlaylistModal(true);
                       }}
                       className="bg-blue-600 text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5"
                     >
                       <Plus className="w-4 h-4" />
-                      <span>{t("addStoriesNow")}</span>
+                      <span>{t('addStoriesNow')}</span>
                     </button>
                   )}
                 </div>
               ) : (
                 stories
-                  .filter(s => selectedPlaylistForDetail.storyIds.includes(s.id))
-                  .map(s => (
-                    <div key={s.id} className="p-3 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl border border-black/5 dark:border-white/5 flex items-center gap-3">
+                  .filter((s) =>
+                    selectedPlaylistForDetail.storyIds.includes(s.id),
+                  )
+                  .map((s) => (
+                    <div
+                      key={s.id}
+                      className="p-3 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl border border-black/5 dark:border-white/5 flex items-center gap-3"
+                    >
                       <div className="w-12 aspect-[2/3] bg-black/10 rounded-md overflow-hidden shrink-0">
-                        <BookCoverImage src={s.coverImage} alt={s.title} title={s.title} className="w-full h-full object-cover" />
+                        <BookCoverImage
+                          src={s.coverImage}
+                          alt={s.title}
+                          title={s.title}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-serif font-bold text-sm truncate">{s.title}</h4>
+                        <h4 className="font-serif font-bold text-sm truncate">
+                          {s.title}
+                        </h4>
                         <p className="text-[10px] opacity-60 uppercase font-bold tracking-wider mt-0.5 truncate">
-                          {s.author ? `Por ${s.author}` : ""} {s.totalPages ? `• ${s.totalPages} págs` : ""}
+                          {s.author ? `Por ${s.author}` : ''}{' '}
+                          {s.totalPages ? `• ${s.totalPages} págs` : ''}
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <Link 
-                          to={`${getStoryLink(s.id, s.title)}`} 
+                        <Link
+                          to={`${getStoryLink(s.id, s.title)}`}
                           className="p-2 bg-black/10 dark:bg-white/10 hover:bg-black/20 rounded-lg text-xs font-bold flex items-center gap-1"
                           title="Ler História"
                         >
@@ -1114,7 +1435,10 @@ export function Home() {
                         {user?.uid === selectedPlaylistForDetail.userId && (
                           <button
                             onClick={async () => {
-                              const updated = await toggleStoryInPlaylist(selectedPlaylistForDetail, s.id);
+                              const updated = await toggleStoryInPlaylist(
+                                selectedPlaylistForDetail,
+                                s.id,
+                              );
                               setSelectedPlaylistForDetail(updated);
                               await loadPlaylistsData();
                             }}
@@ -1138,19 +1462,19 @@ export function Home() {
                     onClick={() => {
                       setConfirmModalConfig({
                         isOpen: true,
-                        title: t("deletePlaylist") || "Excluir Playlist",
+                        title: t('deletePlaylist') || 'Excluir Playlist',
                         message: `Excluir a playlist "${selectedPlaylistForDetail.title}"?`,
                         onConfirm: async () => {
                           await deletePlaylist(selectedPlaylistForDetail.id);
                           setSelectedPlaylistForDetail(null);
                           await loadPlaylistsData();
-                        }
+                        },
                       });
                     }}
                     className="text-xs text-red-500 font-bold uppercase tracking-wider flex items-center gap-1 hover:underline"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>{t("deletePlaylist")}</span>
+                    <span>{t('deletePlaylist')}</span>
                   </button>
                 )}
               </div>
@@ -1171,10 +1495,14 @@ export function Home() {
           <div className="bg-white dark:bg-[#1A1A1A] w-full max-w-lg rounded-2xl p-6 shadow-2xl border border-black/10 dark:border-white/10 space-y-4 max-h-[85vh] flex flex-col">
             <div className="flex justify-between items-center pb-2 border-b border-black/10 dark:border-white/10">
               <div>
-                <h3 className="font-serif font-bold text-lg">{t("selectStoriesToAdd")}</h3>
-                <p className="text-[11px] opacity-60">{selectedPlaylistForDetail.title}</p>
+                <h3 className="font-serif font-bold text-lg">
+                  {t('selectStoriesToAdd')}
+                </h3>
+                <p className="text-[11px] opacity-60">
+                  {selectedPlaylistForDetail.title}
+                </p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowAddStoriesToPlaylistModal(false)}
                 className="p-1.5 rounded-full opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
               >
@@ -1185,9 +1513,9 @@ export function Home() {
             {/* Search Input */}
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-3 opacity-40" />
-              <input 
-                type="text" 
-                value={playlistPickerSearch || ""}
+              <input
+                type="text"
+                value={playlistPickerSearch || ''}
                 onChange={(e) => setPlaylistPickerSearch(e.target.value)}
                 placeholder="Buscar histórias por título ou autor..."
                 className="w-full pl-9 pr-3 py-2 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-black/10 dark:border-white/10 rounded-xl focus:outline-none"
@@ -1197,44 +1525,63 @@ export function Home() {
             {/* List of Library Stories */}
             <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar min-h-[220px]">
               {stories
-                .filter(s => {
+                .filter((s) => {
                   if (!playlistPickerSearch.trim()) return true;
                   const q = playlistPickerSearch.toLowerCase();
-                  return s.title.toLowerCase().includes(q) || (s.author && s.author.toLowerCase().includes(q));
-                })
-                .map(s => {
-                  const isIncluded = selectedPlaylistForDetail.storyIds.includes(s.id);
                   return (
-                    <div key={s.id} className="p-2.5 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl border border-black/5 dark:border-white/5 flex items-center gap-3">
+                    s.title.toLowerCase().includes(q) ||
+                    (s.author && s.author.toLowerCase().includes(q))
+                  );
+                })
+                .map((s) => {
+                  const isIncluded =
+                    selectedPlaylistForDetail.storyIds.includes(s.id);
+                  return (
+                    <div
+                      key={s.id}
+                      className="p-2.5 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl border border-black/5 dark:border-white/5 flex items-center gap-3"
+                    >
                       <div className="w-10 aspect-[2/3] bg-black/10 rounded-md overflow-hidden shrink-0">
-                        <BookCoverImage src={s.coverImage} alt={s.title} title={s.title} className="w-full h-full object-cover" />
+                        <BookCoverImage
+                          src={s.coverImage}
+                          alt={s.title}
+                          title={s.title}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-serif font-bold text-xs truncate">{s.title}</h4>
-                        <p className="text-[10px] opacity-50 truncate">{s.author || t("unknownAuthor")}</p>
+                        <h4 className="font-serif font-bold text-xs truncate">
+                          {s.title}
+                        </h4>
+                        <p className="text-[10px] opacity-50 truncate">
+                          {s.author || t('unknownAuthor')}
+                        </p>
                       </div>
                       <button
                         onClick={async () => {
-                          const updated = await toggleStoryInPlaylist(selectedPlaylistForDetail, s.id);
+                          const updated = await toggleStoryInPlaylist(
+                            selectedPlaylistForDetail,
+                            s.id,
+                          );
                           setSelectedPlaylistForDetail(updated);
                           await loadPlaylistsData();
                         }}
                         className={cn(
-                          "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 shrink-0",
-                          isIncluded 
-                            ? "bg-emerald-500 text-white shadow-sm" 
-                            : "bg-black/10 dark:bg-white/10 hover:bg-black/20 text-black dark:text-white"
+                          'px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 shrink-0',
+                          isIncluded
+                            ? 'bg-emerald-500 text-white shadow-sm'
+                            : 'bg-black/10 dark:bg-white/10 hover:bg-black/20 text-black dark:text-white',
                         )}
                       >
                         {isIncluded ? (
                           <>
                             <Check className="w-3 h-3" />
-                            <span>{t("included")}</span>
+                            <span>{t('included')}</span>
                           </>
                         ) : (
                           <>
                             <Plus className="w-3 h-3" />
-                            <span>{t("include")}</span>
+                            <span>{t('include')}</span>
                           </>
                         )}
                       </button>
@@ -1244,7 +1591,7 @@ export function Home() {
             </div>
 
             <div className="pt-2 border-t border-black/10 dark:border-white/10 flex justify-end">
-              <button 
+              <button
                 onClick={() => setShowAddStoriesToPlaylistModal(false)}
                 className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest"
               >
@@ -1263,11 +1610,13 @@ export function Home() {
               <div>
                 <h3 className="font-serif font-bold text-lg flex items-center gap-2">
                   <ListPlus className="w-5 h-5 text-blue-500" />
-                  <span>{t("addToPlaylist")}</span>
+                  <span>{t('addToPlaylist')}</span>
                 </h3>
-                <p className="text-[11px] opacity-60 truncate max-w-[280px]">{storyForPlaylistModal.title}</p>
+                <p className="text-[11px] opacity-60 truncate max-w-[280px]">
+                  {storyForPlaylistModal.title}
+                </p>
               </div>
-              <button 
+              <button
                 onClick={() => setStoryForPlaylistModal(null)}
                 className="p-1.5 rounded-full opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
               >
@@ -1278,40 +1627,58 @@ export function Home() {
             {/* List of Playlists */}
             <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
               {playlists.length === 0 ? (
-                <p className="text-xs opacity-60 italic text-center py-4">{t("emptyPlaylist")}</p>
+                <p className="text-xs opacity-60 italic text-center py-4">
+                  {t('emptyPlaylist')}
+                </p>
               ) : (
                 playlists.map((pl) => {
-                  const inPlaylist = pl.storyIds.includes(storyForPlaylistModal.id);
+                  const inPlaylist = pl.storyIds.includes(
+                    storyForPlaylistModal.id,
+                  );
                   return (
-                    <div 
-                      key={pl.id} 
+                    <div
+                      key={pl.id}
                       className="p-3 bg-[#F5F5F0] dark:bg-[#0A0A0A] rounded-xl flex items-center justify-between border border-black/5 dark:border-white/5"
                     >
                       <div className="min-w-0 flex-1 pr-2">
-                        <h4 className="font-serif font-bold text-xs truncate">{pl.title}</h4>
-                        <p className="text-[10px] opacity-50 font-mono">{t("storiesCount").replace("{count}", String(pl.storyIds.length))}</p>
+                        <h4 className="font-serif font-bold text-xs truncate">
+                          {pl.title}
+                        </h4>
+                        <p className="text-[10px] opacity-50 font-mono">
+                          {t('storiesCount').replace(
+                            '{count}',
+                            String(pl.storyIds.length),
+                          )}
+                        </p>
                       </div>
                       <button
                         onClick={async () => {
-                          const updated = await toggleStoryInPlaylist(pl, storyForPlaylistModal.id);
-                          setPlaylists(prev => prev.map(p => p.id === updated.id ? updated : p));
+                          const updated = await toggleStoryInPlaylist(
+                            pl,
+                            storyForPlaylistModal.id,
+                          );
+                          setPlaylists((prev) =>
+                            prev.map((p) =>
+                              p.id === updated.id ? updated : p,
+                            ),
+                          );
                         }}
                         className={cn(
-                          "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 shrink-0",
-                          inPlaylist 
-                            ? "bg-emerald-500 text-white shadow-sm" 
-                            : "bg-black/10 dark:bg-white/10 hover:bg-black/20 text-black dark:text-white"
+                          'px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 shrink-0',
+                          inPlaylist
+                            ? 'bg-emerald-500 text-white shadow-sm'
+                            : 'bg-black/10 dark:bg-white/10 hover:bg-black/20 text-black dark:text-white',
                         )}
                       >
                         {inPlaylist ? (
                           <>
                             <Check className="w-3 h-3" />
-                            <span>{t("remove")}</span>
+                            <span>{t('remove')}</span>
                           </>
                         ) : (
                           <>
                             <Plus className="w-3 h-3" />
-                            <span>{t("add")}</span>
+                            <span>{t('add')}</span>
                           </>
                         )}
                       </button>
@@ -1323,11 +1690,13 @@ export function Home() {
 
             {/* Quick Inline New Playlist */}
             <div className="pt-2 border-t border-black/5 dark:border-white/5 space-y-2">
-              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60">{t("createPlaylist")}</label>
+              <label className="block text-[10px] uppercase font-bold tracking-widest opacity-60">
+                {t('createPlaylist')}
+              </label>
               <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={newPlaylistTitle || ""}
+                <input
+                  type="text"
+                  value={newPlaylistTitle || ''}
                   onChange={(e) => setNewPlaylistTitle(e.target.value)}
                   placeholder="Nome da nova playlist..."
                   className="flex-1 p-2 text-xs bg-[#F5F5F0] dark:bg-[#0A0A0A] border border-black/10 dark:border-white/10 rounded-xl focus:outline-none"
@@ -1338,43 +1707,46 @@ export function Home() {
                     const newPl: ReadingList = {
                       id: `pl_${Date.now()}`,
                       title: newPlaylistTitle,
-                      description: "Coleção de leituras",
-                      userId: user?.uid || "guest",
-                      userName: profile?.username ? `@${profile.username}` : (profile?.displayName || t("defaultReaderName")),
+                      description: 'Coleção de leituras',
+                      userId: user?.uid || 'guest',
+                      userName: profile?.username
+                        ? `@${profile.username}`
+                        : profile?.displayName || t('defaultReaderName'),
                       isPublic: true,
                       storyIds: [storyForPlaylistModal.id],
                       createdAt: new Date().toISOString(),
-                      updatedAt: new Date().toISOString()
+                      updatedAt: new Date().toISOString(),
                     };
                     await createOrUpdatePlaylist(newPl);
                     if (user) {
-                      unlockAchievement("playlist_curator", user.uid);
+                      unlockAchievement('playlist_curator', user.uid);
                     }
                     if (user && profile) {
                       await logUserActivity({
                         uid: user.uid,
-                        userName: profile.displayName || profile.email.split("@")[0],
-                        userUsername: profile.username || "",
-                        userPhoto: profile.photoURL || "",
-                        type: "published",
+                        userName:
+                          profile.displayName || profile.email.split('@')[0],
+                        userUsername: profile.username || '',
+                        userPhoto: profile.photoURL || '',
+                        type: 'published',
                         title: `Criou a playlist pública "${newPl.title}"`,
                         targetId: newPl.id,
                         targetTitle: newPl.title,
-                        createdAt: new Date().toISOString()
+                        createdAt: new Date().toISOString(),
                       });
                     }
-                    setNewPlaylistTitle("");
+                    setNewPlaylistTitle('');
                     await loadPlaylistsData();
                   }}
                   className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider shrink-0"
                 >
-                  Criar & {t("include")}
+                  Criar & {t('include')}
                 </button>
               </div>
             </div>
 
             <div className="flex justify-end pt-2">
-              <button 
+              <button
                 onClick={() => setStoryForPlaylistModal(null)}
                 className="bg-[#1A1A1A] dark:bg-[#F5F5F0] text-white dark:text-[#1A1A1A] px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest"
               >
@@ -1390,7 +1762,9 @@ export function Home() {
         title={confirmModalConfig.title}
         message={confirmModalConfig.message}
         onConfirm={confirmModalConfig.onConfirm}
-        onCancel={() => setConfirmModalConfig({ ...confirmModalConfig, isOpen: false })}
+        onCancel={() =>
+          setConfirmModalConfig({ ...confirmModalConfig, isOpen: false })
+        }
       />
     </div>
   );
