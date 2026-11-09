@@ -2433,11 +2433,11 @@ export function StoryEditor({
                   '[&>*]:mx-auto [&>*]:max-w-[65ch] [&_img]:mx-auto [&_img]:rounded-lg [&_img]:max-w-full [&_img]:h-auto',
                   '[&_img.story-image-selected]:outline [&_img.story-image-selected]:outline-2 [&_img.story-image-selected]:outline-offset-2 [&_img.story-image-selected]:outline-blue-500',
                   isToolbarCollapsed
-                    ? 'min-h-[550px] max-h-[850px]'
-                    : 'min-h-[380px] max-h-[850px]',
+                    ? 'min-h-[550px] max-h-[1080px]'
+                    : 'min-h-[380px] max-h-[1080px]',
                 )}
                 style={{
-                  height: 'clamp(380px, calc(100dvh - 280px), 850px)',
+                  height: 'clamp(380px, calc(100dvh - 280px), 1080px)',
                   minHeight: isToolbarCollapsed ? '550px' : '380px',
                 }}
               />
