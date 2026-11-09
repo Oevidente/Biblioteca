@@ -226,7 +226,7 @@ export const translations = {
     errorProcess: 'Erro durante o processo: ',
     errorUpdatingStory: 'Erro ao atualizar história: ',
     firestoreWriteQuotaExceeded:
-      'A cota diária gratuita de gravações do Firestore foi esgotada. Ela renova por volta de 00:00 no horário do Pacífico (próximo reset: {resetTime}, no seu fuso local). Suas alterações continuam não salvas; tente novamente após esse horário.',
+      'A cota diária gratuita de gravações do Firestore foi esgotada. O rascunho está salvo neste dispositivo, mas não foi sincronizado com o banco. A cota renova por volta de 00:00 no horário do Pacífico (próximo reset: {resetTime}, no seu fuso local). Tente sincronizar novamente após esse horário.',
     storyTooLargeError:
       'A página {page} ficou pesada demais pra salvar (limite do banco: 1 MB). Remove ou diminui algumas imagens dessa parte e tenta de novo.',
     errorDeletingStory: 'Erro ao apagar história: ',
@@ -452,6 +452,8 @@ export const translations = {
     localDraftPending: 'Alterações ainda não salvas no banco',
     localDraftSavedAt: 'Rascunho local salvo às {time} (não sincronizado)',
     localDraftReady: 'Autosave local ativo; use Salvar para sincronizar',
+    localDraftNotSynced:
+      'Este trabalho ainda não está no banco nem visível para leitores. Mantenha esta sessão aberta ou salve novamente quando possível.',
     localDraftSaveError:
       'Não foi possível salvar o rascunho neste dispositivo.',
     writerDraftConflict:
@@ -839,7 +841,7 @@ export const translations = {
     errorProcess: 'Error durante el proceso: ',
     errorUpdatingStory: 'Error al actualizar la historia: ',
     firestoreWriteQuotaExceeded:
-      'Se agotó la cuota diaria gratuita de escrituras de Firestore. Se renueva alrededor de las 00:00, hora del Pacífico (próximo reinicio: {resetTime}, en tu zona horaria). Tus cambios siguen sin guardarse; inténtalo de nuevo después de esa hora.',
+      'Se agotó la cuota diaria gratuita de escrituras de Firestore. El borrador está guardado en este dispositivo, pero no se sincronizó con la base de datos. La cuota se renueva alrededor de las 00:00, hora del Pacífico (próximo reinicio: {resetTime}, en tu zona horaria). Intenta sincronizar de nuevo después de esa hora.',
     storyTooLargeError:
       'La página {page} es demasiado grande para guardar (límite de la base de datos: 1 MB). Quita o reduce algunas imágenes de esa parte e inténtalo de nuevo.',
     errorDeletingStory: 'Error al eliminar la historia: ',
@@ -1065,6 +1067,8 @@ export const translations = {
     localDraftPending: 'Cambios aún no guardados en la base de datos',
     localDraftSavedAt: 'Borrador local guardado a las {time} (sin sincronizar)',
     localDraftReady: 'Guardado local activo; usa Guardar para sincronizar',
+    localDraftNotSynced:
+      'Este trabajo aún no está en la base de datos ni visible para lectores. Mantén esta sesión abierta o vuelve a guardar cuando sea posible.',
     localDraftSaveError: 'No se pudo guardar el borrador en este dispositivo.',
     writerDraftConflict:
       'La versión de la base de datos cambió desde que se creó este borrador local. Elige cuál abrir.',
@@ -1448,7 +1452,7 @@ export const translations = {
     errorProcess: 'Error during process: ',
     errorUpdatingStory: 'Error updating story: ',
     firestoreWriteQuotaExceeded:
-      'The Firestore free daily write quota has been exhausted. It resets around 12:00 AM Pacific Time (next reset: {resetTime} in your local time zone). Your changes are still unsaved; try again after that time.',
+      'The Firestore free daily write quota has been exhausted. This draft is saved on this device but was not synced to the database. The quota resets around 12:00 AM Pacific Time (next reset: {resetTime} in your local time zone). Try syncing again after that time.',
     storyTooLargeError:
       'Page {page} is too large to save (database limit: 1 MB). Remove or shrink some images in that part and try again.',
     errorDeletingStory: 'Error deleting story: ',
@@ -1673,6 +1677,8 @@ export const translations = {
     localDraftPending: 'Changes not yet saved to the database',
     localDraftSavedAt: 'Local draft saved at {time} (not synced)',
     localDraftReady: 'Local autosave is active; use Save to sync',
+    localDraftNotSynced:
+      'This work is not in the database or visible to readers yet. Keep this session open or save again when possible.',
     localDraftSaveError: 'Could not save the draft on this device.',
     writerDraftConflict:
       'The database version changed since this local draft was created. Choose which version to open.',
@@ -2273,6 +2279,8 @@ export const translations = {
     localDraftSavedAt: 'Draf lokal disimpan pukul {time} (belum disinkronkan)',
     localDraftReady:
       'Simpan otomatis lokal aktif; gunakan Simpan untuk sinkronisasi',
+    localDraftNotSynced:
+      'Tulisan ini belum ada di basis data dan belum terlihat oleh pembaca. Biarkan sesi ini tetap terbuka atau simpan kembali nanti.',
     localDraftSaveError: 'Draf tidak dapat disimpan di perangkat ini.',
     writerDraftConflict:
       'Versi basis data berubah sejak draf lokal ini dibuat. Pilih versi yang ingin dibuka.',
@@ -2860,6 +2868,8 @@ export const translations = {
     localDraftPending: '更改尚未保存到数据库',
     localDraftSavedAt: '本地草稿已于 {time} 保存（未同步）',
     localDraftReady: '本地自动保存已启用；点击保存以同步',
+    localDraftNotSynced:
+      '此内容尚未写入数据库，读者也看不到。请保持此会话打开，或稍后再次保存。',
     localDraftSaveError: '无法将草稿保存到此设备。',
     writerDraftConflict:
       '创建此本地草稿后，数据库版本已更改。请选择要打开的版本。',

@@ -149,11 +149,14 @@ function isFirestoreDailyWriteQuotaError(error: unknown): boolean {
   const firebaseError = error as { code?: unknown; message?: unknown };
   const code = String(firebaseError.code || '').toLowerCase();
   const message = String(firebaseError.message || '').toLowerCase();
+  const isResourceExhausted =
+    code === 'resource-exhausted' || code.endsWith('/resource-exhausted');
+  const mentionsQuota =
+    message.includes('free daily write units') ||
+    message.includes('daily write') ||
+    message.includes('quota');
 
-  return (
-    (code === 'resource-exhausted' || code.endsWith('/resource-exhausted')) &&
-    message.includes('free daily write units')
-  );
+  return isResourceExhausted && mentionsQuota;
 }
 
 function getNextFirestoreQuotaReset(now = new Date()): Date {
@@ -247,6 +250,7 @@ export function Writer() {
   const [lastFirestoreSaveTime, setLastFirestoreSaveTime] =
     useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [localDraftSaveFailed, setLocalDraftSaveFailed] = useState(false);
   const [hasDraftConflict, setHasDraftConflict] = useState(false);
   const [localDraft, setLocalDraft] = useState<WriterDraft | null>(null);
   const [serverVersion, setServerVersion] = useState('');
@@ -414,8 +418,10 @@ export function Writer() {
         await saveWriterDraft(draft);
         setLocalDraft(draft);
         setLastLocalDraftSaveTime(new Date(draft.savedAt));
+        setLocalDraftSaveFailed(false);
       } catch (err) {
         console.warn('Local draft save failed:', err);
+        setLocalDraftSaveFailed(true);
         setMessageIsError(true);
         setMessage(t('localDraftSaveError'));
       } finally {
@@ -446,6 +452,7 @@ export function Writer() {
     setIsSaving(true);
     setMessage('');
     setMessageIsError(false);
+    let localCopyAvailable = false;
     try {
       const storyRef = doc(db, 'stories', id);
       const rawPages = pages.length > 0 ? pages : ['<p></p>'];
@@ -474,11 +481,14 @@ export function Writer() {
           await saveWriterDraft(pendingDraft);
           setLocalDraft(pendingDraft);
           setLastLocalDraftSaveTime(new Date(pendingDraft.savedAt));
+          setLocalDraftSaveFailed(false);
+          localCopyAvailable = true;
         } catch (draftError) {
           console.warn(
             'Could not persist draft before manual save:',
             draftError,
           );
+          setLocalDraftSaveFailed(true);
         }
       }
 
@@ -596,6 +606,7 @@ export function Writer() {
       setHasDraftConflict(false);
       setLocalDraft(null);
       setLastLocalDraftSaveTime(null);
+      setLocalDraftSaveFailed(false);
       setLastFirestoreSaveTime(new Date());
       if (user?.uid) {
         try {
@@ -610,10 +621,13 @@ export function Writer() {
       console.error('Error updating story:', err);
       setMessageIsError(true);
       if (isFirestoreDailyWriteQuotaError(err)) {
+        const quotaMessage = t('firestoreWriteQuotaExceeded', {
+          resetTime: formatQuotaResetTime(language),
+        });
         setMessage(
-          t('firestoreWriteQuotaExceeded', {
-            resetTime: formatQuotaResetTime(language),
-          }),
+          localCopyAvailable
+            ? quotaMessage
+            : `${quotaMessage} ${t('localDraftSaveError')}`,
         );
       } else {
         setMessage(t('errorUpdatingStory') + (err?.message || err?.code || ''));
@@ -964,6 +978,8 @@ export function Writer() {
       <main className="min-w-0 w-full">
         {message && (
           <div
+            role={messageIsError ? 'alert' : 'status'}
+            aria-live={messageIsError ? 'assertive' : 'polite'}
             className={`mb-3 rounded-xl border p-3 text-center text-sm font-bold animate-in fade-in slide-in-from-top-4 ${
               messageIsError
                 ? 'border-red-500/30 bg-red-500/10 text-red-800 dark:text-red-300'
@@ -971,6 +987,42 @@ export function Writer() {
             }`}
           >
             {message}
+          </div>
+        )}
+        {hasUnsavedChanges && !hasDraftConflict && (
+          <div className="sticky top-2 z-30 mb-3 flex flex-col gap-3 rounded-xl border border-amber-500/30 bg-[#211b11]/95 p-3 text-sm text-amber-100 shadow-xl backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-2">
+              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-amber-400 animate-pulse" />
+              <div className="min-w-0">
+                <p className="font-bold">
+                  {localDraftSaveFailed
+                    ? t('localDraftSaveError')
+                    : isAutoSaving
+                      ? t('localDraftSaving')
+                      : lastLocalDraftSaveTime
+                        ? t('localDraftSavedAt', {
+                            time: formatTime(lastLocalDraftSaveTime),
+                          })
+                        : t('localDraftPending')}
+                </p>
+                <p className="mt-0.5 text-xs opacity-80">
+                  {t('localDraftNotSynced')}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleSave(story.isDraft ?? true)}
+              disabled={isSaving || isAutoSaving}
+              className="paper-btn-amber flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold disabled:opacity-50"
+            >
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {story.isDraft ? t('saveDraft') : t('saveChanges')}
+            </button>
           </div>
         )}
         {hasDraftConflict && localDraft && (
