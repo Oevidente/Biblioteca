@@ -72,7 +72,6 @@ import { unlockAchievement } from '../lib/achievements';
 import { logUserActivity } from '../lib/social';
 import { translateStoryPageHtml } from '../lib/storyTranslator';
 import { cleanStoryHtml } from '../lib/cleanStoryHtml';
-import { paginateHtmlByWords } from '../lib/storyPagination';
 import { TranslatedText } from '../components/TranslatedText';
 import { StoryContent } from '../components/StoryContent';
 import { BookCoverImage } from '../components/BookCoverImage';
@@ -98,18 +97,14 @@ function getOrCreateGuestId(): string {
   return guestId;
 }
 
-const READER_MAX_WORDS_PER_PAGE = 350;
-
 function normalizeReaderPages(pages: { [pageIdx: number]: string }): string[] {
-  const normalizedPages = Object.keys(pages)
+  const sortedKeys = Object.keys(pages)
     .map(Number)
-    .sort((a, b) => a - b)
-    .flatMap((pageIndex) =>
-      paginateHtmlByWords(
-        cleanStoryHtml(pages[pageIndex]),
-        READER_MAX_WORDS_PER_PAGE,
-      ).map(cleanStoryHtml),
-    );
+    .sort((a, b) => a - b);
+
+  const normalizedPages = sortedKeys.map((pageIndex) =>
+    cleanStoryHtml(pages[pageIndex] || ''),
+  );
 
   return normalizedPages.length > 0 ? normalizedPages : ['<p></p>'];
 }
@@ -347,6 +342,11 @@ export function Reader({
         const normalizedMap = Object.fromEntries(
           normalizedPages.map((content, pageIndex) => [pageIndex, content]),
         );
+        normalizedPages.forEach((content, pageIndex) => {
+          try {
+            sessionStorage.setItem(`page_cache_${id}_${pageIndex}`, content);
+          } catch (e) {}
+        });
         setReaderPages({ storyId: id, pages: normalizedPages });
         setAllPagesContent(normalizedMap);
         setTocHeadings(

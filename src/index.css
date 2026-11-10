@@ -395,4 +395,9 @@ html.dark {
   }
 }
 
+/* Com a quebra automática ligada, as quebras antigas (suaves) não valem: esconde */
+.hide-auto-breaks .page-break-marker[data-auto-break] {
+  display: none;
+}
+
 

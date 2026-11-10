@@ -65,7 +65,6 @@ import {
   IssueCategory,
 } from '../lib/spellChecker';
 import { cleanStoryHtml } from '../lib/cleanStoryHtml';
-import { paginateHtmlByWords } from '../lib/storyPagination';
 import { StoryContent } from './StoryContent';
 import {
   compressImageToDataUrlWithAspectRatio,
@@ -139,7 +138,7 @@ export function StoryEditor({
           if (idx === 0) return p;
           const markerText = t('pageBreakMarker', { page: idx + 1 });
           return (
-            `<div class="page-break-marker" contenteditable="false" style="margin: 2rem 0; padding: 0.75rem 1rem; background: rgba(0,0,0,0.03); border: 1px dashed rgba(0,0,0,0.2); border-radius: 0.75rem; text-align: center; font-size: 0.75rem; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #888; user-select: none;">${markerText}</div>` +
+            `<div class="page-break-marker" data-auto-break="1" contenteditable="false" style="margin: 2rem 0; padding: 0.75rem 1rem; background: rgba(0,0,0,0.03); border: 1px dashed rgba(0,0,0,0.2); border-radius: 0.75rem; text-align: center; font-size: 0.75rem; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #888; user-select: none;">${markerText}</div>` +
             p
           );
         })
@@ -150,6 +149,7 @@ export function StoryEditor({
 
   const [autoPagination, setAutoPagination] = useState<boolean>(true);
   const [wordsPerPage, setWordsPerPage] = useState<number>(300);
+  const paginationSettingsRef = useRef({ autoPagination, wordsPerPage });
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
   const [previewPageIdx, setPreviewPageIdx] = useState<number>(0);
   const [isToolbarCollapsed, setIsToolbarCollapsed] = useState<boolean>(() => {
@@ -536,59 +536,103 @@ export function StoryEditor({
     handleContentChange();
   };
 
+  // Marcadores criados ao reabrir a história levam data-auto-break="1" (quebra suave):
+  // com a paginação automática ligada eles são ignorados e o texto é redistribuído.
+  // Marcadores do botão "Inserir quebra de página" não têm o atributo (quebra fixa).
+  const PAGE_BREAK_MARKER_SPLIT = /(<div class="page-break-marker"[^>]*>.*?<\/div>)/gi;
+
+  const countWords = (text: string) =>
+    text
+      .trim()
+      .split(/\s+/)
+      .filter((w) => w.length > 0).length;
+
+  // Divide um trecho de HTML em páginas por contagem de palavras
+  const paginateByWords = (partHtml: string): string[] => {
+    const temp = document.createElement('div');
+    temp.innerHTML = partHtml;
+
+    const pages: string[] = [];
+    let chunkHtml = '';
+    let chunkWords = 0;
+
+    Array.from(temp.childNodes).forEach((node) => {
+      let blockHtml = '';
+      let blockWords = 0;
+
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        blockHtml = (node as Element).outerHTML;
+        blockWords = countWords(node.textContent || '');
+      } else if (
+        node.nodeType === Node.TEXT_NODE &&
+        (node.textContent || '').trim()
+      ) {
+        // Texto solto na raiz do editor (ex.: primeira linha sem <p>): vira parágrafo
+        const p = document.createElement('p');
+        p.textContent = node.textContent;
+        blockHtml = p.outerHTML;
+        blockWords = countWords(node.textContent || '');
+      } else {
+        return;
+      }
+
+      if (chunkWords > 0 && chunkWords + blockWords > wordsPerPage + 50) {
+        pages.push(cleanStoryHtml(chunkHtml));
+        chunkHtml = blockHtml;
+        chunkWords = blockWords;
+      } else {
+        chunkHtml += blockHtml;
+        chunkWords += blockWords;
+      }
+    });
+
+    if (chunkHtml.trim().length > 0) pages.push(cleanStoryHtml(chunkHtml));
+    return pages;
+  };
+
   // Helper function to split HTML into pages
   const processHtmlIntoPagesBase = (
     html: string,
   ): { pages: string[]; wordCount: number; cleanText: string } => {
     const cleanedHtml = cleanStoryHtml(html);
-    const hasManualBreaks =
-      cleanedHtml.includes('class="page-break-marker"') ||
-      html.includes('class="page-break-marker"');
-
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = cleanedHtml;
-
-    const markers = tempDiv.querySelectorAll('.page-break-marker');
-    markers.forEach((m) => m.remove());
-
     const cleanText = tempDiv.textContent || tempDiv.innerText || '';
-    const words = cleanText
-      .trim()
-      .split(/\s+/)
-      .filter((w) => w.length > 0);
-    const wordCount = words.length;
+    const wordCount = countWords(cleanText);
 
-    if (hasManualBreaks) {
-      const rawParts = cleanedHtml.split(
-        /<div class="page-break-marker"[^>]*>.*?<\/div>/gi,
-      );
-      const pages = rawParts
-        .map((p) => cleanStoryHtml(p.trim()))
-        .filter(
-          (p) => p.length > 0 && p !== '<p><br></p>' && p !== '<p><br/></p>',
-        );
+    const isAuto = autoPagination && wordsPerPage > 0;
 
-      return {
-        pages: pages.length > 0 ? pages : [cleanedHtml || '<p></p>'],
-        wordCount,
-        cleanText,
-      };
-    }
+    // 1) Separa o HTML ORIGINAL pelos marcadores. Tem que ser antes do cleanStoryHtml,
+    //    que remove todos eles. Os marcadores ficam nos índices ímpares do split.
+    const pieces = html.split(PAGE_BREAK_MARKER_SPLIT);
+    const parts: string[] = [];
+    let current = '';
+    pieces.forEach((piece, i) => {
+      if (i % 2 === 0) {
+        current += piece;
+        return;
+      }
+      const isSoft = piece.includes('data-auto-break');
+      if (isAuto && isSoft) return; // quebra suave com auto ligado: ignora e redistribui
+      parts.push(current);
+      current = '';
+    });
+    parts.push(current);
 
-    if (autoPagination && wordsPerPage > 0) {
-      const pages = paginateHtmlByWords(cleanedHtml, wordsPerPage + 50).map(
-        cleanStoryHtml,
-      );
+    // 2) Cada trecho vira uma ou mais páginas
+    const pages: string[] = [];
+    parts.forEach((part) => {
+      const cleanedPart = cleanStoryHtml(part.trim());
+      if (!cleanedPart.trim()) return;
+      if (isAuto) pages.push(...paginateByWords(cleanedPart));
+      else pages.push(cleanedPart);
+    });
 
-      return {
-        pages,
-        wordCount,
-        cleanText,
-      };
-    }
-
+    const usable = pages.filter(
+      (p) => p.length > 0 && p !== '<p><br></p>' && p !== '<p><br/></p>',
+    );
     return {
-      pages: [cleanedHtml || '<p></p>'],
+      pages: usable.length > 0 ? usable : [cleanedHtml || '<p></p>'],
       wordCount,
       cleanText,
     };
@@ -970,6 +1014,16 @@ export function StoryEditor({
       setComputedPages(pages);
       setTotalWords(wordCount);
       triggerSpellCheck(pages);
+
+      // Se mudou a regra de paginação, o Writer também precisa receber as páginas novas
+      const previous = paginationSettingsRef.current;
+      if (
+        previous.autoPagination !== autoPagination ||
+        previous.wordsPerPage !== wordsPerPage
+      ) {
+        paginationSettingsRef.current = { autoPagination, wordsPerPage };
+        onChange(pages, cleanText, wordCount);
+      }
     }
   }, [autoPagination, wordsPerPage, reviewLanguage, triggerSpellCheck]);
 
@@ -1130,7 +1184,7 @@ export function StoryEditor({
     selectedImage?.classList.remove('story-image-selected');
     if (target instanceof HTMLImageElement) {
       target.draggable = false;
-      const gallery = target.closest('.story-image-gallery');
+      const gallery = target.closest<HTMLElement>('.story-image-gallery');
       if (gallery) {
         normalizeImageGalleryLayouts(gallery, handleContentChange);
       }
@@ -2504,6 +2558,7 @@ export function StoryEditor({
                   'w-full overflow-y-auto p-4 sm:p-8 bg-white dark:bg-[#1A1A1A] border border-[#1A1A1A]/15 dark:border-white/15 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1A1A1A] dark:focus:ring-white font-serif text-base sm:text-lg leading-relaxed text-[#1A1A1A] dark:text-[#F5F5F0] shadow-inner prose dark:prose-invert max-w-none transition-all duration-300',
                   '[&>*]:mx-auto [&>*]:max-w-[65ch] [&_img]:mx-auto [&_img]:rounded-lg [&_img]:max-w-full [&_img]:h-auto',
                   '[&_img.story-image-selected]:outline [&_img.story-image-selected]:outline-2 [&_img.story-image-selected]:outline-offset-2 [&_img.story-image-selected]:outline-blue-500',
+                  autoPagination && 'hide-auto-breaks',
                   isToolbarCollapsed
                     ? 'min-h-[550px] max-h-[1080px]'
                     : 'min-h-[380px] max-h-[1080px]',
