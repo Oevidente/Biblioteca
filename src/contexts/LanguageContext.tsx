@@ -297,6 +297,7 @@ export const translations = {
     imageWidth: 'Largura da imagem',
     bulletList: 'Marcadores',
     insertImage: 'Inserir imagem',
+    insertImageGallery: 'Inserir galeria de imagens',
     imageInsertError:
       'Não foi possível inserir a imagem. Tenta outro arquivo (JPG, PNG ou WebP).',
     numberList: 'Numeração',
@@ -913,6 +914,7 @@ export const translations = {
     imageWidth: 'Ancho de imagen',
     bulletList: 'Viñetas',
     insertImage: 'Insertar imagen',
+    insertImageGallery: 'Insertar galería de imágenes',
     imageInsertError:
       'No se pudo insertar la imagen. Prueba con otro archivo (JPG, PNG o WebP).',
     numberList: 'Numeración',
@@ -1524,6 +1526,7 @@ export const translations = {
     imageWidth: 'Image width',
     bulletList: 'Bullet List',
     insertImage: 'Insert image',
+    insertImageGallery: 'Insert image gallery',
     imageInsertError:
       'Could not insert the image. Try another file (JPG, PNG or WebP).',
     numberList: 'Numbered List',
@@ -2117,6 +2120,7 @@ export const translations = {
     underline: 'Garis Bawah',
     strikethrough: 'Coret',
     textColor: 'Warna Teks',
+    insertImageGallery: 'Sisipkan galeri gambar',
     themeColors: 'Warna Tema',
     recentColors: 'Warna Terbaru',
     customColor: 'Warna Kustom',
@@ -2708,6 +2712,7 @@ export const translations = {
     underline: '下划线',
     strikethrough: '删除线',
     textColor: '文字颜色',
+    insertImageGallery: '插入图片画廊',
     themeColors: '主题颜色',
     recentColors: '最近使用',
     customColor: '自定义颜色',

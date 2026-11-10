@@ -42,6 +42,7 @@ import {
   Palette,
   Baseline,
   ImagePlus,
+  Images,
   Loader2,
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
@@ -94,6 +95,16 @@ export function StoryEditor({
   renderReaderPreview,
 }: StoryEditorProps) {
   const { t, language } = useLanguage();
+  const deleteImageLabel =
+    language === 'pt'
+      ? 'Apagar imagem'
+      : language === 'es'
+        ? 'Eliminar imagen'
+        : language === 'id'
+          ? 'Hapus gambar'
+          : language === 'zh'
+            ? '删除图片'
+            : 'Delete image';
   const editorRef = useRef<HTMLDivElement>(null);
   const selectionToolbarRef = useRef<HTMLDivElement>(null);
   const draggedImageRef = useRef<{
@@ -657,6 +668,7 @@ export function StoryEditor({
 
   // ---------- Imagens no texto ----------
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const savedRangeRef = useRef<Range | null>(null);
   const [isInsertingImage, setIsInsertingImage] = useState(false);
   const [imageError, setImageError] = useState('');
@@ -683,7 +695,7 @@ export function StoryEditor({
     }
   };
 
-  const insertImageFiles = async (files: File[]) => {
+  const insertImageFiles = async (files: File[], forceGallery = false) => {
     const images = files.filter((f) => f.type.startsWith('image/'));
     if (images.length === 0 || !editorRef.current) return;
 
@@ -705,7 +717,7 @@ export function StoryEditor({
       document.execCommand(
         'insertHTML',
         false,
-        dataUrls.length > 1
+        forceGallery || dataUrls.length > 1
           ? buildImageGalleryHtml(dataUrls)
           : dataUrls.map(buildImageHtml).join(''),
       );
@@ -1123,11 +1135,28 @@ export function StoryEditor({
     setSelectedImage(target instanceof HTMLImageElement ? target : null);
   };
 
+  const deleteSelectedImage = () => {
+    const image = selectedImage;
+    const editor = editorRef.current;
+    if (!image || !editor?.contains(image)) return;
+
+    const gallery = image.closest('.story-image-gallery');
+    image.remove();
+    if (gallery && !gallery.querySelector('img')) gallery.remove();
+
+    setSelectedImage(null);
+    setSelectionToolbarPosition(null);
+    handleContentChange();
+    editor.focus();
+  };
+
   const getImageWidthPercent = (image: HTMLImageElement) => {
     const inlineWidth = Number.parseFloat(image.style.width);
     if (image.style.width.endsWith('%') && Number.isFinite(inlineWidth)) {
       return Math.max(15, Math.min(100, Math.round(inlineWidth)));
     }
+
+    if (image.closest('.story-image-gallery')) return 100;
 
     const editor = editorRef.current;
     if (!editor) return 55;
@@ -1811,6 +1840,20 @@ export function StoryEditor({
                     <ImagePlus className="w-4 h-4" />
                   )}
                 </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    saveSelection();
+                    galleryInputRef.current?.click();
+                  }}
+                  disabled={isInsertingImage}
+                  className="p-2 hover:bg-[#1A1A1A]/5 dark:hover:bg-white/5 rounded-lg disabled:opacity-40"
+                  title={t('insertImageGallery')}
+                  aria-label={t('insertImageGallery')}
+                >
+                  <Images className="w-4 h-4" />
+                </button>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -1821,6 +1864,18 @@ export function StoryEditor({
                     const files = Array.from(e.target.files || []) as File[];
                     e.target.value = '';
                     insertImageFiles(files);
+                  }}
+                />
+                <input
+                  ref={galleryInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []) as File[];
+                    e.target.value = '';
+                    insertImageFiles(files, true);
                   }}
                 />
               </div>
@@ -2546,6 +2601,7 @@ export function StoryEditor({
                             handleContentChange();
                             updateSelectionToolbar();
                           }}
+
                           onPointerCancel={() => {
                             isResizingImageRef.current = false;
                             handleContentChange();
@@ -2608,6 +2664,16 @@ export function StoryEditor({
                         <span className="w-9 shrink-0 text-right text-[10px] font-mono tabular-nums">
                           {selectedImageWidth}%
                         </span>
+                        <div className="mx-1 h-5 w-px shrink-0 bg-[#1A1A1A]/10 dark:bg-white/15" />
+                        <button
+                          type="button"
+                          onClick={deleteSelectedImage}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-red-600 hover:bg-red-500/10 dark:text-red-400"
+                          title={deleteImageLabel}
+                          aria-label={deleteImageLabel}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </>
                     ) : (
                       <>

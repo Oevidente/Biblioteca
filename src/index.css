@@ -379,11 +379,12 @@ html.dark {
 
 .story-image-gallery img {
   display: block !important;
-  width: 100% !important;
+  width: 100%;
   max-width: 100% !important;
   height: auto !important;
   margin: 0 !important;
   float: none !important;
+  justify-self: center;
   border-radius: 0.5rem;
 }
 
