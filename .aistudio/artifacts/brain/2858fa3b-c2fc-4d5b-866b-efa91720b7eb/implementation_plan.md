@@ -1,51 +1,51 @@
-# Sincronização Definitiva de Paginação entre Leitor e Editor
+# Visualizador de Imagens (Lightbox) para Histórias e Galerias
 
-Sincronização 1:1 das páginas exibidas no Leitor com as páginas geradas e salvas pelo Editor, eliminando re-quebras indesejadas e páginas com parágrafos soltos, tanto para novas histórias quanto para obras já salvas.
+Implementação de uma experiência imersiva de visualização de imagens (Lightbox) para o leitor, permitindo ampliar ilustrações e fotos de capa ou corpo de texto, navegar entre as fotos de uma mesma galeria, aplicar zoom interativo e fechar com múltiplos métodos naturais (botão, tecla Esc ou clique fora).
 
 ### User Review & Critical Decisions
 
 > [!IMPORTANT]
-> **Diagnóstico baseado nas respostas fornecidas:**
-> 1. **Histórias antigas mantêm as páginas gravadas na versão anterior:** Histórias que já estavam salvas no Firestore antes da atualização continuam com suas páginas antigas no banco até que sejam abertas no editor e salvas novamente.
-> 2. **Re-paginação redundante no Leitor (`Reader.tsx`):** O `Reader.tsx` possui a função `normalizeReaderPages` que executava `paginateHtmlByWords(cleanStoryHtml(pages[pageIndex]), 350)`. Ou seja, mesmo quando o autor definia e salvava as páginas certinhas, o Leitor recebia cada página salva e tentava redividi-la aos 350 palavras. Qualquer página com mais de 350 palavras era fatiada em duas, gerando uma página seguinte com apenas 1 ou 2 parágrafos antes da quebra original.
-
-- **Decisão Confirmada 1**: O Leitor (`Reader.tsx`) deve confiar estritamente nas páginas que o autor gerou e salvou no Firestore, sem re-fatiar cada página com `paginateHtmlByWords`.
-- **Decisão Confirmada 2**: O `normalizeReaderPages` deve apenas ordenar os índices das páginas e aplicar `cleanStoryHtml`, preservando a divisão exata decidida no Editor.
-- **Decisão Confirmada 3**: Para histórias já salvas no Firestore com divisão antiga, ao abrir a história no Writer ela será redistribuída pela nova regra suave (`data-auto-break="1"`) e, ao clicar em Salvar, o banco é atualizado definitivamente.
+> **Decisões confirmadas pelo usuário:**
+> 1. **Fechamento**: Botão de fechar (ícone X), tecla `Esc` no teclado e clique no fundo escuro (fora da imagem).
+> 2. **Zoom**: Suporte a duplo clique na imagem (toggle 1x / 2x), botões de controle de zoom (+ / - / reset) e ajuste automático à tela (fit to screen).
+> 3. **Contador de Galeria**: Quando a imagem pertencer a uma galeria com múltiplas imagens, exibir contador visual claro (ex.: `1 de 3`) acompanhado das setas de navegação (anterior / próxima) e navegação por teclado (setas esquerda / direita).
 
 ---
 
 ### 1. Overview & Core Concept
 
-- **O que faz**: Garante paridade absoluta entre o que o autor vê na prévia do Editor e o que os leitores visualizam na tela de leitura. Cada página salva é exibida integralmente pelo Leitor sem subdivisões forçadas e sem sobras de parágrafos.
-- **Público-Alvo**: Escritores e leitores da plataforma Inkora.
-- **Benefício**: Leitura fluida, sem quebras arbitrárias no meio de seções e sem descompasso entre a numeração do editor e a experiência do leitor.
+- **O que faz**: Transforma qualquer imagem de história (seja isolada ou em grade/galeria) em um elemento clicável no Leitor. Ao clicar, abre um visualizador com fundo escuro translúcido, renderização nítida, controles de zoom e carrossel para fotos da mesma galeria.
+- **Público-Alvo**: Leitores que querem apreciar ilustrações, mapas, fanarts e artes conceituais em detalhes sem sair do fluxo da leitura.
+- **Valor**: Enriquece a imersão visual da plataforma Inkora, oferecendo uma experiência moderna similar a plataformas como Medium, Substack e ArtStation.
 
 ---
 
 ### 2. User Experience & Visual Design
 
-- **Fluxo do Leitor**:
-  1. O leitor acessa a história (seja antiga ou recente).
-  2. As páginas carregadas do Firestore são exibidas exatamente como gravadas (Página 1 = Página 1 do autor, Página 2 = Página 2 do autor).
-  3. Não ocorrem fatiamentos artificiais onde 1 ou 2 parágrafos pulam para uma página intermediária.
-- **Fluxo do Autor (História Antiga)**:
-  1. Autor abre uma história já existente no Writer.
-  2. O `StoryEditor` reconhece os marcadores anteriores como suaves (`data-auto-break="1"`).
-  3. Com a quebra automática ativada, o texto é redistribuído uniformemente.
-  4. O autor clica em "Salvar Alterações". Todas as páginas no Firestore são atualizadas com a paginação correta.
+- **Acionamento**:
+  - Imagens dentro do texto recebem `cursor-pointer` e sutil transição visual ao passar o mouse (`hover:opacity-90` e efeito suave de expansão).
+  - Um toque ou clique rápido abre imediatamente o modal com animação fluida de transição (`fade + scale`).
+- **Comportamento da Galeria**:
+  - Se a imagem estiver dentro de uma galeria (`.story-image-gallery`), o modal identifica todas as imagens irmãs dessa galeria específica.
+  - Exibe setas laterais de navegação elegantes, contador no topo (`1 de 4`) e atalhos de teclado (seta esquerda / seta direita).
+- **Controles de Zoom e Movimento**:
+  - Duplo clique na imagem alterna entre zoom normal e 2x.
+  - Barra de ações superior/inferior discreta com botões de zoom in (`+`), zoom out (`-`), reset e fechar (`✕`).
+  - Quando em zoom, permite arrastar suavemente (pan) para inspecionar detalhes.
+- **Fechamento Rápido**:
+  - Botão `X` no canto superior direito com área de toque acessível (mínimo 44px).
+  - Pressionar a tecla `Escape`.
+  - Clicar na área escura do backdrop.
 
 ---
 
 ### 3. Key Product Decisions & Trade-Offs
 
-- **Decisão: Remover `paginateHtmlByWords` do `normalizeReaderPages` em `Reader.tsx`**:
-  - *Abordagem Escolhida*: O Leitor renderiza fielmente o array de páginas que vem do Firestore (ou preview). Ele apenas higieniza o HTML com `cleanStoryHtml` e garante a ordem numérica crescente.
-  - *Por quê*: O Editor (`StoryEditor.tsx`) já possui toda a inteligência de paginação por palavras, respeito a quebras manuais e divisão de segurança de imagens pesadas (`splitOversizedPages`). Executar uma segunda paginação no Leitor desfazia o trabalho do editor e criava páginas órfãs com parágrafos curtos.
-  - *Alternativa descartada*: Manter o `paginateHtmlByWords` no Reader com limite maior (ex: 500 palavras). Descartada porque ainda causaria discrepâncias se o autor ajustasse o controle de palavras no editor.
-
-- **Decisão: Limpeza de Cache de Sessão do Leitor (`sessionStorage`)**:
-  - *Abordagem Escolhida*: Garantir que, ao atualizar ou navegar, caches antigos de páginas (`page_cache_${id}_${currentPage}`) não sirvam páginas velhas fatiadas.
+- **Decisão: Componente dedicado `ImageLightboxModal` integrado em `StoryContent`**:
+  - *Abordagem*: Criar o componente `ImageLightboxModal` (via React Portal no `document.body` para evitar problemas de stacking context e overflow) e ativá-lo por delegação de evento em `StoryContent.tsx`.
+  - *Por quê*: Centralizar o listener no container de `StoryContent` elimina a necessidade de injetar eventos DOM manualmente em cada tag `<img>` gerada por HTML dinâmico, além de beneficiar automaticamente tanto a tela do Leitor (`Reader.tsx`) quanto a aba de pré-visualização do Editor (`StoryEditor.tsx`).
+- **Decisão: Isolamento de Galeria**:
+  - *Abordagem*: O carrossel é restrito à galeria específica da imagem clicada (`target.closest('.story-image-gallery')`). Se a imagem for única no parágrafo, ela abre isolada sem setas ou contadores desnecessários.
 
 ---
 
@@ -53,24 +53,27 @@ Sincronização 1:1 das páginas exibidas no Leitor com as páginas geradas e sa
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                       FLUXO DE DADOS                        │
+│                   ARQUITETURA DO LIGHTBOX                   │
 └─────────────────────────────────────────────────────────────┘
 
-       [ StoryEditor ]
-             │
-             │ (1) Paginação única com tolerância e quebras manuais
-             ▼
-     [ Firestore: stories/{id}/pages/{index} ]
-             │
-             │ (2) Leitura direta das páginas gravadas
-             ▼
-        [ Reader.tsx ]
-             │
-             │ (3) normalizeReaderPages (apenas ordenação + sanitização)
-             ▼
-      [ Leitor Fiel 1:1 ] (Sem re-fatiamento por palavras)
+       [ StoryContent.tsx ]  <── Container com HTML renderizado
+                │
+                │ (1) Clique detectado em <img src="..." />
+                ▼
+  [ Análise de Contexto DOM ]
+    ├── Imagem avulsa ───> [ Imagem única ]
+    └── .story-image-gallery ──> [ Array de URLs + Índice Ativo ]
+                │
+                │ (2) Estado { isOpen, images, activeIndex, zoom }
+                ▼
+   [ ImageLightboxModal.tsx ] (Renderizado via createPortal)
+    ├── Backdrop com blur (click to close)
+    ├── Barra superior: Contador ("1 de 3") + Botão Fechar (X)
+    ├── Imagem com suporte a Zoom e Duplo Clique
+    └── Setas laterais anteriores/próximas (se galeria > 1)
 ```
 
-- **Arquitetura de Componentes**:
-  - `src/pages/Reader.tsx`: Ajustar `normalizeReaderPages` para não chamar `paginateHtmlByWords`. Apenas ordenar `pages` por índice, limpar com `cleanStoryHtml` e retornar a lista limpa.
-  - `src/components/StoryEditor.tsx`: Manter a lógica implementada de quebras suaves (`data-auto-break="1"`), ocultação visual e sincronização de estado com o Writer.
+- **Arquivos a criar/modificar**:
+  - `src/components/ImageLightboxModal.tsx`: Componente de modal com animação, suporte a gestos/toque, teclado (Esc, setas), zoom e carrossel.
+  - `src/components/StoryContent.tsx`: Delegação do evento `onClick` para detectar elementos `<img>`, extrair as URLs da galeria correspondente e disparar o lightbox.
+  - `src/contexts/LanguageContext.tsx`: Adicionar traduções das ações do lightbox (`close`, `zoomIn`, `zoomOut`, `nextImage`, `previousImage`, `imageOf`).

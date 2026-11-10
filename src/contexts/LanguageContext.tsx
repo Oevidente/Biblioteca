@@ -620,6 +620,13 @@ export const translations = {
     languageToolActive: 'LanguageTool (Online)',
     fallbackModeActive: 'Verificador Local (Offline / Fallback)',
     checkingProgress: 'Verificando texto...',
+    closeImage: 'Fechar visualização',
+    zoomIn: 'Aumentar zoom',
+    zoomOut: 'Diminuir zoom',
+    resetZoom: 'Ajustar à tela',
+    imageCounter: '{current} de {total}',
+    prevImage: 'Imagem anterior',
+    nextImage: 'Próxima imagem',
   },
   es: {
     // Navigation / Header / Footer
@@ -1237,6 +1244,13 @@ export const translations = {
     languageToolActive: 'LanguageTool (En línea)',
     fallbackModeActive: 'Verificador Local (Sin conexión / Fallback)',
     checkingProgress: 'Comprobando texto...',
+    closeImage: 'Cerrar vista',
+    zoomIn: 'Acercar',
+    zoomOut: 'Alejar',
+    resetZoom: 'Ajustar a la pantalla',
+    imageCounter: '{current} de {total}',
+    prevImage: 'Imagen anterior',
+    nextImage: 'Siguiente imagen',
   },
   en: {
     // Navigation / Header / Footer
@@ -1847,6 +1861,13 @@ export const translations = {
     languageToolActive: 'LanguageTool (Online)',
     fallbackModeActive: 'Local Checker (Offline / Fallback)',
     checkingProgress: 'Checking text...',
+    closeImage: 'Close viewer',
+    zoomIn: 'Zoom in',
+    zoomOut: 'Zoom out',
+    resetZoom: 'Fit to screen',
+    imageCounter: '{current} of {total}',
+    prevImage: 'Previous image',
+    nextImage: 'Next image',
   },
   id: {
     // Navigation / Header / Footer
@@ -2450,6 +2471,13 @@ export const translations = {
     languageToolActive: 'LanguageTool (Dalam Talian)',
     fallbackModeActive: 'Pemeriksa Lokal (Luar Talian / Cadangan)',
     checkingProgress: 'Memeriksa teks...',
+    closeImage: 'Tutup penampil',
+    zoomIn: 'Perbesar',
+    zoomOut: 'Perkecil',
+    resetZoom: 'Sesuaikan layar',
+    imageCounter: '{current} dari {total}',
+    prevImage: 'Gambar sebelumnya',
+    nextImage: 'Gambar berikutnya',
   },
   zh: {
     // Navigation / Header / Footer
@@ -3033,6 +3061,13 @@ export const translations = {
     languageToolActive: 'LanguageTool (在线)',
     fallbackModeActive: '本地检查器 (离线 / 备用)',
     checkingProgress: '正在检查文本...',
+    closeImage: '关闭查看器',
+    zoomIn: '放大',
+    zoomOut: '缩小',
+    resetZoom: '适应屏幕',
+    imageCounter: '{current} / {total}',
+    prevImage: '上一张图片',
+    nextImage: '下一张图片',
   },
 } as const;
 
