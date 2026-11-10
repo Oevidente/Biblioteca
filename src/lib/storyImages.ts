@@ -50,6 +50,17 @@ export async function compressImageToDataUrl(
   source: Blob,
   options: CompressOptions = {},
 ): Promise<string> {
+  const compressed = await compressImageToDataUrlWithAspectRatio(
+    source,
+    options,
+  );
+  return compressed.dataUrl;
+}
+
+export async function compressImageToDataUrlWithAspectRatio(
+  source: Blob,
+  options: CompressOptions = {},
+): Promise<{ dataUrl: string; aspectRatio: number }> {
   const maxWidth = options.maxWidth ?? MAX_IMAGE_WIDTH;
   const maxHeight = options.maxHeight ?? MAX_IMAGE_HEIGHT;
   const maxBytes = options.maxBytes ?? MAX_IMAGE_BYTES;
@@ -76,11 +87,13 @@ export async function compressImageToDataUrl(
     ctx.fillRect(0, 0, width, height);
     ctx.drawImage(img, 0, 0, width, height);
     result = canvas.toDataURL('image/jpeg', quality);
-    if (getByteSize(result) <= maxBytes) return result;
+    if (getByteSize(result) <= maxBytes) {
+      return { dataUrl: result, aspectRatio: srcW / srcH };
+    }
     if (quality > 0.55) quality -= 0.1;
     else scale *= 0.8;
   }
-  return result;
+  return { dataUrl: result, aspectRatio: srcW / srcH };
 }
 
 /**
@@ -93,14 +106,56 @@ export function buildImageHtml(src: string): string {
   return `<img src="${src}" alt="" loading="lazy" decoding="async" style="display:block;max-width:100%;height:auto;margin:1rem auto;border-radius:0.5rem" />`;
 }
 
-export function buildImageGalleryHtml(sources: string[]): string {
-  const images = sources
-    .map(
-      (src) =>
-        `<img src="${src}" alt="" loading="lazy" decoding="async" />`,
-    )
+export function buildImageGalleryHtml(
+  images: Array<{ src: string; aspectRatio: number }>,
+): string {
+  const columns = images
+    .map(({ aspectRatio }) => `${getSafeImageAspectRatio(aspectRatio)}fr`)
+    .join(' ');
+  const imageHtml = images
+    .map(({ src }) => `<img src="${src}" alt="" loading="lazy" decoding="async" />`)
     .join('');
-  return `<div class="story-image-gallery">${images}</div><p><br></p>`;
+  return `<div class="story-image-gallery" style="grid-template-columns:${columns}">${imageHtml}</div><p><br></p>`;
+}
+
+function getSafeImageAspectRatio(aspectRatio: number): number {
+  return Number.isFinite(aspectRatio)
+    ? Math.max(0.2, Math.min(5, aspectRatio))
+    : 1;
+}
+
+export function normalizeImageGalleryLayouts(
+  root: HTMLElement,
+  onLayoutChange?: () => void,
+): void {
+  const galleries = Array.from(
+    root.matches('.story-image-gallery')
+      ? [root, ...root.querySelectorAll<HTMLElement>('.story-image-gallery')]
+      : root.querySelectorAll<HTMLElement>('.story-image-gallery'),
+  );
+
+  for (const gallery of galleries) {
+    const images = Array.from(gallery.querySelectorAll('img'));
+    const updateLayout = () => {
+      const aspectRatios = images.map((image) =>
+        image.naturalWidth && image.naturalHeight
+          ? image.naturalWidth / image.naturalHeight
+          : 0,
+      );
+      if (aspectRatios.some((aspectRatio) => aspectRatio <= 0)) return;
+
+      const columns = aspectRatios
+        .map((aspectRatio) => `${getSafeImageAspectRatio(aspectRatio)}fr`)
+        .join(' ');
+      if (gallery.style.gridTemplateColumns !== columns) {
+        gallery.style.gridTemplateColumns = columns;
+        onLayoutChange?.();
+      }
+    };
+
+    images.forEach((image) => image.addEventListener('load', updateLayout));
+    updateLayout();
+  }
 }
 
 /**

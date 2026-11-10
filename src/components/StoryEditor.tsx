@@ -68,9 +68,10 @@ import { cleanStoryHtml } from '../lib/cleanStoryHtml';
 import { paginateHtmlByWords } from '../lib/storyPagination';
 import { StoryContent } from './StoryContent';
 import {
-  compressImageToDataUrl,
+  compressImageToDataUrlWithAspectRatio,
   buildImageHtml,
   buildImageGalleryHtml,
+  normalizeImageGalleryLayouts,
   normalizeEditorImages,
   splitOversizedPages,
 } from '../lib/storyImages';
@@ -702,24 +703,28 @@ export function StoryEditor({
     setIsInsertingImage(true);
     setImageError('');
     try {
-      const dataUrls: string[] = [];
+      const galleryImages: Array<{ src: string; aspectRatio: number }> = [];
       for (const file of images) {
         try {
-          dataUrls.push(await compressImageToDataUrl(file));
+          const compressed = await compressImageToDataUrlWithAspectRatio(file);
+          galleryImages.push({
+            src: compressed.dataUrl,
+            aspectRatio: compressed.aspectRatio,
+          });
         } catch (err) {
           console.error('Erro ao processar imagem:', err);
           setImageError(t('imageInsertError'));
         }
       }
-      if (dataUrls.length === 0) return;
+      if (galleryImages.length === 0) return;
 
       restoreSelection();
       document.execCommand(
         'insertHTML',
         false,
-        forceGallery || dataUrls.length > 1
-          ? buildImageGalleryHtml(dataUrls)
-          : dataUrls.map(buildImageHtml).join(''),
+        forceGallery || galleryImages.length > 1
+          ? buildImageGalleryHtml(galleryImages)
+          : galleryImages.map(({ src }) => buildImageHtml(src)).join(''),
       );
       editorRef.current.querySelectorAll('img').forEach((image) => {
         image.draggable = false;
@@ -953,6 +958,7 @@ export function StoryEditor({
       setComputedPages(pages);
       setTotalWords(wordCount);
       onChange(pages, cleanText, wordCount);
+      normalizeImageGalleryLayouts(editorRef.current, handleContentChange);
       triggerSpellCheck(pages);
     }
   }, [initialPages]);
@@ -1124,6 +1130,10 @@ export function StoryEditor({
     selectedImage?.classList.remove('story-image-selected');
     if (target instanceof HTMLImageElement) {
       target.draggable = false;
+      const gallery = target.closest('.story-image-gallery');
+      if (gallery) {
+        normalizeImageGalleryLayouts(gallery, handleContentChange);
+      }
       target.classList.add('story-image-selected');
       const width = getImageWidthPercent(target);
       setSelectedImageWidth(width);
