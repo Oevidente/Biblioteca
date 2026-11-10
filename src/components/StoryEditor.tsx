@@ -584,7 +584,10 @@ export function StoryEditor({
           const wordPattern = /\S+/g;
           let match: RegExpExecArray | null;
           while ((match = wordPattern.exec(textNode.textContent || ''))) {
-            wordEnds.push({ node: textNode, offset: match.index + match[0].length });
+            wordEnds.push({
+              node: textNode,
+              offset: match.index + match[0].length,
+            });
           }
           textNode = walker.nextNode() as Text | null;
         }
@@ -599,7 +602,11 @@ export function StoryEditor({
         let startNode = wordEnds[0].node;
         let startOffset = 0;
 
-        for (let startIndex = 0; startIndex < wordEnds.length; startIndex += maxChunkWords) {
+        for (
+          let startIndex = 0;
+          startIndex < wordEnds.length;
+          startIndex += maxChunkWords
+        ) {
           const endIndex = Math.min(
             startIndex + maxChunkWords - 1,
             wordEnds.length - 1,
@@ -627,19 +634,21 @@ export function StoryEditor({
       };
 
       paragraphs.forEach((child) => {
-        splitOversizedBlock(child).forEach(({ html, wordCount: blockWordCount }) => {
-          if (
-            currentChunkWords > 0 &&
-            currentChunkWords + blockWordCount > maxChunkWords
-          ) {
-            pages.push(cleanStoryHtml(currentChunkHtml));
-            currentChunkHtml = html;
-            currentChunkWords = blockWordCount;
-          } else {
-            currentChunkHtml += html;
-            currentChunkWords += blockWordCount;
-          }
-        });
+        splitOversizedBlock(child).forEach(
+          ({ html, wordCount: blockWordCount }) => {
+            if (
+              currentChunkWords > 0 &&
+              currentChunkWords + blockWordCount > maxChunkWords
+            ) {
+              pages.push(cleanStoryHtml(currentChunkHtml));
+              currentChunkHtml = html;
+              currentChunkWords = blockWordCount;
+            } else {
+              currentChunkHtml += html;
+              currentChunkWords += blockWordCount;
+            }
+          },
+        );
       });
 
       if (currentChunkHtml.trim().length > 0) {
