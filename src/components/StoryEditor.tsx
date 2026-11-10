@@ -103,6 +103,7 @@ export function StoryEditor({
     active: boolean;
   } | null>(null);
   const isResizingImageRef = useRef(false);
+  const suppressImageClickRef = useRef(false);
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(
     null,
   );
@@ -487,6 +488,25 @@ export function StoryEditor({
     };
   }, [updateSelectionToolbar]);
 
+  // Clicar fora do editor e da barra flutuante desmarca a imagem selecionada
+  useEffect(() => {
+    if (!selectedImage) return;
+    const onDocumentPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (
+        editorRef.current?.contains(target) ||
+        selectionToolbarRef.current?.contains(target)
+      ) {
+        return;
+      }
+      selectedImage.classList.remove('story-image-selected');
+      setSelectedImage(null);
+    };
+    document.addEventListener('pointerdown', onDocumentPointerDown);
+    return () =>
+      document.removeEventListener('pointerdown', onDocumentPointerDown);
+  }, [selectedImage]);
+
   const handleFormatBlock = (tag: string) => {
     executeCommand('formatBlock', `<${tag}>`);
   };
@@ -814,9 +834,6 @@ export function StoryEditor({
     }
 
     e.preventDefault();
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {}
 
     const previousImage = selectedImage;
     previousImage?.classList.remove('story-image-selected');
@@ -845,9 +862,14 @@ export function StoryEditor({
     if (!drag || drag.pointerId !== e.pointerId || !editor) return;
 
     if (!drag.active) {
-      if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < 5) {
+      if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < 8) {
         return;
       }
+
+      // O arraste de verdade começou: agora sim captura o ponteiro
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {}
 
       const preview = drag.image.cloneNode(true) as HTMLImageElement;
       preview.draggable = false;
@@ -893,6 +915,10 @@ export function StoryEditor({
     draggedImageRef.current = null;
 
     if (drag.active && drag.preview) {
+      suppressImageClickRef.current = true;
+      window.setTimeout(() => {
+        suppressImageClickRef.current = false;
+      }, 0);
       if (cancelled) {
         const originParent = drag.originParent;
         const nextSibling = drag.originNextSibling;
@@ -1104,6 +1130,7 @@ export function StoryEditor({
   };
 
   const handleEditorClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (suppressImageClickRef.current) return;
     handleEditorFocus();
     const target = e.target;
     selectedImage?.classList.remove('story-image-selected');

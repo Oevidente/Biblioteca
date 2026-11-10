@@ -96,10 +96,10 @@ export const translations = {
 
     // Eye Comfort
     eyeComfort: 'Conforto Ocular',
-    blueFilter: 'Filtro Azul',
+    blueFilter: 'Filtro Anti-Luz Azul',
     filterIntensity: 'Intensidade do Filtro',
     eyeComfortDescription:
-      'Filtro azul para ajustar o conforto visual durante a leitura',
+      'Filtro amarelado/âmbar para reduzir a luz azul e o cansaço visual',
     off: 'Desligado',
 
     // Auth Modal
@@ -711,10 +711,10 @@ export const translations = {
 
     // Eye Comfort
     eyeComfort: 'Confort Ocular',
-    blueFilter: 'Filtro Azul',
+    blueFilter: 'Filtro Anti-Luz Azul',
     filterIntensity: 'Intensidad del Filtro',
     eyeComfortDescription:
-      'Filtro azul para ajustar el confort visual durante la lectura',
+      'Filtro ámbar cálido para reducir la luz azul y la fatiga visual',
     off: 'Desactivado',
 
     // Auth Modal
@@ -1326,9 +1326,9 @@ export const translations = {
 
     // Eye Comfort
     eyeComfort: 'Eye Comfort',
-    blueFilter: 'Blue Filter',
+    blueFilter: 'Anti-Blue Light Filter',
     filterIntensity: 'Filter Intensity',
-    eyeComfortDescription: 'Blue filter to adjust visual comfort while reading',
+    eyeComfortDescription: 'Warm amber filter to reduce blue light and eye strain while reading',
     off: 'Off',
 
     // Auth Modal
@@ -1936,10 +1936,10 @@ export const translations = {
 
     // Eye Comfort
     eyeComfort: 'Kenyamanan Mata',
-    blueFilter: 'Filter Biru',
+    blueFilter: 'Filter Anti-Cahaya Biru',
     filterIntensity: 'Intensitas Filter',
     eyeComfortDescription:
-      'Filter kuning anti-lelah untuk membaca dengan nyaman',
+      'Filter kuning hangat anti-lelah untuk membaca dengan nyaman',
     off: 'Mati',
 
     // Auth Modal
@@ -2531,9 +2531,9 @@ export const translations = {
 
     // Eye Comfort
     eyeComfort: '护眼模式',
-    blueFilter: '蓝色护眼滤镜',
+    blueFilter: '防蓝光暖光滤镜',
     filterIntensity: '滤镜强度',
-    eyeComfortDescription: '舒缓抗疲劳黄光滤镜，带来舒适阅读体验',
+    eyeComfortDescription: '舒缓抗疲劳暖黄滤镜，减少蓝光带来舒适阅读体验',
     off: '关闭',
 
     // Auth Modal

@@ -1653,7 +1653,7 @@ export function Reader() {
                       className={cn(
                         'p-2 rounded-xl transition-colors shrink-0 flex items-center justify-center',
                         eyeComfortIntensity > 0
-                          ? 'bg-blue-400/20 text-blue-700 dark:text-blue-300'
+                          ? 'bg-amber-400/20 text-amber-700 dark:text-amber-300'
                           : 'bg-[#1A1A1A]/5 dark:bg-white/5 opacity-60',
                       )}
                     >
@@ -1665,7 +1665,7 @@ export function Reader() {
                           {t('eyeComfort')}
                         </h3>
                         {eyeComfortIntensity > 0 && (
-                          <span className="text-[9px] bg-blue-400/25 text-blue-900 dark:text-blue-200 font-mono font-bold px-2 py-0.5 rounded-full">
+                          <span className="text-[9px] bg-amber-400/25 text-amber-900 dark:text-amber-200 font-mono font-bold px-2 py-0.5 rounded-full">
                             {eyeComfortIntensity}%
                           </span>
                         )}
@@ -1676,7 +1676,7 @@ export function Reader() {
                   <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto min-w-0">
                     {/* Slider */}
                     <div className="flex items-center gap-2.5 w-full sm:flex-1 sm:min-w-[180px] px-3 py-1.5 rounded-xl paper-card">
-                      <Sun className="w-3.5 h-3.5 opacity-50 shrink-0 text-blue-500" />
+                      <Sun className="w-3.5 h-3.5 opacity-60 shrink-0 text-amber-500" />
                       <input
                         type="range"
                         min="0"
@@ -1686,7 +1686,7 @@ export function Reader() {
                         onChange={(e) =>
                           setEyeComfortIntensity(Number(e.target.value))
                         }
-                        className="w-full h-1.5 bg-[#1A1A1A]/10 dark:bg-white/20 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        className="w-full h-1.5 bg-[#1A1A1A]/10 dark:bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-500"
                         title={t('filterIntensity')}
                         aria-label={t('filterIntensity')}
                       />
@@ -1709,7 +1709,7 @@ export function Reader() {
                           className={cn(
                             'text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-lg transition-all',
                             eyeComfortIntensity === preset.val
-                              ? 'paper-btn-accent font-extrabold shadow-sm'
+                              ? 'bg-amber-500/20 text-amber-800 dark:text-amber-200 border border-amber-500/40 font-extrabold shadow-sm'
                               : 'opacity-70 hover:opacity-100 paper-btn-light text-[#1A1A1A] dark:text-[#F5F5F0]',
                           )}
                         >
@@ -1763,12 +1763,12 @@ export function Reader() {
               </div>
             )}
 
-            {/* Eye Comfort Blue Filter Overlay */}
+            {/* Eye Comfort Warm Amber/Yellow Filter Overlay (Anti-Luz Azul) */}
             {eyeComfortIntensity > 0 && (
               <div
                 className="absolute inset-0 rounded-2xl pointer-events-none z-20 transition-colors duration-200"
                 style={{
-                  backgroundColor: `rgba(59, 130, 246, ${(eyeComfortIntensity / 100) * (readerMode === 'dark' ? 0.22 : 0.36)})`,
+                  backgroundColor: `rgba(245, 158, 11, ${(eyeComfortIntensity / 100) * (readerMode === 'dark' ? 0.18 : 0.28)})`,
                   mixBlendMode: readerMode === 'dark' ? 'screen' : 'multiply',
                 }}
               />
@@ -1789,10 +1789,10 @@ export function Reader() {
               ) : (
                 <motion.div
                   key={currentPage}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.3 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18 }}
                   ref={containerRef}
                   className="w-full"
                 >

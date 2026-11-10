@@ -1,0 +1,6 @@
+{
+  "summary":  "Plano de implementação para correção do limite de 1 MB de documento no Firestore através de compressão automática de imagens e paginação segura, além da implementação de upload e processamento de arquivos PDF no padrão de armazenamento atual.",
+  "updatedAt":  "2026-09-30T16:56:50.970695399Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

@@ -90,7 +90,7 @@ export async function compressImageToDataUrl(
  * imagem aparece sozinha na linha, centralizada, e o cursor continua depois dela.
  */
 export function buildImageHtml(src: string): string {
-  return `<img src="${src}" alt="" style="display:block;max-width:100%;height:auto;margin:1rem auto;border-radius:0.5rem" />`;
+  return `<img src="${src}" alt="" loading="lazy" decoding="async" style="display:block;max-width:100%;height:auto;margin:1rem auto;border-radius:0.5rem" />`;
 }
 
 /**
@@ -103,6 +103,13 @@ export async function normalizeEditorImages(root: HTMLElement): Promise<boolean>
   let changed = false;
 
   for (const img of imgs) {
+    if (!img.getAttribute('loading')) {
+      img.setAttribute('loading', 'lazy');
+    }
+    if (!img.getAttribute('decoding')) {
+      img.setAttribute('decoding', 'async');
+    }
+
     const src = img.getAttribute('src') || '';
     const isData = src.startsWith('data:');
     const isBlob = src.startsWith('blob:');

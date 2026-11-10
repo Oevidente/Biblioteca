@@ -361,4 +361,19 @@ html.dark {
   }
 }
 
+/* Otimização de performance para leitura no celular e desktop com múltiplas imagens */
+.story-content-optimized img {
+  max-width: 100% !important;
+  height: auto !important;
+  content-visibility: auto;
+  contain-intrinsic-size: 320px;
+}
+
+@media (max-width: 640px) {
+  .story-content-optimized img {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+}
+
 

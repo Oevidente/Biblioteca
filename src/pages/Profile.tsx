@@ -975,7 +975,7 @@ export function ProfilePage() {
         </div>
 
         {/* Mobile Quick Tap Pills */}
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
           <button
             onClick={() => setActiveTab('activities')}
             className={`py-2 px-1 rounded-xl text-[10px] font-bold uppercase tracking-wider flex flex-col items-center justify-center gap-1 transition-all ${
