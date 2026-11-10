@@ -168,8 +168,8 @@ export function Layout() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F5F5F0] dark:bg-[#1A1A1A] text-[#1A1A1A] dark:text-[#F5F5F0] font-sans transition-colors duration-300 flex flex-col">
-      <header className="flex justify-between items-center px-4 sm:px-6 md:px-16 pt-6 sm:pt-8 md:pt-10 pb-6 w-full max-w-[1400px] mx-auto border-b border-[#1A1A1A]/5 dark:border-white/5">
+    <div className="inkora-shell min-h-screen text-[#1A1A1A] dark:text-[#F5F5F0] font-sans transition-colors duration-300 flex flex-col">
+      <header className="flex justify-between items-center px-4 sm:px-6 md:px-8 pt-4 pb-4 w-full max-w-[1400px] mx-auto border-b border-white/10">
         <div className="flex items-center space-x-3">
           <Link
             to="/"
@@ -425,7 +425,7 @@ export function Layout() {
       )}
 
       <main
-        className={`flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 md:px-16 pt-6 ${
+        className={`flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 pt-4 ${
           location.pathname.startsWith('/writer/') ? 'pb-2' : 'pb-12'
         }`}
       >

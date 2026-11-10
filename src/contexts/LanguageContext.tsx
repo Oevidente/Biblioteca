@@ -96,9 +96,10 @@ export const translations = {
 
     // Eye Comfort
     eyeComfort: 'Conforto Ocular',
-    yellowFilter: 'Filtro Amarelo',
+    blueFilter: 'Filtro Azul',
     filterIntensity: 'Intensidade do Filtro',
-    eyeComfortDescription: 'Filtro amarelo anti-fadiga para leitura suave',
+    eyeComfortDescription:
+      'Filtro azul para ajustar o conforto visual durante a leitura',
     off: 'Desligado',
 
     // Auth Modal
@@ -710,9 +711,10 @@ export const translations = {
 
     // Eye Comfort
     eyeComfort: 'Confort Ocular',
-    yellowFilter: 'Filtro Amarillo',
+    blueFilter: 'Filtro Azul',
     filterIntensity: 'Intensidad del Filtro',
-    eyeComfortDescription: 'Filtro amarillo anti-fatiga para lectura suave',
+    eyeComfortDescription:
+      'Filtro azul para ajustar el confort visual durante la lectura',
     off: 'Desactivado',
 
     // Auth Modal
@@ -1324,9 +1326,9 @@ export const translations = {
 
     // Eye Comfort
     eyeComfort: 'Eye Comfort',
-    yellowFilter: 'Yellow Filter',
+    blueFilter: 'Blue Filter',
     filterIntensity: 'Filter Intensity',
-    eyeComfortDescription: 'Anti-fatigue yellow filter for smooth reading',
+    eyeComfortDescription: 'Blue filter to adjust visual comfort while reading',
     off: 'Off',
 
     // Auth Modal
@@ -1934,7 +1936,7 @@ export const translations = {
 
     // Eye Comfort
     eyeComfort: 'Kenyamanan Mata',
-    yellowFilter: 'Filter Kuning',
+    blueFilter: 'Filter Biru',
     filterIntensity: 'Intensitas Filter',
     eyeComfortDescription:
       'Filter kuning anti-lelah untuk membaca dengan nyaman',
@@ -2529,7 +2531,7 @@ export const translations = {
 
     // Eye Comfort
     eyeComfort: '护眼模式',
-    yellowFilter: '暖光护眼滤镜',
+    blueFilter: '蓝色护眼滤镜',
     filterIntensity: '滤镜强度',
     eyeComfortDescription: '舒缓抗疲劳黄光滤镜，带来舒适阅读体验',
     off: '关闭',

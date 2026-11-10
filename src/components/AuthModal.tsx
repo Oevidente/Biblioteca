@@ -317,19 +317,19 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: AuthModalP
                         key={a.id}
                         className={`p-3 rounded-xl flex items-center gap-3 transition-all paper-card ${
                           isUnlocked 
-                            ? "bg-amber-500/10 border-amber-500/30 text-[#1A1A1A] dark:text-[#F5F5F0]" 
+                            ? "bg-blue-500/10 border-blue-500/30 text-[#1A1A1A] dark:text-[#F5F5F0]" 
                             : "opacity-40 grayscale"
                         }`}
                       >
                         <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                          isUnlocked ? "paper-btn-amber" : "paper-btn-light"
+                          isUnlocked ? "paper-btn-accent" : "paper-btn-light"
                         }`}>
                           {renderIcon()}
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="font-bold text-xs flex items-center justify-between">
                             <span className="truncate">{a.title[language] || a.title.pt}</span>
-                            {isUnlocked && <span className="text-[9px] bg-amber-500/20 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">OK</span>}
+                            {isUnlocked && <span className="text-[9px] bg-blue-500/20 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">OK</span>}
                           </h4>
                           <p className="text-[11px] opacity-70 line-clamp-1 leading-tight mt-0.5">
                             {a.description[language] || a.description.pt}
