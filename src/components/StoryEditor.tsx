@@ -81,6 +81,7 @@ interface StoryEditorProps {
   onChange: (pages: string[], fullText: string, wordCount: number) => void;
   className?: string;
   supporters?: string[] | string;
+  renderReaderPreview?: (pages: string[]) => React.ReactNode;
 }
 
 export function StoryEditor({
@@ -88,6 +89,7 @@ export function StoryEditor({
   onChange,
   className,
   supporters,
+  renderReaderPreview,
 }: StoryEditorProps) {
   const { t, language } = useLanguage();
   const editorRef = useRef<HTMLDivElement>(null);
@@ -2316,33 +2318,37 @@ export function StoryEditor({
           )}
         </div>
 
-        {activeTab === 'preview' && computedPages.length > 1 && (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={previewPageIdx === 0}
-              onClick={() => setPreviewPageIdx((prev) => Math.max(0, prev - 1))}
-              className="px-2 py-1 bg-[#1A1A1A]/10 dark:bg-white/10 rounded-lg text-xs font-bold disabled:opacity-30"
-            >
-              {t('previous')}
-            </button>
-            <span className="text-xs font-mono font-bold">
-              {t('stylePage')} {previewPageIdx + 1} / {computedPages.length}
-            </span>
-            <button
-              type="button"
-              disabled={previewPageIdx >= computedPages.length - 1}
-              onClick={() =>
-                setPreviewPageIdx((prev) =>
-                  Math.min(computedPages.length - 1, prev + 1),
-                )
-              }
-              className="px-2 py-1 bg-[#1A1A1A]/10 dark:bg-white/10 rounded-lg text-xs font-bold disabled:opacity-30"
-            >
-              {t('next')}
-            </button>
-          </div>
-        )}
+        {activeTab === 'preview' &&
+          !renderReaderPreview &&
+          computedPages.length > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={previewPageIdx === 0}
+                onClick={() =>
+                  setPreviewPageIdx((prev) => Math.max(0, prev - 1))
+                }
+                className="px-2 py-1 bg-[#1A1A1A]/10 dark:bg-white/10 rounded-lg text-xs font-bold disabled:opacity-30"
+              >
+                {t('previous')}
+              </button>
+              <span className="text-xs font-mono font-bold">
+                {t('stylePage')} {previewPageIdx + 1} / {computedPages.length}
+              </span>
+              <button
+                type="button"
+                disabled={previewPageIdx >= computedPages.length - 1}
+                onClick={() =>
+                  setPreviewPageIdx((prev) =>
+                    Math.min(computedPages.length - 1, prev + 1),
+                  )
+                }
+                className="px-2 py-1 bg-[#1A1A1A]/10 dark:bg-white/10 rounded-lg text-xs font-bold disabled:opacity-30"
+              >
+                {t('next')}
+              </button>
+            </div>
+          )}
       </div>
       {/* Main Container: Editor Writing Canvas (ALWAYS 100% full width, CT-05) */}
       <div className="w-full relative">
@@ -2716,6 +2722,8 @@ export function StoryEditor({
                   document.body,
                 )}
             </div>
+          ) : renderReaderPreview ? (
+            <div className="w-full">{renderReaderPreview(computedPages)}</div>
           ) : (
             /* Preview Mode Page View */
             <div

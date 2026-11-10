@@ -365,8 +365,6 @@ html.dark {
 .story-content-optimized img {
   max-width: 100% !important;
   height: auto !important;
-  content-visibility: auto;
-  contain-intrinsic-size: 320px;
 }
 
 @media (max-width: 640px) {

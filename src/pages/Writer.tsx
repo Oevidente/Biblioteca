@@ -20,6 +20,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { StoryEditor } from '../components/StoryEditor';
+import { Reader } from './Reader';
 import {
   ArrowLeft,
   Save,
@@ -44,6 +45,7 @@ import {
 interface StoryData {
   title: string;
   author?: string;
+  coverImage?: string;
   totalPages: number;
   wordCount?: number;
   authorUid?: string;
@@ -1058,6 +1060,22 @@ export function Writer() {
           <StoryEditor
             initialPages={pages}
             supporters={editSupporters}
+            renderReaderPreview={(previewPages) => (
+              <Reader
+                previewData={{
+                  id: id || 'writer-preview',
+                  story: {
+                    title: editTitle || story.title,
+                    author: editAuthor || story.author,
+                    coverImage: story.coverImage,
+                    totalPages: previewPages.length || 1,
+                    wordCount,
+                    supporters: editSupporters,
+                  },
+                  pages: previewPages.length > 0 ? previewPages : ['<p></p>'],
+                }}
+              />
+            )}
             onChange={(newPages, text, wc) => {
               setPages(newPages);
               setFullText(text);

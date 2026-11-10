@@ -97,7 +97,7 @@ function getOrCreateGuestId(): string {
   return guestId;
 }
 
-interface StoryData {
+export interface StoryData {
   title: string;
   author?: string;
   totalPages: number;
@@ -105,6 +105,13 @@ interface StoryData {
   coverImage?: string;
   scheduledReleaseAt?: string;
   authorUid?: string;
+  supporters?: string[] | string;
+}
+
+export interface ReaderPreviewData {
+  id: string;
+  story: StoryData;
+  pages: string[];
 }
 
 interface CommentData {
@@ -116,19 +123,27 @@ interface CommentData {
   createdAt: any;
 }
 
-export function Reader() {
+export function Reader({
+  previewData,
+}: {
+  previewData?: ReaderPreviewData;
+} = {}) {
   const { id: urlId } = useParams<{ id: string }>();
-  const id = extractStoryId(urlId);
+  const id = previewData?.id || extractStoryId(urlId);
 
   const { user, profile } = useAuth();
   const { language, t } = useLanguage();
 
-  const [story, setStory] = useState<StoryData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [story, setStory] = useState<StoryData | null>(
+    previewData?.story || null,
+  );
+  const [loading, setLoading] = useState(!previewData);
   const [currentPage, setCurrentPage] = useState(0);
   const [maxPage, setMaxPage] = useState(0);
   const maxPageRef = useRef<number>(0);
-  const [pageContent, setPageContent] = useState<string>('');
+  const [pageContent, setPageContent] = useState<string>(
+    previewData?.pages[0] || '',
+  );
   const [loadingPage, setLoadingPage] = useState(false);
   const [showFormattingPanel, setShowFormattingPanel] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -144,11 +159,12 @@ export function Reader() {
   const [isTranslating, setIsTranslating] = useState<boolean>(false);
 
   useEffect(() => {
+    if (previewData) return;
     localStorage.setItem(
       'inkora_translate_story',
       isTranslationEnabled ? 'true' : 'false',
     );
-  }, [isTranslationEnabled]);
+  }, [isTranslationEnabled, previewData]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -243,7 +259,7 @@ export function Reader() {
   }>({});
   const [tocHeadings, setTocHeadings] = useState<TocHeadingItem[]>([]);
   const [showTocSidebar, setShowTocSidebar] = useState<boolean>(
-    () => window.innerWidth >= 1280,
+    () => !previewData && window.innerWidth >= 1280,
   );
   const [expandedTocSection, setExpandedTocSection] = useState<number | null>(
     null,
@@ -304,6 +320,17 @@ export function Reader() {
   useEffect(() => {
     async function loadAllStoryPages() {
       if (!id || !story) return;
+      if (previewData) {
+        const pagesMap = Object.fromEntries(
+          previewData.pages.map((content, pageIndex) => [
+            pageIndex,
+            cleanStoryHtml(content),
+          ]),
+        );
+        setAllPagesContent(pagesMap);
+        setTocHeadings(extractTocHeadingsFromPages(pagesMap, story.totalPages));
+        return;
+      }
       const pagesMap: { [pageIdx: number]: string } = {};
       try {
         const offline = await getOfflineStory(id);
@@ -359,7 +386,7 @@ export function Reader() {
     }
 
     loadAllStoryPages();
-  }, [id, story?.totalPages]);
+  }, [id, story?.totalPages, previewData]);
 
   useEffect(() => {
     setTocHeadings(
@@ -461,12 +488,13 @@ export function Reader() {
   });
 
   useEffect(() => {
+    if (previewData) return;
     try {
       localStorage.setItem('inkora_reader_mode', readerMode);
     } catch (e) {
       console.error('Error saving reader mode:', e);
     }
-  }, [readerMode]);
+  }, [readerMode, previewData]);
 
   // Eye comfort blue filter intensity state (0 to 100)
   const [eyeComfortIntensity, setEyeComfortIntensity] = useState<number>(() => {
@@ -479,19 +507,22 @@ export function Reader() {
   });
 
   useEffect(() => {
+    if (previewData) return;
     localStorage.setItem('inkora_font_family', fontFamily);
-  }, [fontFamily, user]);
+  }, [fontFamily, user, previewData]);
 
   useEffect(() => {
+    if (previewData) return;
     localStorage.setItem('inkora_margin_size', marginSize);
-  }, [marginSize]);
+  }, [marginSize, previewData]);
 
   useEffect(() => {
+    if (previewData) return;
     localStorage.setItem('inkora_line_spacing', lineSpacing);
-  }, [lineSpacing]);
+  }, [lineSpacing, previewData]);
 
   useEffect(() => {
-    if (id) {
+    if (id && !previewData) {
       isStoryDownloaded(id).then(setIsDownloaded);
       setNotesList(getBookmarksAndNotes(id));
       unlockAchievement('first_page', user?.uid);
@@ -502,7 +533,7 @@ export function Reader() {
         unlockAchievement('night_owl', user?.uid);
       }
     }
-  }, [id, user]);
+  }, [id, user, previewData]);
 
   const [isDark, setIsDark] = useState(() =>
     document.documentElement.classList.contains('dark'),
@@ -520,6 +551,7 @@ export function Reader() {
   }, []);
 
   useEffect(() => {
+    if (previewData) return;
     try {
       localStorage.setItem(
         'inkora_eye_comfort_intensity',
@@ -528,7 +560,7 @@ export function Reader() {
     } catch (e) {
       console.error('Error saving eye comfort intensity:', e);
     }
-  }, [eyeComfortIntensity]);
+  }, [eyeComfortIntensity, previewData]);
 
   // Monitor scroll height to show/hide "return to top" button and update progress
   useEffect(() => {
@@ -562,6 +594,7 @@ export function Reader() {
 
   // Load Story metadata & saved progress
   useEffect(() => {
+    if (previewData) return;
     async function loadStory() {
       if (!id) return;
       isInitialProgressLoaded.current = false;
@@ -661,10 +694,11 @@ export function Reader() {
     }
 
     loadStory();
-  }, [id, user]);
+  }, [id, user, previewData]);
 
   // Update Document & Social Meta Tags when Story loads
   useEffect(() => {
+    if (previewData) return;
     if (story) {
       updateMetaTags({
         title: story.title,
@@ -680,12 +714,19 @@ export function Reader() {
     return () => {
       updateMetaTags({});
     };
-  }, [story]);
+  }, [story, previewData]);
 
   // Load Page Content
   useEffect(() => {
     async function loadPage() {
       if (!id || !story) return;
+      if (previewData) {
+        setPageContent(
+          cleanStoryHtml(previewData.pages[currentPage] || '<p></p>'),
+        );
+        setLoadingPage(false);
+        return;
+      }
 
       const cacheKey = `page_cache_${id}_${currentPage}`;
       const cachedPage = sessionStorage.getItem(cacheKey);
@@ -724,12 +765,12 @@ export function Reader() {
     }
 
     loadPage();
-  }, [id, currentPage, story]);
+  }, [id, currentPage, story, previewData]);
 
   // Load Approved Comments ONLY
   useEffect(() => {
     async function loadApprovedComments() {
-      if (!id) return;
+      if (!id || previewData) return;
       try {
         const commentsRef = collection(db, `stories/${id}/comments`);
         const q = query(commentsRef, orderBy('createdAt', 'desc'));
@@ -756,10 +797,11 @@ export function Reader() {
     }
 
     loadApprovedComments();
-  }, [id, submitted]);
+  }, [id, submitted, previewData]);
 
   // Save Progress as user turns pages
   useEffect(() => {
+    if (previewData) return;
     const currentMax = Math.max(maxPageRef.current, currentPage);
     maxPageRef.current = currentMax;
     setMaxPage(currentMax);
@@ -815,7 +857,11 @@ export function Reader() {
           // Log start of reading activity once per story session for logged in user
           if (user) {
             const localReadLogKey = `has_logged_read_${user.uid}_${id}`;
-            if (!localStorage.getItem(localReadLogKey) && profile && !isFirestoreQuotaExceeded()) {
+            if (
+              !localStorage.getItem(localReadLogKey) &&
+              profile &&
+              !isFirestoreQuotaExceeded()
+            ) {
               logUserActivity({
                 uid: user.uid,
                 userName: profile.displayName || profile.email.split('@')[0],
@@ -827,7 +873,8 @@ export function Reader() {
                 targetTitle: story.title,
                 createdAt: new Date().toISOString(),
               }).catch((actErr) => {
-                if (isFirestoreDailyWriteQuotaError(actErr)) markFirestoreQuotaExceeded();
+                if (isFirestoreDailyWriteQuotaError(actErr))
+                  markFirestoreQuotaExceeded();
               });
               localStorage.setItem(localReadLogKey, 'true');
             }
@@ -836,7 +883,9 @@ export function Reader() {
         .catch((err) => {
           if (isFirestoreDailyWriteQuotaError(err)) {
             markFirestoreQuotaExceeded();
-            console.warn('Firestore write quota exceeded; reading progress saved in localStorage.');
+            console.warn(
+              'Firestore write quota exceeded; reading progress saved in localStorage.',
+            );
           } else {
             console.error('Error saving progress to Firestore:', err);
           }
@@ -844,7 +893,7 @@ export function Reader() {
     }, 12000);
 
     return () => clearTimeout(timer);
-  }, [currentPage, story, id, user, profile]);
+  }, [currentPage, story, id, user, profile, previewData]);
 
   const handleReviewSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -978,7 +1027,7 @@ export function Reader() {
   return (
     <div className="max-w-[1280px] mx-auto pb-20 pt-4 relative">
       {/* Floating TOC Sidebar Trigger Button (when closed on desktop) */}
-      {!showTocSidebar && (
+      {!previewData && !showTocSidebar && (
         <button
           onClick={() => setShowTocSidebar(true)}
           className="fixed left-4 top-32 z-40 hidden xl:flex items-center gap-2 px-3.5 py-2.5 rounded-2xl paper-card shadow-lg hover:scale-105 transition-all text-xs font-bold uppercase tracking-wider"
@@ -1198,12 +1247,14 @@ export function Reader() {
         </aside>
 
         <div className="min-w-0">
-          <Link
-            to="/"
-            className="mb-6 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest opacity-60 transition-opacity hover:opacity-100"
-          >
-            <ArrowLeft className="h-4 w-4" /> {t('backToLibrary')}
-          </Link>
+          {!previewData && (
+            <Link
+              to="/"
+              className="mb-6 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest opacity-60 transition-opacity hover:opacity-100"
+            >
+              <ArrowLeft className="h-4 w-4" /> {t('backToLibrary')}
+            </Link>
+          )}
           <header className="mb-10 text-center lg:text-left">
             <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold mb-3 tracking-tight leading-tight">
               <TranslatedText text={story.title} />
@@ -1323,183 +1374,188 @@ export function Reader() {
               </button>
 
               {/* Bookmarks & Private Notes Button */}
-              <button
-                onClick={() => {
-                  setShowNotesDrawer(true);
-                  setShowFormattingPanel(false);
-                  setShowMoreMenu(false);
-                }}
-                className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-all relative group shadow-sm border border-black/5 dark:border-white/5 paper-btn-light opacity-80 hover:opacity-100"
-                title={t('bookmarks')}
-                aria-label={t('bookmarks')}
-              >
-                <div className="relative">
-                  <Bookmark className="w-5 h-5 text-blue-400" />
-                  {notesList.length > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-blue-500 text-white font-mono text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-[#1A1A1A]">
-                      {notesList.length}
-                    </span>
-                  )}
-                </div>
-                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[#1a1a1a] dark:bg-[#f5f5f0] text-white dark:text-[#1a1a1a] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 shadow-md whitespace-nowrap z-50 font-sans">
-                  {t('bookmarks')} ({notesList.length})
-                </span>
-              </button>
-
-              {/* More Actions Context Menu (Three Dots) */}
-              <div className="relative">
+              {!previewData && (
                 <button
                   onClick={() => {
-                    setShowMoreMenu(!showMoreMenu);
+                    setShowNotesDrawer(true);
                     setShowFormattingPanel(false);
+                    setShowMoreMenu(false);
                   }}
-                  className={cn(
-                    'w-11 h-11 flex items-center justify-center rounded-xl transition-all relative group shadow-sm border border-black/5 dark:border-white/5',
-                    showMoreMenu
-                      ? 'paper-btn-dark font-extrabold'
-                      : 'paper-btn-light opacity-80 hover:opacity-100',
-                  )}
-                  title="Mais Opções"
-                  aria-label="Mais opções"
+                  className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-all relative group shadow-sm border border-black/5 dark:border-white/5 paper-btn-light opacity-80 hover:opacity-100"
+                  title={t('bookmarks')}
+                  aria-label={t('bookmarks')}
                 >
-                  <MoreHorizontal className="w-5 h-5" />
+                  <div className="relative">
+                    <Bookmark className="w-5 h-5 text-blue-400" />
+                    {notesList.length > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-blue-500 text-white font-mono text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-[#1A1A1A]">
+                        {notesList.length}
+                      </span>
+                    )}
+                  </div>
                   <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[#1a1a1a] dark:bg-[#f5f5f0] text-white dark:text-[#1a1a1a] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 shadow-md whitespace-nowrap z-50 font-sans">
-                    Mais Opções
+                    {t('bookmarks')} ({notesList.length})
                   </span>
                 </button>
+              )}
 
-                {/* Dropdown Menu */}
-                <AnimatePresence>
-                  {showMoreMenu && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setShowMoreMenu(false)}
-                      />
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-2 w-56 p-1.5 rounded-2xl paper-card shadow-2xl border border-black/10 dark:border-white/10 z-50 flex flex-col gap-1"
-                      >
-                        {/* Offline Download Option */}
-                        <button
-                          onClick={async () => {
-                            setShowMoreMenu(false);
-                            if (!user) {
-                              window.dispatchEvent(
-                                new CustomEvent('open-auth-modal', {
-                                  detail: { mode: 'login' },
-                                }),
-                              );
-                              return;
-                            }
-                            if (!id || !story) return;
-                            if (isDownloaded) {
-                              await removeOfflineStory(id);
-                              setIsDownloaded(false);
-                            } else {
-                              setIsDownloading(true);
-                              const pagesMap: { [pageIndex: number]: string } =
-                                {};
-                              try {
-                                const pSnap = await getDocs(
-                                  query(
-                                    collection(db, `stories/${id}/pages`),
-                                    orderBy('index', 'asc'),
-                                  ),
-                                );
-                                pSnap.docs.forEach((d) => {
-                                  const data = d.data();
-                                  pagesMap[data.index || 0] = cleanStoryHtml(
-                                    data.content || '',
-                                  );
-                                });
-                                await saveStoryOffline({
-                                  id,
-                                  title: story.title,
-                                  author: story.author,
-                                  coverImage: story.coverImage,
-                                  totalPages: story.totalPages,
-                                  wordCount: story.wordCount,
-                                  pages: pagesMap,
-                                  downloadedAt: new Date().toISOString(),
-                                });
-                                setIsDownloaded(true);
-                              } catch (e) {
-                                console.error('Error saving offline:', e);
-                              } finally {
-                                setIsDownloading(false);
-                              }
-                            }
-                          }}
-                          disabled={isDownloading}
-                          className={cn(
-                            'w-full px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 text-left',
-                            isDownloaded
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                              : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
-                          )}
+              {/* More Actions Context Menu (Three Dots) */}
+              {!previewData && (
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setShowMoreMenu(!showMoreMenu);
+                      setShowFormattingPanel(false);
+                    }}
+                    className={cn(
+                      'w-11 h-11 flex items-center justify-center rounded-xl transition-all relative group shadow-sm border border-black/5 dark:border-white/5',
+                      showMoreMenu
+                        ? 'paper-btn-dark font-extrabold'
+                        : 'paper-btn-light opacity-80 hover:opacity-100',
+                    )}
+                    title="Mais Opções"
+                    aria-label="Mais opções"
+                  >
+                    <MoreHorizontal className="w-5 h-5" />
+                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[#1a1a1a] dark:bg-[#f5f5f0] text-white dark:text-[#1a1a1a] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 shadow-md whitespace-nowrap z-50 font-sans">
+                      Mais Opções
+                    </span>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  <AnimatePresence>
+                    {showMoreMenu && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={() => setShowMoreMenu(false)}
+                        />
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute right-0 mt-2 w-56 p-1.5 rounded-2xl paper-card shadow-2xl border border-black/10 dark:border-white/10 z-50 flex flex-col gap-1"
                         >
-                          <Download className="w-4 h-4 shrink-0 text-emerald-500" />
-                          <span className="truncate">
-                            {isDownloading
-                              ? '...'
-                              : isDownloaded
-                                ? t('downloadedOffline')
-                                : t('downloadForOffline')}
-                          </span>
-                        </button>
-
-                        {/* Add to Playlist Option */}
-                        <button
-                          onClick={() => {
-                            setShowMoreMenu(false);
-                            if (!user) {
-                              window.dispatchEvent(
-                                new CustomEvent('open-auth-modal', {
-                                  detail: { mode: 'login' },
-                                }),
-                              );
-                              return;
-                            }
-                            loadPlaylists();
-                            setShowPlaylistModal(true);
-                          }}
-                          className="w-full px-3 py-2.5 rounded-xl text-xs font-bold hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 transition-all flex items-center gap-3 text-left text-[#1A1A1A] dark:text-[#F5F5F0]"
-                        >
-                          <ListPlus className="w-4 h-4 text-blue-500 shrink-0" />
-                          <span>{t('addToPlaylist')}</span>
-                        </button>
-
-                        {/* Translation Toggle Option */}
-                        {language !== 'pt' && (
+                          {/* Offline Download Option */}
                           <button
-                            onClick={() => {
+                            onClick={async () => {
                               setShowMoreMenu(false);
-                              setIsTranslationEnabled(!isTranslationEnabled);
+                              if (!user) {
+                                window.dispatchEvent(
+                                  new CustomEvent('open-auth-modal', {
+                                    detail: { mode: 'login' },
+                                  }),
+                                );
+                                return;
+                              }
+                              if (!id || !story) return;
+                              if (isDownloaded) {
+                                await removeOfflineStory(id);
+                                setIsDownloaded(false);
+                              } else {
+                                setIsDownloading(true);
+                                const pagesMap: {
+                                  [pageIndex: number]: string;
+                                } = {};
+                                try {
+                                  const pSnap = await getDocs(
+                                    query(
+                                      collection(db, `stories/${id}/pages`),
+                                      orderBy('index', 'asc'),
+                                    ),
+                                  );
+                                  pSnap.docs.forEach((d) => {
+                                    const data = d.data();
+                                    pagesMap[data.index || 0] = cleanStoryHtml(
+                                      data.content || '',
+                                    );
+                                  });
+                                  await saveStoryOffline({
+                                    id,
+                                    title: story.title,
+                                    author: story.author,
+                                    coverImage: story.coverImage,
+                                    totalPages: story.totalPages,
+                                    wordCount: story.wordCount,
+                                    pages: pagesMap,
+                                    downloadedAt: new Date().toISOString(),
+                                  });
+                                  setIsDownloaded(true);
+                                } catch (e) {
+                                  console.error('Error saving offline:', e);
+                                } finally {
+                                  setIsDownloading(false);
+                                }
+                              }
                             }}
+                            disabled={isDownloading}
                             className={cn(
                               'w-full px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 text-left',
-                              isTranslationEnabled
-                                ? 'bg-violet-500/10 text-violet-700 dark:text-violet-300 font-extrabold'
+                              isDownloaded
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                                 : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
                             )}
                           >
-                            <Languages className="w-4 h-4 shrink-0 text-violet-400" />
+                            <Download className="w-4 h-4 shrink-0 text-emerald-500" />
                             <span className="truncate">
-                              {isTranslationEnabled
-                                ? t('showOriginalText')
-                                : t('translateStory')}
+                              {isDownloading
+                                ? '...'
+                                : isDownloaded
+                                  ? t('downloadedOffline')
+                                  : t('downloadForOffline')}
                             </span>
                           </button>
-                        )}
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
+
+                          {/* Add to Playlist Option */}
+                          <button
+                            onClick={() => {
+                              setShowMoreMenu(false);
+                              if (!user) {
+                                window.dispatchEvent(
+                                  new CustomEvent('open-auth-modal', {
+                                    detail: { mode: 'login' },
+                                  }),
+                                );
+                                return;
+                              }
+                              loadPlaylists();
+                              setShowPlaylistModal(true);
+                            }}
+                            className="w-full px-3 py-2.5 rounded-xl text-xs font-bold hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 transition-all flex items-center gap-3 text-left text-[#1A1A1A] dark:text-[#F5F5F0]"
+                          >
+                            <ListPlus className="w-4 h-4 text-blue-500 shrink-0" />
+                            <span>{t('addToPlaylist')}</span>
+                          </button>
+
+                          {/* Translation Toggle Option */}
+                          {language !== 'pt' && (
+                            <button
+                              onClick={() => {
+                                setShowMoreMenu(false);
+                                setIsTranslationEnabled(!isTranslationEnabled);
+                              }}
+                              className={cn(
+                                'w-full px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 text-left',
+                                isTranslationEnabled
+                                  ? 'bg-violet-500/10 text-violet-700 dark:text-violet-300 font-extrabold'
+                                  : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-85 hover:opacity-100 text-[#1A1A1A] dark:text-[#F5F5F0]',
+                              )}
+                            >
+                              <Languages className="w-4 h-4 shrink-0 text-violet-400" />
+                              <span className="truncate">
+                                {isTranslationEnabled
+                                  ? t('showOriginalText')
+                                  : t('translateStory')}
+                              </span>
+                            </button>
+                          )}
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1872,7 +1928,7 @@ export function Reader() {
       </div>
 
       {/* APPROVED COMMENTS SECTION */}
-      {approvedComments.length > 0 && (
+      {!previewData && approvedComments.length > 0 && (
         <div className="mt-16 pt-12 border-t border-[#1A1A1A]/10 dark:border-white/10 space-y-6">
           <div className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4 opacity-60" />
@@ -1917,7 +1973,7 @@ export function Reader() {
       )}
 
       {/* RATING & COMMENT FORM AT THE END */}
-      {!hasNext && (
+      {!previewData && !hasNext && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -2054,7 +2110,7 @@ export function Reader() {
       </AnimatePresence>
 
       {/* Bookmarks & Private Notes Drawer Modal */}
-      {showNotesDrawer && (
+      {!previewData && showNotesDrawer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white dark:bg-[#1A1A1A] w-full max-w-lg rounded-2xl p-6 shadow-2xl border border-black/10 dark:border-white/10 space-y-4 max-h-[85vh] flex flex-col">
             <div className="flex justify-between items-center pb-3 border-b border-black/5 dark:border-white/5 shrink-0">
@@ -2156,7 +2212,7 @@ export function Reader() {
         </div>
       )}
       {/* Playlist Selector Modal */}
-      {showPlaylistModal && id && (
+      {!previewData && showPlaylistModal && id && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white dark:bg-[#1A1A1A] w-full max-w-md rounded-2xl p-6 shadow-2xl border border-black/10 dark:border-white/10 space-y-4">
             <div className="flex justify-between items-center pb-2 border-b border-black/5 dark:border-white/5">
