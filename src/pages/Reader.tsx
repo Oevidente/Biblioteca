@@ -14,6 +14,9 @@ import {
   increment,
   setDoc,
   where,
+  isFirestoreQuotaExceeded,
+  markFirestoreQuotaExceeded,
+  isFirestoreDailyWriteQuotaError,
 } from '../lib/firebase';
 import { updateMetaTags } from '../utils/metaUtils';
 import {
@@ -789,49 +792,56 @@ export function Reader() {
       console.error(e);
     }
 
-    // 3. Save progress to Firestore with 1.5s debounce to save on database writes (to avoid quota exhaustion)
-    const targetUid = user ? user.uid : getOrCreateGuestId();
+    // 3. Save progress to Firestore ONLY for logged in users (guests use 100% localStorage to preserve Firestore quota)
+    if (!user || isFirestoreQuotaExceeded()) return;
+
     const timer = setTimeout(() => {
-      if (targetUid && story) {
-        const progRef = doc(db, `users/${targetUid}/progress`, id);
-        setDoc(
-          progRef,
-          {
-            storyId: id,
-            storyTitle: story.title || 'Sem título',
-            coverImage: story.coverImage || '',
-            page: currentPage || 0,
-            maxPage: currentMax,
-            totalPages: story.totalPages ?? 0,
-            updatedAt: new Date().toISOString(),
-          },
-          { merge: true },
-        )
-          .then(() => {
-            // Log start of reading activity once per story session for logged in user
-            if (user) {
-              const localReadLogKey = `has_logged_read_${user.uid}_${id}`;
-              if (!localStorage.getItem(localReadLogKey) && profile) {
-                logUserActivity({
-                  uid: user.uid,
-                  userName: profile.displayName || profile.email.split('@')[0],
-                  userUsername: profile.username || '',
-                  userPhoto: profile.photoURL || '',
-                  type: 'read',
-                  title: `Começou a ler a história "${story.title}"`,
-                  targetId: id,
-                  targetTitle: story.title,
-                  createdAt: new Date().toISOString(),
-                });
-                localStorage.setItem(localReadLogKey, 'true');
-              }
+      if (!user || !story || isFirestoreQuotaExceeded()) return;
+      const progRef = doc(db, `users/${user.uid}/progress`, id);
+      setDoc(
+        progRef,
+        {
+          storyId: id,
+          storyTitle: story.title || 'Sem título',
+          coverImage: story.coverImage || '',
+          page: currentPage || 0,
+          maxPage: currentMax,
+          totalPages: story.totalPages ?? 0,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true },
+      )
+        .then(() => {
+          // Log start of reading activity once per story session for logged in user
+          if (user) {
+            const localReadLogKey = `has_logged_read_${user.uid}_${id}`;
+            if (!localStorage.getItem(localReadLogKey) && profile && !isFirestoreQuotaExceeded()) {
+              logUserActivity({
+                uid: user.uid,
+                userName: profile.displayName || profile.email.split('@')[0],
+                userUsername: profile.username || '',
+                userPhoto: profile.photoURL || '',
+                type: 'read',
+                title: `Começou a ler a história "${story.title}"`,
+                targetId: id,
+                targetTitle: story.title,
+                createdAt: new Date().toISOString(),
+              }).catch((actErr) => {
+                if (isFirestoreDailyWriteQuotaError(actErr)) markFirestoreQuotaExceeded();
+              });
+              localStorage.setItem(localReadLogKey, 'true');
             }
-          })
-          .catch((err) => {
+          }
+        })
+        .catch((err) => {
+          if (isFirestoreDailyWriteQuotaError(err)) {
+            markFirestoreQuotaExceeded();
+            console.warn('Firestore write quota exceeded; reading progress saved in localStorage.');
+          } else {
             console.error('Error saving progress to Firestore:', err);
-          });
-      }
-    }, 1500);
+          }
+        });
+    }, 12000);
 
     return () => clearTimeout(timer);
   }, [currentPage, story, id, user, profile]);

@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { User as UserIcon, Menu, X, LogIn, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { isFirestoreQuotaExceeded } from '../lib/firebase';
 import { AuthModal } from './AuthModal';
 import favicon from '../img/favicon.png';
 
@@ -138,6 +139,13 @@ export function Layout() {
     'login' | 'register' | 'forgot' | 'profile'
   >('login');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [quotaExceeded, setQuotaExceeded] = useState(() => isFirestoreQuotaExceeded());
+
+  useEffect(() => {
+    const handleQuotaChange = () => setQuotaExceeded(isFirestoreQuotaExceeded());
+    window.addEventListener('firestore-quota-status-changed', handleQuotaChange);
+    return () => window.removeEventListener('firestore-quota-status-changed', handleQuotaChange);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
@@ -437,15 +445,27 @@ export function Layout() {
           <span className="text-[9px] uppercase font-bold tracking-widest opacity-80">
             {t('appBrand')}
           </span>
-          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-          <div className="h-3 w-[1px] bg-white/20"></div>
-          <span className="text-[9px] uppercase font-bold tracking-widest opacity-60 hidden sm:inline">
-            Firebase {t('online')}
-          </span>
+          {quotaExceeded ? (
+            <>
+              <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></div>
+              <div className="h-3 w-[1px] bg-white/20"></div>
+              <span className="text-[9px] uppercase font-bold tracking-widest text-amber-400 opacity-90 hidden sm:inline" title="Cota diária gratuita de escrita do Firestore atingida hoje. Os dados estão preservados no seu navegador até o reset diário.">
+                Firebase (Cota Diária • Modo Local)
+              </span>
+            </>
+          ) : (
+            <>
+              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+              <div className="h-3 w-[1px] bg-white/20"></div>
+              <span className="text-[9px] uppercase font-bold tracking-widest opacity-60 hidden sm:inline">
+                Firebase {t('online')}
+              </span>
+            </>
+          )}
         </div>
         <div className="flex items-center space-x-4">
           <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">
-            {t('version')} 3.1.14-beta
+            {t('version')} 3.1.15-beta
           </span>
         </div>
       </footer>

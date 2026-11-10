@@ -17,6 +17,9 @@ import {
   getDocs,
   deleteDoc,
   writeBatch,
+  isFirestoreQuotaExceeded,
+  markFirestoreQuotaExceeded,
+  isFirestoreDailyWriteQuotaError,
 } from '../lib/firebase';
 import {
   BookOpen,
@@ -364,16 +367,24 @@ export function Home() {
     setFavorites(newFavs);
     localStorage.setItem(`favorites_${user.uid}`, JSON.stringify(newFavs));
 
-    // Sync to Firestore if user is logged in
-    if (user) {
+    // Sync to Firestore if user is logged in and quota is healthy
+    if (user && !isFirestoreQuotaExceeded()) {
       try {
         const userRef = doc(db, 'users', user.uid);
-        await updateDoc(userRef, { favorites: newFavs }).catch(async () => {
-          await setDoc(userRef, { favorites: newFavs }, { merge: true });
+        await updateDoc(userRef, { favorites: newFavs }).catch(async (err) => {
+          if (isFirestoreDailyWriteQuotaError(err)) {
+            markFirestoreQuotaExceeded();
+            return;
+          }
+          await setDoc(userRef, { favorites: newFavs }, { merge: true }).catch((setErr) => {
+            if (isFirestoreDailyWriteQuotaError(setErr)) {
+              markFirestoreQuotaExceeded();
+            }
+          });
         });
 
         // Log social activity if they are favoriting a story
-        if (isAdding && profile) {
+        if (isAdding && profile && !isFirestoreQuotaExceeded()) {
           const story = stories.find((s) => s.id === id);
           if (story) {
             await logUserActivity({
@@ -386,11 +397,17 @@ export function Home() {
               targetId: id,
               targetTitle: story.title,
               createdAt: new Date().toISOString(),
+            }).catch((actErr) => {
+              if (isFirestoreDailyWriteQuotaError(actErr)) markFirestoreQuotaExceeded();
             });
           }
         }
       } catch (err) {
-        console.error('Failed to update user favorites in Firestore:', err);
+        if (isFirestoreDailyWriteQuotaError(err)) {
+          markFirestoreQuotaExceeded();
+        } else {
+          console.error('Failed to update user favorites in Firestore:', err);
+        }
       }
     }
   };

@@ -17,7 +17,10 @@ import {
   updatePassword,
   reauthenticateWithCredential,
   EmailAuthProvider,
-  User 
+  User,
+  isFirestoreQuotaExceeded,
+  markFirestoreQuotaExceeded,
+  isFirestoreDailyWriteQuotaError,
 } from "../lib/firebase";
 
 export const ADMIN_EMAIL = "andreluiz1902@gmail.com";
@@ -86,8 +89,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           data.username = "Oevidente";
           updates.username = "Oevidente";
         }
-        if (Object.keys(updates).length > 0) {
-          await updateDoc(userRef, updates).catch(() => {});
+        if (Object.keys(updates).length > 0 && !isFirestoreQuotaExceeded()) {
+          await updateDoc(userRef, updates).catch((err) => {
+            if (isFirestoreDailyWriteQuotaError(err)) markFirestoreQuotaExceeded();
+          });
         }
         setProfile(data);
       } else {
@@ -99,11 +104,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: expectedRole,
           favorites: []
         };
-        await setDoc(userRef, newProf);
+        if (!isFirestoreQuotaExceeded()) {
+          await setDoc(userRef, newProf).catch((err) => {
+            if (isFirestoreDailyWriteQuotaError(err)) markFirestoreQuotaExceeded();
+          });
+        }
         setProfile(newProf);
       }
     } catch (e) {
-      console.error("Error fetching user profile:", e);
+      if (isFirestoreDailyWriteQuotaError(e)) {
+        markFirestoreQuotaExceeded();
+      } else {
+        console.error("Error fetching user profile:", e);
+      }
     }
   };
 
