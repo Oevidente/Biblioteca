@@ -93,6 +93,16 @@ export function buildImageHtml(src: string): string {
   return `<img src="${src}" alt="" loading="lazy" decoding="async" style="display:block;max-width:100%;height:auto;margin:1rem auto;border-radius:0.5rem" />`;
 }
 
+export function buildImageGalleryHtml(sources: string[]): string {
+  const images = sources
+    .map(
+      (src) =>
+        `<img src="${src}" alt="" loading="lazy" decoding="async" />`,
+    )
+    .join('');
+  return `<div class="story-image-gallery">${images}</div><p><br></p>`;
+}
+
 /**
  * Varre as <img> do editor e troca as que não vão sobreviver ao salvamento
  * (blob:, data: gigante, link remoto acessível) por versões comprimidas em base64.

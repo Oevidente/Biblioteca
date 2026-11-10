@@ -69,6 +69,7 @@ import { StoryContent } from './StoryContent';
 import {
   compressImageToDataUrl,
   buildImageHtml,
+  buildImageGalleryHtml,
   normalizeEditorImages,
   splitOversizedPages,
 } from '../lib/storyImages';
@@ -704,7 +705,9 @@ export function StoryEditor({
       document.execCommand(
         'insertHTML',
         false,
-        dataUrls.map(buildImageHtml).join(''),
+        dataUrls.length > 1
+          ? buildImageGalleryHtml(dataUrls)
+          : dataUrls.map(buildImageHtml).join(''),
       );
       editorRef.current.querySelectorAll('img').forEach((image) => {
         image.draggable = false;

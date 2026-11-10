@@ -367,6 +367,26 @@ html.dark {
   height: auto !important;
 }
 
+.story-image-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 65ch;
+  margin: 1rem auto;
+  align-items: start;
+}
+
+.story-image-gallery img {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  margin: 0 !important;
+  float: none !important;
+  border-radius: 0.5rem;
+}
+
 @media (max-width: 640px) {
   .story-content-optimized img {
     margin-left: auto !important;
