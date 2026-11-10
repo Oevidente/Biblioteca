@@ -72,6 +72,7 @@ import { unlockAchievement } from '../lib/achievements';
 import { logUserActivity } from '../lib/social';
 import { translateStoryPageHtml } from '../lib/storyTranslator';
 import { cleanStoryHtml } from '../lib/cleanStoryHtml';
+import { paginateHtmlByWords } from '../lib/storyPagination';
 import { TranslatedText } from '../components/TranslatedText';
 import { StoryContent } from '../components/StoryContent';
 import { BookCoverImage } from '../components/BookCoverImage';
@@ -95,6 +96,22 @@ function getOrCreateGuestId(): string {
     }
   }
   return guestId;
+}
+
+const READER_MAX_WORDS_PER_PAGE = 350;
+
+function normalizeReaderPages(pages: { [pageIdx: number]: string }): string[] {
+  const normalizedPages = Object.keys(pages)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .flatMap((pageIndex) =>
+      paginateHtmlByWords(
+        cleanStoryHtml(pages[pageIndex]),
+        READER_MAX_WORDS_PER_PAGE,
+      ).map(cleanStoryHtml),
+    );
+
+  return normalizedPages.length > 0 ? normalizedPages : ['<p></p>'];
 }
 
 export interface StoryData {
@@ -257,6 +274,10 @@ export function Reader({
   const [allPagesContent, setAllPagesContent] = useState<{
     [pageIdx: number]: string;
   }>({});
+  const [readerPages, setReaderPages] = useState<{
+    storyId: string;
+    pages: string[];
+  } | null>(null);
   const [tocHeadings, setTocHeadings] = useState<TocHeadingItem[]>([]);
   const [showTocSidebar, setShowTocSidebar] = useState<boolean>(
     () => !previewData && window.innerWidth >= 1280,
@@ -320,6 +341,24 @@ export function Reader({
   useEffect(() => {
     async function loadAllStoryPages() {
       if (!id || !story) return;
+
+      const applyReaderPages = (pagesMap: { [pageIdx: number]: string }) => {
+        const normalizedPages = normalizeReaderPages(pagesMap);
+        const normalizedMap = Object.fromEntries(
+          normalizedPages.map((content, pageIndex) => [pageIndex, content]),
+        );
+        setReaderPages({ storyId: id, pages: normalizedPages });
+        setAllPagesContent(normalizedMap);
+        setTocHeadings(
+          extractTocHeadingsFromPages(normalizedMap, normalizedPages.length),
+        );
+        setStory((previous) =>
+          previous && previous.totalPages !== normalizedPages.length
+            ? { ...previous, totalPages: normalizedPages.length }
+            : previous,
+        );
+      };
+
       if (previewData) {
         const pagesMap = Object.fromEntries(
           previewData.pages.map((content, pageIndex) => [
@@ -327,21 +366,14 @@ export function Reader({
             cleanStoryHtml(content),
           ]),
         );
-        setAllPagesContent(pagesMap);
-        setTocHeadings(extractTocHeadingsFromPages(pagesMap, story.totalPages));
+        applyReaderPages(pagesMap);
         return;
       }
       const pagesMap: { [pageIdx: number]: string } = {};
       try {
         const offline = await getOfflineStory(id);
-        if (offline && offline.pages) {
-          setAllPagesContent(offline.pages);
-          setTocHeadings(
-            extractTocHeadingsFromPages(
-              offline.pages,
-              story?.totalPages || Object.keys(offline.pages).length || 1,
-            ),
-          );
+        if (offline && offline.pages && !navigator.onLine) {
+          applyReaderPages(offline.pages);
           return;
         }
       } catch (e) {
@@ -363,13 +395,7 @@ export function Reader({
         if (Object.keys(pagesMap).length === 0 && pageContent) {
           pagesMap[0] = cleanStoryHtml(pageContent);
         }
-        setAllPagesContent(pagesMap);
-        setTocHeadings(
-          extractTocHeadingsFromPages(
-            pagesMap,
-            story?.totalPages || Object.keys(pagesMap).length || 1,
-          ),
-        );
+        applyReaderPages(pagesMap);
       } catch (e) {
         console.error('Error loading all pages for TOC:', e);
         if (pageContent) {
@@ -720,6 +746,13 @@ export function Reader({
   useEffect(() => {
     async function loadPage() {
       if (!id || !story) return;
+      if (readerPages?.storyId === id) {
+        setPageContent(
+          cleanStoryHtml(readerPages.pages[currentPage] || '<p></p>'),
+        );
+        setLoadingPage(false);
+        return;
+      }
       if (previewData) {
         setPageContent(
           cleanStoryHtml(previewData.pages[currentPage] || '<p></p>'),
@@ -765,7 +798,7 @@ export function Reader({
     }
 
     loadPage();
-  }, [id, currentPage, story, previewData]);
+  }, [id, currentPage, story, previewData, readerPages]);
 
   // Load Approved Comments ONLY
   useEffect(() => {

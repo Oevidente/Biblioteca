@@ -64,6 +64,7 @@ import {
   IssueCategory,
 } from '../lib/spellChecker';
 import { cleanStoryHtml } from '../lib/cleanStoryHtml';
+import { paginateHtmlByWords } from '../lib/storyPagination';
 import { StoryContent } from './StoryContent';
 import {
   compressImageToDataUrl,
@@ -562,101 +563,12 @@ export function StoryEditor({
     }
 
     if (autoPagination && wordsPerPage > 0) {
-      const paragraphs = Array.from(tempDiv.children);
-      if (paragraphs.length === 0) {
-        const rawContent = cleanStoryHtml(tempDiv.innerHTML || cleanedHtml);
-        return { pages: [rawContent || '<p></p>'], wordCount, cleanText };
-      }
-
-      const pages: string[] = [];
-      let currentChunkHtml = '';
-      let currentChunkWords = 0;
-      const maxChunkWords = wordsPerPage + 50;
-
-      const splitOversizedBlock = (
-        block: Element,
-      ): Array<{ html: string; wordCount: number }> => {
-        const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
-        const wordEnds: Array<{ node: Text; offset: number }> = [];
-        let textNode = walker.nextNode() as Text | null;
-
-        while (textNode) {
-          const wordPattern = /\S+/g;
-          let match: RegExpExecArray | null;
-          while ((match = wordPattern.exec(textNode.textContent || ''))) {
-            wordEnds.push({
-              node: textNode,
-              offset: match.index + match[0].length,
-            });
-          }
-          textNode = walker.nextNode() as Text | null;
-        }
-
-        if (wordEnds.length <= maxChunkWords) {
-          return [{ html: block.outerHTML, wordCount: wordEnds.length }];
-        }
-
-        const chunks: Array<{ html: string; wordCount: number }> = [];
-        const fullRange = document.createRange();
-        fullRange.selectNodeContents(block);
-        let startNode = wordEnds[0].node;
-        let startOffset = 0;
-
-        for (
-          let startIndex = 0;
-          startIndex < wordEnds.length;
-          startIndex += maxChunkWords
-        ) {
-          const endIndex = Math.min(
-            startIndex + maxChunkWords - 1,
-            wordEnds.length - 1,
-          );
-          const end = wordEnds[endIndex];
-          const range = document.createRange();
-          range.setStart(startNode, startOffset);
-          if (endIndex === wordEnds.length - 1) {
-            range.setEnd(fullRange.endContainer, fullRange.endOffset);
-          } else {
-            range.setEnd(end.node, end.offset);
-          }
-
-          const chunk = block.cloneNode(false) as Element;
-          chunk.appendChild(range.cloneContents());
-          chunks.push({
-            html: chunk.outerHTML,
-            wordCount: endIndex - startIndex + 1,
-          });
-          startNode = end.node;
-          startOffset = end.offset;
-        }
-
-        return chunks;
-      };
-
-      paragraphs.forEach((child) => {
-        splitOversizedBlock(child).forEach(
-          ({ html, wordCount: blockWordCount }) => {
-            if (
-              currentChunkWords > 0 &&
-              currentChunkWords + blockWordCount > maxChunkWords
-            ) {
-              pages.push(cleanStoryHtml(currentChunkHtml));
-              currentChunkHtml = html;
-              currentChunkWords = blockWordCount;
-            } else {
-              currentChunkHtml += html;
-              currentChunkWords += blockWordCount;
-            }
-          },
-        );
-      });
-
-      if (currentChunkHtml.trim().length > 0) {
-        pages.push(cleanStoryHtml(currentChunkHtml));
-      }
+      const pages = paginateHtmlByWords(cleanedHtml, wordsPerPage + 50).map(
+        cleanStoryHtml,
+      );
 
       return {
-        pages: pages.length > 0 ? pages : [cleanedHtml || '<p></p>'],
+        pages,
         wordCount,
         cleanText,
       };
