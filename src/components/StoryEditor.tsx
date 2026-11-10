@@ -2601,7 +2601,6 @@ export function StoryEditor({
                             handleContentChange();
                             updateSelectionToolbar();
                           }}
-
                           onPointerCancel={() => {
                             isResizingImageRef.current = false;
                             handleContentChange();

@@ -1330,7 +1330,8 @@ export const translations = {
     eyeComfort: 'Eye Comfort',
     blueFilter: 'Anti-Blue Light Filter',
     filterIntensity: 'Filter Intensity',
-    eyeComfortDescription: 'Warm amber filter to reduce blue light and eye strain while reading',
+    eyeComfortDescription:
+      'Warm amber filter to reduce blue light and eye strain while reading',
     off: 'Off',
 
     // Auth Modal
