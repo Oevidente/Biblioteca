@@ -70,7 +70,7 @@ import {
 } from '../lib/playlists';
 import { unlockAchievement } from '../lib/achievements';
 import { logUserActivity } from '../lib/social';
-import { translateStoryPageHtml } from '../lib/storyTranslator';
+import { translateStoryPageHtmlDetailed } from '../lib/storyTranslator';
 import { cleanStoryHtml } from '../lib/cleanStoryHtml';
 import { TranslatedText } from '../components/TranslatedText';
 import { StoryContent } from '../components/StoryContent';
@@ -169,6 +169,8 @@ export function Reader({
   );
   const [displayContent, setDisplayContent] = useState<string>('');
   const [isTranslating, setIsTranslating] = useState<boolean>(false);
+  const [translationIncomplete, setTranslationIncomplete] = useState(false);
+  const [translationRetryKey, setTranslationRetryKey] = useState(0);
 
   useEffect(() => {
     if (previewData) return;
@@ -183,21 +185,26 @@ export function Reader({
 
     async function processPageTranslation() {
       if (language !== 'pt' && isTranslationEnabled && pageContent) {
+        // Limpa o texto da página anterior enquanto a nova é traduzida
+        setDisplayContent('');
+        setTranslationIncomplete(false);
         setIsTranslating(true);
         try {
-          const translated = await translateStoryPageHtml(
+          const { html, complete } = await translateStoryPageHtmlDetailed(
             pageContent,
-            language as 'es' | 'en' | 'id',
+            language as 'es' | 'en' | 'id' | 'zh',
             id || 'story',
             currentPage,
           );
           if (!isCancelled) {
-            setDisplayContent(cleanStoryHtml(translated));
+            setDisplayContent(cleanStoryHtml(html));
+            setTranslationIncomplete(!complete);
           }
         } catch (e) {
           console.error('Translation processing error:', e);
           if (!isCancelled) {
             setDisplayContent(cleanStoryHtml(pageContent));
+            setTranslationIncomplete(true);
           }
         } finally {
           if (!isCancelled) {
@@ -206,6 +213,7 @@ export function Reader({
         }
       } else {
         setDisplayContent(cleanStoryHtml(pageContent));
+        setTranslationIncomplete(false);
         setIsTranslating(false);
       }
     }
@@ -215,7 +223,14 @@ export function Reader({
     return () => {
       isCancelled = true;
     };
-  }, [pageContent, isTranslationEnabled, language, id, currentPage]);
+  }, [
+    pageContent,
+    isTranslationEnabled,
+    language,
+    id,
+    currentPage,
+    translationRetryKey,
+  ]);
 
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -1854,6 +1869,14 @@ export function Reader({
                     <span className="w-2 h-2 rounded-full bg-violet-500 animate-ping inline-block" />
                     {t('translatingStoryPage')}
                   </span>
+                ) : translationIncomplete ? (
+                  <button
+                    type="button"
+                    onClick={() => setTranslationRetryKey((k) => k + 1)}
+                    className="rounded-lg border border-current px-2.5 py-1 text-[10px] font-bold normal-case tracking-normal hover:bg-violet-500/10 transition-colors"
+                  >
+                    {t('translationPartialRetry')}
+                  </button>
                 ) : (
                   <span className="opacity-70 font-mono text-[9px]">
                     {t('naturalTranslationNotice')}

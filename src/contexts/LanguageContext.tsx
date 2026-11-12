@@ -80,6 +80,7 @@ export const translations = {
     enableStoryTranslation: 'Ativar Tradução da História',
     storyTranslationActive: 'Tradução Ativa ({lang})',
     translatingStoryPage: 'Traduzindo página com precisão...',
+    translationPartialRetry: 'Parte do texto não foi traduzida. Tentar de novo',
     showOriginalText: 'Ver Original (PT)',
     showTranslatedText: 'Ver Traduzido',
     naturalTranslationNotice:
@@ -703,6 +704,7 @@ export const translations = {
     enableStoryTranslation: 'Activar Traducción de la Historia',
     storyTranslationActive: 'Traducción Activa ({lang})',
     translatingStoryPage: 'Traduciendo página con precisión...',
+    translationPartialRetry: 'Parte del texto no se tradujo. Intentar de nuevo',
     showOriginalText: 'Ver Original (PT)',
     showTranslatedText: 'Ver Traducido',
     naturalTranslationNotice:
@@ -1326,6 +1328,7 @@ export const translations = {
     enableStoryTranslation: 'Enable Story Translation',
     storyTranslationActive: 'Translation Active ({lang})',
     translatingStoryPage: 'Translating page accurately...',
+    translationPartialRetry: 'Part of the text was not translated. Try again',
     showOriginalText: 'Show Original (PT)',
     showTranslatedText: 'Show Translated',
     naturalTranslationNotice:
@@ -1946,6 +1949,7 @@ export const translations = {
     enableStoryTranslation: 'Aktifkan Terjemahan Cerita',
     storyTranslationActive: 'Terjemahan Aktif ({lang})',
     translatingStoryPage: 'Menerjemahkan halaman dengan akurat...',
+    translationPartialRetry: 'Sebagian teks belum diterjemahkan. Coba lagi',
     showOriginalText: 'Lihat Teks Asli (PT)',
     showTranslatedText: 'Lihat Terjemahan',
     naturalTranslationNotice: 'Terjemahan lancar aktif untuk bahasa situs.',
@@ -2551,6 +2555,7 @@ export const translations = {
     enableStoryTranslation: '开启故事翻译',
     storyTranslationActive: '已开启翻译 ({lang})',
     translatingStoryPage: '正在精确翻译页面...',
+    translationPartialRetry: '部分文本未翻译。重试',
     showOriginalText: '查看原文 (PT)',
     showTranslatedText: '查看译文',
     naturalTranslationNotice: '已为网站当前语言启用流畅的原生翻译。',

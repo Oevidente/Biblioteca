@@ -38,30 +38,46 @@ function cleanTranslatedText(text: string): string {
 }
 
 /**
+ * Busca JSON com timeout e novas tentativas (429/5xx/erro de rede) com espera crescente.
+ * Devolve null se todas as tentativas falharem.
+ */
+async function fetchJsonWithRetry(url: string, attempts: number = 3): Promise<any | null> {
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      if (res.ok) return await res.json();
+      // Erro que não adianta repetir (ex.: 400/404)
+      if (res.status !== 429 && res.status < 500) return null;
+    } catch (e) {
+      // Erro de rede ou timeout: tenta de novo
+    } finally {
+      clearTimeout(timer);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 400 * 2 ** attempt));
+  }
+  return null;
+}
+
+/**
  * Primary Engine: Google Translate GTX Free Endpoint (No key, high capacity ~4000 chars per query)
  */
 async function translateViaGoogleGTX(text: string, targetLang: string): Promise<string | null> {
-  try {
-    const langCode = targetLang === 'zh' ? 'zh-CN' : targetLang;
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=pt&tl=${langCode}&dt=t&q=${encodeURIComponent(text)}`;
-    const res = await fetch(url);
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && Array.isArray(data[0])) {
-        // data[0] contains pairs of [translated_sentence, original_sentence]
-        const translatedParts = data[0]
-          .map((item: any) => (Array.isArray(item) && item[0] ? item[0] : ""))
-          .filter(Boolean);
-        if (translatedParts.length > 0) {
-          const joined = translatedParts.join("");
-          if (joined && !joined.includes("MYMEMORY WARNING")) {
-            return cleanTranslatedText(joined);
-          }
-        }
+  const langCode = targetLang === 'zh' ? 'zh-CN' : targetLang;
+  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=pt&tl=${langCode}&dt=t&q=${encodeURIComponent(text)}`;
+  const data = await fetchJsonWithRetry(url);
+  if (Array.isArray(data) && Array.isArray(data[0])) {
+    // data[0] contains pairs of [translated_sentence, original_sentence]
+    const translatedParts = data[0]
+      .map((item: any) => (Array.isArray(item) && item[0] ? item[0] : ""))
+      .filter(Boolean);
+    if (translatedParts.length > 0) {
+      const joined = translatedParts.join("");
+      if (joined && !joined.includes("MYMEMORY WARNING")) {
+        return cleanTranslatedText(joined);
       }
     }
-  } catch (err) {
-    console.warn("Google GTX translation attempt failed:", err);
   }
   return null;
 }
@@ -77,16 +93,9 @@ async function translateViaLingva(text: string, targetLang: string): Promise<str
   ];
 
   for (const url of instances) {
-    try {
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.translation) {
-          return cleanTranslatedText(data.translation);
-        }
-      }
-    } catch (e) {
-      // Try next instance
+    const data = await fetchJsonWithRetry(url, 2);
+    if (data && data.translation) {
+      return cleanTranslatedText(data.translation);
     }
   }
   return null;
@@ -123,8 +132,9 @@ function splitIntoSmartChunks(text: string, maxLength: number = 1000): string[] 
   if (text.length <= maxLength) return [text];
 
   const chunks: string[] = [];
-  // Split by sentence endings (. ! ? \n)
-  const sentences = text.match(/[^.!?\n]+[.!?\n]+/g) || [text];
+  // Frases terminadas em . ! ? ou quebra de linha, MAIS o resto final sem pontuação
+  // (antes esse resto era descartado e o fim do parágrafo sumia da tradução)
+  const sentences = text.match(/[^.!?\n]*[.!?\n]+|[^.!?\n]+$/g) || [text];
   let currentChunk = "";
 
   for (const sentence of sentences) {
@@ -142,7 +152,25 @@ function splitIntoSmartChunks(text: string, maxLength: number = 1000): string[] 
     chunks.push(currentChunk.trim());
   }
 
-  return chunks.length > 0 ? chunks : [text];
+  // Frase gigante sem pontuação: quebra por palavras
+  const result: string[] = [];
+  for (const chunk of chunks.length > 0 ? chunks : [text]) {
+    if (chunk.length <= maxLength) {
+      result.push(chunk);
+      continue;
+    }
+    let piece = "";
+    for (const word of chunk.split(/(\s+)/)) {
+      if ((piece + word).length > maxLength && piece.trim()) {
+        result.push(piece.trim());
+        piece = word;
+      } else {
+        piece += word;
+      }
+    }
+    if (piece.trim()) result.push(piece.trim());
+  }
+  return result;
 }
 
 /**
@@ -172,18 +200,27 @@ export function getCachedTranslation(text: string, targetLang: 'es' | 'en' | 'id
   return null;
 }
 
-export async function translateTextBlock(text: string, targetLang: 'es' | 'en' | 'id' | 'zh'): Promise<string> {
+/**
+ * Traduz um bloco de texto e informa se TODOS os trechos foram traduzidos.
+ * Trecho que falhou em todos os provedores fica no original e a tradução NÃO é gravada
+ * no cache, então a próxima tentativa tenta de novo.
+ */
+export async function translateTextBlockDetailed(
+  text: string,
+  targetLang: 'es' | 'en' | 'id' | 'zh'
+): Promise<{ text: string; complete: boolean }> {
   const trimmed = text.trim();
-  if (!trimmed) return text;
+  if (!trimmed) return { text, complete: true };
 
   const cached = getCachedTranslation(trimmed, targetLang);
-  if (cached) return cached;
+  if (cached) return { text: cached, complete: true };
 
   const cacheKey = `txt_v2_${targetLang}_${trimmed.slice(0, 80)}_${trimmed.length}`;
 
   // If text is very long, chunk it into smaller blocks
   const chunks = splitIntoSmartChunks(trimmed, 1200);
   const translatedChunks: string[] = [];
+  let complete = true;
 
   for (const chunk of chunks) {
     let translatedChunk: string | null = null;
@@ -201,89 +238,108 @@ export async function translateTextBlock(text: string, targetLang: 'es' | 'en' |
       translatedChunk = await translateViaMyMemory(chunk, targetLang);
     }
 
-    // Final safety fallback: keep original chunk if all providers fail
+    if (!translatedChunk) complete = false;
+    // Se todos os provedores falharem, mantém o trecho original
     translatedChunks.push(translatedChunk || chunk);
   }
 
   const finalTranslation = translatedChunks.join(" ");
-  memoryCache[cacheKey] = finalTranslation;
-  try {
-    sessionStorage.setItem(cacheKey, finalTranslation);
-  } catch (e) {}
-  
-  return finalTranslation;
+  if (complete) {
+    memoryCache[cacheKey] = finalTranslation;
+    try {
+      sessionStorage.setItem(cacheKey, finalTranslation);
+    } catch (e) {}
+  }
+
+  return { text: finalTranslation, complete };
+}
+
+export async function translateTextBlock(text: string, targetLang: 'es' | 'en' | 'id' | 'zh'): Promise<string> {
+  return (await translateTextBlockDetailed(text, targetLang)).text;
 }
 
 /**
- * Generate a fast numeric hash fingerprint for HTML content
+ * Quantos pedidos de tradução rodam ao mesmo tempo (evita 429 do serviço gratuito).
  */
-function getContentFingerprint(text: string): string {
-  let hash = 0;
-  for (let i = 0; i < text.length; i++) {
-    hash = (hash << 5) - hash + text.charCodeAt(i);
-    hash |= 0;
-  }
-  return `${text.length}_${Math.abs(hash)}`;
-}
+const TRANSLATION_CONCURRENCY = 4;
 
-/**
- * Translates an entire HTML page content while preserving HTML structure.
- */
-export async function translateStoryPageHtml(
-  htmlContent: string, 
-  targetLang: 'es' | 'en' | 'id' | 'zh', 
-  storyId: string, 
-  pageIndex: number
-): Promise<string> {
-  if (!htmlContent || targetLang === ('pt' as any)) return htmlContent;
+const HAS_LETTER = /\p{L}/u;
+const SKIP_TRANSLATION_SELECTOR = 'script, style, noscript, code, pre, textarea';
 
-  const contentKey = getContentFingerprint(htmlContent);
-  const sessionKey = `inkora_story_trans_v3_${storyId}_${pageIndex}_${targetLang}_${contentKey}`;
-  try {
-    const cached = sessionStorage.getItem(sessionKey);
-    if (cached) return cached;
-  } catch (e) {
-    // Ignore storage errors
-  }
-
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(htmlContent, 'text/html');
-
-    // Collect all text-bearing elements (<p>, <h1>..<h6>, blockquote, li)
-    const elements = Array.from(doc.querySelectorAll('p, h1, h2, h3, h4, h5, h6, blockquote, li'));
-
-    if (elements.length === 0) {
-      const bodyText = doc.body.textContent || '';
-      if (bodyText.trim()) {
-        const translated = await translateTextBlock(bodyText, targetLang);
-        return `<p>${translated}</p>`;
-      }
-      return htmlContent;
+async function mapWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<void>
+): Promise<void> {
+  let next = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const index = next++;
+      await worker(items[index]);
     }
+  });
+  await Promise.all(runners);
+}
 
-    // Process elements in parallel batches
-    const translatePromises = elements.map(async (el) => {
-      const originalText = el.textContent || '';
-      if (originalText.trim().length > 0) {
-        const translatedText = await translateTextBlock(originalText, targetLang);
-        el.textContent = translatedText;
-      }
+/**
+ * Todos os nós de TEXTO com letras (em qualquer tag: p, div, span, h1.., ou solto na raiz).
+ * Só o texto é trocado; <img>, formatação, cores e classes ficam intactos.
+ */
+function collectTranslatableTextNodes(root: HTMLElement): Text[] {
+  const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes: Text[] = [];
+  let current = walker.nextNode();
+  while (current) {
+    const textNode = current as Text;
+    if (HAS_LETTER.test(textNode.data) && !textNode.parentElement?.closest(SKIP_TRANSLATION_SELECTOR)) {
+      nodes.push(textNode);
+    }
+    current = walker.nextNode();
+  }
+  return nodes;
+}
+
+/**
+ * Traduz o HTML de uma página preservando toda a estrutura (imagens, formatação, flutuação).
+ * Informa se tudo foi traduzido (complete) ou se algum trecho ficou no original.
+ */
+export async function translateStoryPageHtmlDetailed(
+  htmlContent: string,
+  targetLang: 'es' | 'en' | 'id' | 'zh',
+  storyId: string,
+  pageIndex: number
+): Promise<{ html: string; complete: boolean }> {
+  if (!htmlContent || targetLang === ('pt' as any)) return { html: htmlContent, complete: true };
+
+  try {
+    const doc = new DOMParser().parseFromString(htmlContent, 'text/html');
+    doc.body.normalize();
+
+    const nodes = collectTranslatableTextNodes(doc.body);
+    let complete = true;
+
+    await mapWithConcurrency(nodes, TRANSLATION_CONCURRENCY, async (node) => {
+      const raw = node.data;
+      const lead = raw.match(/^\s*/)?.[0] ?? '';
+      const trail = raw.match(/\s*$/)?.[0] ?? '';
+      const result = await translateTextBlockDetailed(raw, targetLang);
+      if (!result.complete) complete = false;
+      node.data = lead + result.text.trim() + trail;
     });
 
-    await Promise.all(translatePromises);
-
-    const resultHtml = doc.body.innerHTML;
-
-    try {
-      sessionStorage.setItem(sessionKey, resultHtml);
-    } catch (e) {
-      // Ignore quota errors
-    }
-
-    return resultHtml;
+    return { html: doc.body.innerHTML, complete };
   } catch (err) {
     console.error("Error parsing/translating HTML story page:", err);
-    return htmlContent;
+    return { html: htmlContent, complete: false };
   }
 }
+
+export async function translateStoryPageHtml(
+  htmlContent: string,
+  targetLang: 'es' | 'en' | 'id' | 'zh',
+  storyId: string,
+  pageIndex: number
+): Promise<string> {
+  return (await translateStoryPageHtmlDetailed(htmlContent, targetLang, storyId, pageIndex)).html;
+}
+

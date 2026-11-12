@@ -465,7 +465,7 @@ export function Layout() {
         </div>
         <div className="flex items-center space-x-4">
           <span className="text-[9px] uppercase font-bold tracking-widest opacity-40 italic">
-            {t('version')} 3.1.15-beta
+            {t('version')} 3.1.18-beta
           </span>
         </div>
       </footer>
