@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useImperativeHandle,
+  forwardRef,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import {
@@ -74,9 +81,19 @@ import {
   normalizeEditorImages,
   splitOversizedPages,
 } from '../lib/storyImages';
+import { detectDialogueStyle, convertDialogueText } from '../lib/dialogue';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+export interface StoryEditorHandle {
+  scrollToDialogue: (textExcerpt: string, pageIndex?: number) => boolean;
+  convertAllDialogues: (targetStyle: 'dash' | 'quotes') => number;
+  convertPageDialogues: (
+    targetStyle: 'dash' | 'quotes',
+    targetPageIndex: number,
+  ) => number;
 }
 
 interface StoryEditorProps {
@@ -87,13 +104,17 @@ interface StoryEditorProps {
   renderReaderPreview?: (pages: string[]) => React.ReactNode;
 }
 
-export function StoryEditor({
-  initialPages = [],
-  onChange,
-  className,
-  supporters,
-  renderReaderPreview,
-}: StoryEditorProps) {
+export const StoryEditor = forwardRef<StoryEditorHandle, StoryEditorProps>(
+  function StoryEditor(
+    {
+      initialPages = [],
+      onChange,
+      className,
+      supporters,
+      renderReaderPreview,
+    }: StoryEditorProps,
+    ref,
+  ) {
   const { t, language } = useLanguage();
   const deleteImageLabel =
     language === 'pt'
@@ -710,6 +731,146 @@ export function StoryEditor({
 
     triggerSpellCheck(pages);
   };
+
+  useImperativeHandle(ref, () => ({
+    scrollToDialogue: (textExcerpt: string, _pageIndex?: number): boolean => {
+      if (!editorRef.current) return false;
+      const cleanExcerpt = textExcerpt.trim().toLowerCase();
+      if (!cleanExcerpt) return false;
+
+      const blocks: HTMLElement[] = Array.from(
+        editorRef.current.querySelectorAll('p, div, blockquote, li'),
+      );
+      let targetEl: HTMLElement | null = null;
+
+      for (const block of blocks) {
+        if (
+          block.classList.contains('page-break-marker') ||
+          block.closest('.page-break-marker') ||
+          block.querySelector('p, div, blockquote, li')
+        ) {
+          continue;
+        }
+        const blockText = (block.textContent || '').trim().toLowerCase();
+        if (
+          blockText &&
+          (blockText.includes(cleanExcerpt.slice(0, 35)) ||
+            cleanExcerpt.includes(blockText.slice(0, 35)))
+        ) {
+          targetEl = block;
+          break;
+        }
+      }
+
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        targetEl.classList.remove('dialogue-highlight-pulse');
+        void targetEl.offsetWidth; // force animation reflow
+        targetEl.classList.add('dialogue-highlight-pulse');
+        setTimeout(() => {
+          targetEl?.classList.remove('dialogue-highlight-pulse');
+        }, 2200);
+
+        try {
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(targetEl);
+          range.collapse(true);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+          editorRef.current.focus();
+        } catch {}
+
+        return true;
+      }
+      return false;
+    },
+
+    convertAllDialogues: (targetStyle: 'dash' | 'quotes'): number => {
+      if (!editorRef.current) return 0;
+      const blocks: HTMLElement[] = Array.from(
+        editorRef.current.querySelectorAll('p, div, blockquote, li'),
+      );
+      let count = 0;
+
+      blocks.forEach((el) => {
+        if (
+          el.classList.contains('page-break-marker') ||
+          el.closest('.page-break-marker') ||
+          el.querySelector('p, div, blockquote, li')
+        ) {
+          return;
+        }
+        const text = el.textContent || '';
+        const style = detectDialogueStyle(text);
+        if (style !== 'none' && style !== targetStyle) {
+          const converted = convertDialogueText(text, targetStyle);
+          el.textContent = converted;
+          count++;
+        }
+      });
+
+      if (count > 0) {
+        handleContentChange();
+      }
+      return count;
+    },
+
+    convertPageDialogues: (
+      targetStyle: 'dash' | 'quotes',
+      targetPageIndex: number,
+    ): number => {
+      if (!editorRef.current) return 0;
+      const blocks: HTMLElement[] = Array.from(
+        editorRef.current.querySelectorAll('p, div, blockquote, li'),
+      );
+      let count = 0;
+
+      blocks.forEach((el) => {
+        if (
+          el.classList.contains('page-break-marker') ||
+          el.closest('.page-break-marker') ||
+          el.querySelector('p, div, blockquote, li')
+        ) {
+          return;
+        }
+
+        // Determine which page this block belongs to
+        let pageIdx = 0;
+        let curr: Node | null = el as Node;
+        while (curr && curr.parentNode !== editorRef.current) {
+          curr = curr.parentNode;
+        }
+        if (curr) {
+          let sibling: Node | null = curr.previousSibling;
+          while (sibling) {
+            if (
+              sibling instanceof HTMLElement &&
+              sibling.classList.contains('page-break-marker')
+            ) {
+              pageIdx++;
+            }
+            sibling = sibling.previousSibling;
+          }
+        }
+
+        if (pageIdx === targetPageIndex) {
+          const text = el.textContent || '';
+          const style = detectDialogueStyle(text);
+          if (style !== 'none' && style !== targetStyle) {
+            const converted = convertDialogueText(text, targetStyle);
+            el.textContent = converted;
+            count++;
+          }
+        }
+      });
+
+      if (count > 0) {
+        handleContentChange();
+      }
+      return count;
+    },
+  }));
 
   // ---------- Imagens no texto ----------
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -3506,4 +3667,4 @@ export function StoryEditor({
         )}
     </div>
   );
-}
+});

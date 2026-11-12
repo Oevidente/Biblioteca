@@ -2,6 +2,7 @@ import {
   useEffect,
   useState,
   useRef,
+  useMemo,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -19,7 +20,7 @@ import {
 } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { StoryEditor } from '../components/StoryEditor';
+import { StoryEditor, type StoryEditorHandle } from '../components/StoryEditor';
 import { Reader } from './Reader';
 import {
   ArrowLeft,
@@ -31,7 +32,25 @@ import {
   ChevronLeft,
   ChevronRight,
   GripVertical,
+  MessagesSquare,
+  FileText,
+  Search,
+  Quote,
+  Check,
+  RefreshCw,
 } from 'lucide-react';
+import {
+  extractDialoguesFromHtml,
+  getDialogueStats,
+  type DialogueItem,
+} from '../lib/dialogue';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
 import { generateTagsLocal } from '../lib/tagger';
 import { cleanStoryHtml } from '../lib/cleanStoryHtml';
 import { findOversizedPageIndex } from '../lib/storyImages';
@@ -261,6 +280,72 @@ export function Writer() {
   const [isWriterPanelCollapsed, setIsWriterPanelCollapsed] = useState(false);
   const [writerPanelTop, setWriterPanelTop] = useState(96);
   const writerPanelRef = useRef<HTMLElement>(null);
+  const storyEditorRef = useRef<StoryEditorHandle>(null);
+
+  const [writerTab, setWriterTab] = useState<'story' | 'dialogues'>('story');
+  const [dialogueTargetStyle, setDialogueTargetStyle] = useState<'dash' | 'quotes'>('dash');
+  const [dialogueScope, setDialogueScope] = useState<'page' | 'all'>('page');
+  const [selectedDialoguePageIndex, setSelectedDialoguePageIndex] = useState<number>(0);
+  const [dialogueFilterText, setDialogueFilterText] = useState<string>('');
+  const [dialogueActionFeedback, setDialogueActionFeedback] = useState<string>('');
+
+  const allDialogues = useMemo(() => {
+    const list: DialogueItem[] = [];
+    pages.forEach((pageHtml, idx) => {
+      list.push(...extractDialoguesFromHtml(pageHtml, idx));
+    });
+    return list;
+  }, [pages]);
+
+  const dialogueStats = useMemo(() => {
+    return getDialogueStats(pages);
+  }, [pages]);
+
+  const filteredDialogues = useMemo(() => {
+    return allDialogues.filter((diag) => {
+      if (dialogueScope === 'page' && diag.pageIndex !== selectedDialoguePageIndex) {
+        return false;
+      }
+      if (dialogueFilterText.trim()) {
+        return diag.rawText
+          .toLowerCase()
+          .includes(dialogueFilterText.toLowerCase().trim());
+      }
+      return true;
+    });
+  }, [allDialogues, dialogueScope, selectedDialoguePageIndex, dialogueFilterText]);
+
+  const handleConvertDialogues = () => {
+    if (!storyEditorRef.current) return;
+    let convertedCount = 0;
+    if (dialogueScope === 'all') {
+      convertedCount = storyEditorRef.current.convertAllDialogues(dialogueTargetStyle);
+    } else {
+      convertedCount = storyEditorRef.current.convertPageDialogues(
+        dialogueTargetStyle,
+        selectedDialoguePageIndex,
+      );
+    }
+    if (convertedCount > 0) {
+      setDialogueActionFeedback(
+        t('dialogueConvertedSuccess', {
+          count: convertedCount,
+          style: dialogueTargetStyle === 'dash' ? t('dashStyle') : t('quotesStyle'),
+        }),
+      );
+      setHasUnsavedChanges(true);
+    } else {
+      setDialogueActionFeedback(t('dialogueConvertedNone'));
+    }
+    setTimeout(() => {
+      setDialogueActionFeedback('');
+    }, 3500);
+  };
+
+  const handleSelectDialogue = (diag: DialogueItem) => {
+    setSelectedDialoguePageIndex(diag.pageIndex);
+    storyEditorRef.current?.scrollToDialogue(diag.rawText, diag.pageIndex);
+  };
   const panelDragRef = useRef<{
     pointerId: number;
     startY: number;
@@ -742,12 +827,22 @@ export function Writer() {
   if (!story) return null;
 
   return (
-    <div className="relative w-full max-w-none mx-auto pt-2 pb-0 px-0 animate-in fade-in duration-500 md:pl-[300px]">
+    <div
+      className={`relative w-full max-w-none mx-auto pt-2 pb-0 px-0 animate-in fade-in duration-500 ${
+        !isWriterPanelCollapsed && writerTab === 'dialogues'
+          ? 'md:pl-[340px]'
+          : 'md:pl-[300px]'
+      }`}
+    >
       <aside
         ref={writerPanelRef}
         className="fixed top-24 z-[60] transition-[width] duration-200"
         style={{
-          width: isWriterPanelCollapsed ? 48 : 'min(280px, calc(100vw - 24px))',
+          width: isWriterPanelCollapsed
+            ? 48
+            : writerTab === 'dialogues'
+              ? 'min(320px, calc(100vw - 24px))'
+              : 'min(280px, calc(100vw - 24px))',
           left: 'max(12px, calc((100vw - 1400px) / 2 - 4px))',
           top: writerPanelTop,
           maxHeight: 'calc(100dvh - 112px)',
@@ -805,175 +900,450 @@ export function Writer() {
             )}
           </div>
 
-          {!isWriterPanelCollapsed && (
-            <div className="mt-3 space-y-4">
-              <div className="flex min-h-8 items-center gap-2 px-2 text-[10px] font-mono">
-                {isAutoSaving ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" />
-                    <span className="text-blue-600 dark:text-blue-400">
-                      {t('localDraftSaving')}
-                    </span>
-                  </>
-                ) : hasUnsavedChanges && lastLocalDraftSaveTime ? (
-                  <>
-                    <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
-                    <span className="text-blue-700 dark:text-blue-300">
-                      {t('localDraftSavedAt', {
-                        time: formatTime(lastLocalDraftSaveTime),
-                      })}
-                    </span>
-                  </>
-                ) : hasUnsavedChanges || hasDraftConflict ? (
-                  <>
-                    <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
-                    <span>{t('localDraftPending')}</span>
-                  </>
-                ) : lastFirestoreSaveTime ? (
-                  <>
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                    <span className="text-emerald-700 dark:text-emerald-400">
-                      {t('draftSavedAt', {
-                        time: formatTime(lastFirestoreSaveTime),
-                      })}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <span>{t('localDraftReady')}</span>
-                  </>
+          {isWriterPanelCollapsed && (
+            <div className="mt-3 flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setWriterTab('story');
+                  setIsWriterPanelCollapsed(false);
+                }}
+                className={cn(
+                  'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
+                  writerTab === 'story'
+                    ? 'bg-white/20 text-white'
+                    : 'hover:bg-white/10 text-white/70 hover:text-white',
                 )}
+                title={t('storySettings')}
+              >
+                <FileText className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setWriterTab('dialogues');
+                  setIsWriterPanelCollapsed(false);
+                }}
+                className={cn(
+                  'relative w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
+                  writerTab === 'dialogues'
+                    ? 'bg-amber-500/30 text-amber-300'
+                    : 'hover:bg-white/10 text-amber-400 hover:text-amber-300',
+                )}
+                title={t('dialogues')}
+              >
+                <MessagesSquare className="w-4 h-4" />
+                {allDialogues.length > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-black text-[9px] font-bold flex items-center justify-center">
+                    {allDialogues.length > 99 ? '99+' : allDialogues.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSave(true)}
+                disabled={isSaving || isAutoSaving || hasDraftConflict}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 disabled:opacity-40"
+                title={t('saveDraft')}
+              >
+                <Save className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {!isWriterPanelCollapsed && (
+            <>
+              {/* Tab Selector */}
+              <div className="mt-2.5 flex rounded-lg bg-black/40 p-1 border border-white/10 text-[10px] font-bold uppercase tracking-wider">
+                <button
+                  type="button"
+                  onClick={() => setWriterTab('story')}
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md transition-all',
+                    writerTab === 'story'
+                      ? 'bg-white/20 text-white shadow-xs'
+                      : 'text-white/60 hover:text-white',
+                  )}
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  <span>{t('storySettings')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWriterTab('dialogues')}
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md transition-all',
+                    writerTab === 'dialogues'
+                      ? 'bg-amber-500/25 text-amber-300 shadow-xs border border-amber-500/40'
+                      : 'text-white/60 hover:text-white',
+                  )}
+                >
+                  <MessagesSquare className="h-3.5 w-3.5" />
+                  <span>{t('dialogues')}</span>
+                  {allDialogues.length > 0 && (
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-200 text-[9px] font-mono">
+                      {allDialogues.length}
+                    </span>
+                  )}
+                </button>
               </div>
 
-              <label className="block">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest opacity-60">
-                  {t('editTitle')}
-                </span>
-                <input
-                  type="text"
-                  value={editTitle || ''}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="paper-card w-full rounded-lg px-3 py-2.5 font-serif text-base font-bold focus:outline-none"
-                />
-              </label>
+              {writerTab === 'story' ? (
+                <div className="mt-3 space-y-4">
+                  <div className="flex min-h-8 items-center gap-2 px-2 text-[10px] font-mono">
+                    {isAutoSaving ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" />
+                        <span className="text-blue-600 dark:text-blue-400">
+                          {t('localDraftSaving')}
+                        </span>
+                      </>
+                    ) : hasUnsavedChanges && lastLocalDraftSaveTime ? (
+                      <>
+                        <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
+                        <span className="text-blue-700 dark:text-blue-300">
+                          {t('localDraftSavedAt', {
+                            time: formatTime(lastLocalDraftSaveTime),
+                          })}
+                        </span>
+                      </>
+                    ) : hasUnsavedChanges || hasDraftConflict ? (
+                      <>
+                        <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                        <span>{t('localDraftPending')}</span>
+                      </>
+                    ) : lastFirestoreSaveTime ? (
+                      <>
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                        <span className="text-emerald-700 dark:text-emerald-400">
+                          {t('draftSavedAt', {
+                            time: formatTime(lastFirestoreSaveTime),
+                          })}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                        <span>{t('localDraftReady')}</span>
+                      </>
+                    )}
+                  </div>
 
-              <label className="block">
-                <span className="mb-1.5 flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
-                    {t('editAuthor')}
-                  </span>
-                  {profile && (
-                    <select
-                      value=""
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === 'name' && profile.displayName) {
-                          setEditAuthor(profile.displayName);
-                        } else if (val === 'user' && profile.username) {
-                          setEditAuthor(profile.username);
-                        }
-                      }}
-                      className="max-w-28 cursor-pointer rounded-md border border-[#1A1A1A]/10 bg-white px-1.5 py-1 text-[9px] font-bold uppercase dark:border-white/10 dark:bg-[#1A1A1A]"
-                    >
-                      <option value="" disabled>
-                        {language === 'pt'
-                          ? 'Identificação'
-                          : language === 'es'
-                            ? 'Identificación'
-                            : language === 'zh'
-                              ? '预设作者'
-                              : language === 'id'
-                                ? 'Identitas'
-                                : 'Identity'}
-                      </option>
-                      <option value="name">
-                        {language === 'pt'
-                          ? 'Nome'
-                          : language === 'es'
-                            ? 'Nombre'
-                            : language === 'zh'
-                              ? '姓名'
-                              : language === 'id'
-                                ? 'Nama'
-                                : 'Name'}
-                      </option>
-                      <option value="user">
-                        {language === 'pt'
-                          ? 'Usuário'
-                          : language === 'es'
-                            ? 'Usuario'
-                            : language === 'zh'
-                              ? '用户名'
-                              : language === 'id'
-                                ? 'Pengguna'
-                                : 'Username'}
-                      </option>
-                    </select>
-                  )}
-                </span>
-                <input
-                  type="text"
-                  value={editAuthor || ''}
-                  onChange={(e) => setEditAuthor(e.target.value)}
-                  className="paper-card w-full rounded-lg px-3 py-2.5 font-serif text-base focus:outline-none"
-                />
-              </label>
+                  <label className="block">
+                    <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest opacity-60">
+                      {t('editTitle')}
+                    </span>
+                    <input
+                      type="text"
+                      value={editTitle || ''}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="paper-card w-full rounded-lg px-3 py-2.5 font-serif text-base font-bold focus:outline-none"
+                    />
+                  </label>
 
-              <label className="block">
-                <span className="mb-1.5 flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-widest opacity-60">
-                  <span>{t('scheduledRelease')}</span>
-                  {scheduledReleaseAt && (
+                  <label className="block">
+                    <span className="mb-1.5 flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                        {t('editAuthor')}
+                      </span>
+                      {profile && (
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === 'name' && profile.displayName) {
+                              setEditAuthor(profile.displayName);
+                            } else if (val === 'user' && profile.username) {
+                              setEditAuthor(profile.username);
+                            }
+                          }}
+                          className="max-w-28 cursor-pointer rounded-md border border-[#1A1A1A]/10 bg-white px-1.5 py-1 text-[9px] font-bold uppercase dark:border-white/10 dark:bg-[#1A1A1A]"
+                        >
+                          <option value="" disabled>
+                            {language === 'pt'
+                              ? 'Identificação'
+                              : language === 'es'
+                                ? 'Identificación'
+                                : language === 'zh'
+                                  ? '预设作者'
+                                  : language === 'id'
+                                    ? 'Identitas'
+                                    : 'Identity'}
+                          </option>
+                          <option value="name">
+                            {language === 'pt'
+                              ? 'Nome'
+                              : language === 'es'
+                                ? 'Nombre'
+                                : language === 'zh'
+                                  ? '姓名'
+                                  : language === 'id'
+                                    ? 'Nama'
+                                    : 'Name'}
+                          </option>
+                          <option value="user">
+                            {language === 'pt'
+                              ? 'Usuário'
+                              : language === 'es'
+                                ? 'Usuario'
+                                : language === 'zh'
+                                  ? '用户名'
+                                  : language === 'id'
+                                    ? 'Pengguna'
+                                    : 'Username'}
+                          </option>
+                        </select>
+                      )}
+                    </span>
+                    <input
+                      type="text"
+                      value={editAuthor || ''}
+                      onChange={(e) => setEditAuthor(e.target.value)}
+                      className="paper-card w-full rounded-lg px-3 py-2.5 font-serif text-base focus:outline-none"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1.5 flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-widest opacity-60">
+                      <span>{t('scheduledRelease')}</span>
+                      {scheduledReleaseAt && (
+                        <button
+                          type="button"
+                          onClick={() => setScheduledReleaseAt('')}
+                          className="text-red-500 hover:text-red-700 dark:hover:text-red-400"
+                        >
+                          {t('clearSchedule')}
+                        </button>
+                      )}
+                    </span>
+                    <input
+                      type="datetime-local"
+                      value={scheduledReleaseAt || ''}
+                      onChange={(e) => setScheduledReleaseAt(e.target.value)}
+                      className="paper-card w-full rounded-lg px-3 py-2.5 font-mono text-xs focus:outline-none"
+                    />
+                  </label>
+
+                  <div className="grid grid-cols-1 gap-2 border-t border-black/10 pt-3 dark:border-white/10">
                     <button
                       type="button"
-                      onClick={() => setScheduledReleaseAt('')}
-                      className="text-red-500 hover:text-red-700 dark:hover:text-red-400"
+                      onClick={() => handleSave(true)}
+                      disabled={isSaving || isAutoSaving || hasDraftConflict}
+                      className="paper-btn-accent flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+                      title={t('saveDraft')}
                     >
-                      {t('clearSchedule')}
+                      {isSaving ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                      <span>{t('saveDraft')}</span>
                     </button>
-                  )}
-                </span>
-                <input
-                  type="datetime-local"
-                  value={scheduledReleaseAt || ''}
-                  onChange={(e) => setScheduledReleaseAt(e.target.value)}
-                  className="paper-card w-full rounded-lg px-3 py-2.5 font-mono text-xs focus:outline-none"
-                />
-              </label>
+                    <button
+                      type="button"
+                      onClick={() => handleSave(false)}
+                      disabled={isSaving || isAutoSaving || hasDraftConflict}
+                      className="paper-btn-dark flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+                      title={story.isDraft ? t('publishNow') : t('saveChanges')}
+                    >
+                      {isSaving ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                      <span>
+                        {story.isDraft ? t('publishNow') : t('saveChanges')}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Tab de Diálogos */
+                <div className="mt-3 space-y-3">
+                  {/* Stats Overview */}
+                  <div className="p-2.5 rounded-lg bg-white/5 border border-white/10 text-xs">
+                    <div className="flex items-center justify-between text-[11px] font-bold">
+                      <span className="text-white/70">{t('dialogues')}</span>
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-[10px]">
+                        {allDialogues.length} {allDialogues.length === 1 ? 'fala' : 'falas'}
+                      </span>
+                    </div>
+                    {allDialogues.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between text-[10px]">
+                        <span className="text-white/60">{t('dominantStyle')}:</span>
+                        <span className="font-semibold text-white/90">
+                          {dialogueStats.dominantStyle === 'dash'
+                            ? `— ${t('dashStyle')} (${dialogueStats.dashCount})`
+                            : dialogueStats.dominantStyle === 'quotes'
+                              ? `“ ” ${t('quotesStyle')} (${dialogueStats.quotesCount})`
+                              : 'Misto / Variado'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
-              <div className="grid grid-cols-1 gap-2 border-t border-black/10 pt-3 dark:border-white/10">
-                <button
-                  type="button"
-                  onClick={() => handleSave(true)}
-                  disabled={isSaving || isAutoSaving || hasDraftConflict}
-                  className="paper-btn-accent flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
-                  title={t('saveDraft')}
-                >
-                  {isSaving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                  <span>{t('saveDraft')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSave(false)}
-                  disabled={isSaving || isAutoSaving || hasDraftConflict}
-                  className="paper-btn-dark flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
-                  title={story.isDraft ? t('publishNow') : t('saveChanges')}
-                >
-                  {isSaving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                  <span>
-                    {story.isDraft ? t('publishNow') : t('saveChanges')}
-                  </span>
-                </button>
-              </div>
-            </div>
+                  {/* Formatação e Conversão */}
+                  <div className="space-y-2">
+                    <span className="block text-[10px] font-bold uppercase tracking-widest opacity-60">
+                      {t('dialogueStyle')}
+                    </span>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setDialogueTargetStyle('dash')}
+                        className={cn(
+                          'flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border text-xs font-bold transition-all',
+                          dialogueTargetStyle === 'dash'
+                            ? 'bg-amber-500/25 border-amber-500 text-amber-300 shadow-sm'
+                            : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                        )}
+                      >
+                        <span>— Travessão</span>
+                        {dialogueTargetStyle === 'dash' && <Check className="w-3.5 h-3.5" />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDialogueTargetStyle('quotes')}
+                        className={cn(
+                          'flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border text-xs font-bold transition-all',
+                          dialogueTargetStyle === 'quotes'
+                            ? 'bg-amber-500/25 border-amber-500 text-amber-300 shadow-sm'
+                            : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                        )}
+                      >
+                        <span>“ ” Aspas</span>
+                        {dialogueTargetStyle === 'quotes' && <Check className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+
+                    {/* Escopo */}
+                    <div className="flex rounded-lg bg-black/40 p-1 border border-white/10 text-[10px] font-bold uppercase tracking-wider">
+                      <button
+                        type="button"
+                        onClick={() => setDialogueScope('page')}
+                        className={cn(
+                          'flex-1 py-1 px-1 rounded-md text-center transition-all',
+                          dialogueScope === 'page'
+                            ? 'bg-white/20 text-white shadow-xs'
+                            : 'text-white/60 hover:text-white'
+                        )}
+                      >
+                        {pages.length > 1 ? `Pág. ${selectedDialoguePageIndex + 1}` : 'Página 1'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDialogueScope('all')}
+                        className={cn(
+                          'flex-1 py-1 px-1 rounded-md text-center transition-all',
+                          dialogueScope === 'all'
+                            ? 'bg-white/20 text-white shadow-xs'
+                            : 'text-white/60 hover:text-white'
+                        )}
+                      >
+                        {t('allPages')}
+                      </button>
+                    </div>
+
+                    {dialogueScope === 'page' && pages.length > 1 && (
+                      <select
+                        value={selectedDialoguePageIndex}
+                        onChange={(e) => setSelectedDialoguePageIndex(Number(e.target.value))}
+                        className="w-full text-xs font-bold rounded-lg bg-black/40 border border-white/15 px-2.5 py-1.5 text-white/90 cursor-pointer"
+                      >
+                        {pages.map((_, pIdx) => {
+                          const count = allDialogues.filter((d) => d.pageIndex === pIdx).length;
+                          return (
+                            <option key={pIdx} value={pIdx} className="bg-[#121212] text-white">
+                              Página {pIdx + 1} ({count} {count === 1 ? 'fala' : 'falas'})
+                            </option>
+                          );
+                        })}
+                      </select>
+                    )}
+
+                    {/* Botão de conversão */}
+                    <button
+                      type="button"
+                      onClick={handleConvertDialogues}
+                      disabled={allDialogues.length === 0}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-black font-bold text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-40"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>
+                        {dialogueScope === 'all'
+                          ? t('convertAllDialogues')
+                          : t('convertPageDialogues', { page: selectedDialoguePageIndex + 1 })}
+                      </span>
+                    </button>
+
+                    {/* Feedback */}
+                    {dialogueActionFeedback && (
+                      <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold text-center animate-in fade-in">
+                        {dialogueActionFeedback}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Lista de Falas (Navegador) */}
+                  <div className="pt-2 border-t border-white/10 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                        {t('dialogues')} ({filteredDialogues.length})
+                      </span>
+                    </div>
+
+                    {/* Busca */}
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40" />
+                      <input
+                        type="text"
+                        value={dialogueFilterText}
+                        onChange={(e) => setDialogueFilterText(e.target.value)}
+                        placeholder={t('filterDialogues')}
+                        className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-lg bg-black/40 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-amber-500/50"
+                      />
+                    </div>
+
+                    {/* Lista com scroll */}
+                    <div className="max-h-[260px] overflow-y-auto space-y-1.5 pr-1">
+                      {filteredDialogues.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-white/50 italic">
+                          {allDialogues.length === 0
+                            ? t('noDialoguesStory')
+                            : t('noDialoguesFound')}
+                        </div>
+                      ) : (
+                        filteredDialogues.map((diag) => (
+                          <button
+                            key={diag.id}
+                            type="button"
+                            onClick={() => handleSelectDialogue(diag)}
+                            className="w-full text-left p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-500/40 transition-all group"
+                          >
+                            <div className="flex items-center justify-between text-[9px] font-mono mb-1">
+                              <span
+                                className={cn(
+                                  'px-1.5 py-0.2 rounded font-bold',
+                                  diag.style === 'dash'
+                                    ? 'bg-violet-500/20 text-violet-300'
+                                    : 'bg-emerald-500/20 text-emerald-300'
+                                )}
+                              >
+                                {diag.style === 'dash' ? '— Travessão' : '“ ” Aspas'}
+                              </span>
+                              <span className="text-white/50">Pág. {diag.pageIndex + 1}</span>
+                            </div>
+                            <p className="font-serif text-[11px] leading-snug text-white/85 group-hover:text-amber-200 line-clamp-2">
+                              {diag.preview}
+                            </p>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </aside>
@@ -1058,6 +1428,7 @@ export function Writer() {
         )}
         <div className="min-w-0 rounded-xl p-1.5 paper-card sm:p-2">
           <StoryEditor
+            ref={storyEditorRef}
             initialPages={pages}
             supporters={editSupporters}
             renderReaderPreview={(previewPages) => (

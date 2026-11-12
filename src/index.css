@@ -406,4 +406,24 @@ html.dark {
   display: none;
 }
 
+@keyframes dialoguePulse {
+  0% {
+    background-color: rgba(245, 158, 11, 0.45);
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.35);
+    border-radius: 6px;
+  }
+  50% {
+    background-color: rgba(245, 158, 11, 0.25);
+    box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.15);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+.dialogue-highlight-pulse {
+  animation: dialoguePulse 1.8s ease-out forwards;
+}
+
 
