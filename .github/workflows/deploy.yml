@@ -29,10 +29,47 @@ jobs:
           
       - name: Install dependencies
         run: npm ci || npm install
-        
+
+      - name: Gerar icones do PWA a partir da logo
+        run: |
+          set -e
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq imagemagick
+          mkdir -p public/icons
+          SRC=src/img/favicon.png
+          convert "$SRC" -resize 192x192 public/icons/icon-192.png
+          convert "$SRC" -resize 512x512 public/icons/icon-512.png
+          convert "$SRC" -gravity center -crop 3300x3300+0+0 +repage -resize 360x360 -background "#000000" -gravity center -extent 512x512 public/icons/maskable-512.png
+          convert "$SRC" -gravity center -crop 3300x3300+0+0 +repage -resize 180x180 public/icons/apple-touch-icon.png
+          # o public/favicon.png do repositorio esta corrompido (1o byte trocado): recria valido
+          convert "$SRC" -resize 512x512 public/favicon.png
+          identify public/icons/*.png public/favicon.png
+
       - name: Build
         run: npm run build
-        
+
+      - name: Verificar PWA no build
+        run: |
+          set -e
+          test -f dist/manifest.webmanifest
+          test -f dist/sw.js
+          for f in icon-192 icon-512 maskable-512 apple-touch-icon; do test -f "dist/icons/$f.png"; done
+          python3 - <<'PY'
+          import json
+          m = json.load(open('dist/manifest.webmanifest', encoding='utf-8'))
+          assert m['display'] == 'fullscreen', 'display precisa ser fullscreen'
+          assert m['start_url'] == './' and m['scope'] == './', 'start_url e scope precisam ser ./'
+          have = {(i['sizes'], i.get('purpose', 'any')) for i in m['icons']}
+          for need in [('192x192', 'any'), ('512x512', 'any'), ('512x512', 'maskable')]:
+              assert need in have, 'falta icone ' + str(need)
+          print('manifest ok')
+          PY
+          grep -q 'manifest.webmanifest' dist/index.html
+          if grep -Eq '<link[^>]*rel="manifest"[^>]*href="/' dist/index.html; then
+            echo "::error::O link do manifest no index.html esta com caminho absoluto. No GitHub Pages precisa ser relativo (./manifest.webmanifest)."
+            exit 1
+          fi
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

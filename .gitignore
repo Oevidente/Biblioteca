@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# ícones do PWA são gerados no deploy
+public/icons/
